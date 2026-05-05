@@ -179,6 +179,15 @@ export function useVoice() {
           : openaiKey;
 
       let fullResponse = "";
+      // Sentence-pipelining: flush TTS as each sentence arrives rather than waiting
+      // for the full response. Sentence boundaries: [.!?] followed by whitespace.
+      let sentenceBuffer = "";
+      const SENTENCE_END = /[.!?]\s/;
+
+      function flushSentence(text: string) {
+        const clean = stripPoints(text).trim();
+        if (clean) elevenLabs.queueSentence(clean);
+      }
 
       await streamChat({
         provider: selectedModel.provider,
@@ -196,6 +205,14 @@ export function useVoice() {
         onChunk: (chunk) => {
           appendResponse(chunk);
           fullResponse += chunk;
+          sentenceBuffer += chunk;
+          // Drain all complete sentences from the buffer
+          let idx = sentenceBuffer.search(SENTENCE_END);
+          while (idx !== -1) {
+            flushSentence(sentenceBuffer.slice(0, idx + 1));
+            sentenceBuffer = sentenceBuffer.slice(idx + 2);
+            idx = sentenceBuffer.search(SENTENCE_END);
+          }
         },
       });
 
@@ -260,8 +277,8 @@ export function useVoice() {
         }
       }
 
-      const speakText = stripPoints(fullResponse);
-      if (speakText) elevenLabs.speak(speakText);
+      // Flush any remaining text that didn't end at a sentence boundary
+      flushSentence(sentenceBuffer);
     } catch (err) {
       console.error("[useVoice] AI pipeline error:", err);
       const msg = err instanceof Error ? err.message : String(err);

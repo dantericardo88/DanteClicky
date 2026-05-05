@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import ReactMarkdown from "react-markdown";
 import { useCompanionStore } from "../state/companionStore";
-import { parsePoints, stripPoints, denormalize } from "../providers/pointParser";
+import { parsePoints, stripPoints } from "../providers/pointParser";
 import { colors, radii, shadows } from "../lib/designSystem";
 
 interface VerifyBadge {
@@ -64,18 +64,6 @@ export default function OverlayPanel() {
 
   const points = parsePoints(response);
   const displayText = stripPoints(response);
-
-  // Animate cursor to the first detected point whenever a new set arrives
-  useEffect(() => {
-    if (points.length === 0) return;
-    const first = points[0];
-    const { px, py } = denormalize(
-      first,
-      window.screen.width,
-      window.screen.height,
-    );
-    invoke("animate_cursor_to", { x: px, y: py }).catch(console.error);
-  }, [points]);
 
   const isActive =
     voiceState === "responding" ||

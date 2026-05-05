@@ -231,6 +231,20 @@ pub fn run() {
 
             overlay.set_ignore_cursor_events(true)?;
 
+            // Make the overlay invisible to all screen-capture APIs (Zoom, Teams, OBS, Game Bar).
+            // WDA_EXCLUDEFROMCAPTURE requires Windows 10 20H1+; silently ignored if unavailable.
+            #[cfg(target_os = "windows")]
+            {
+                use windows::Win32::UI::WindowsAndMessaging::{
+                    SetWindowDisplayAffinity, WDA_EXCLUDEFROMCAPTURE,
+                };
+                if let Ok(hwnd) = overlay.hwnd() {
+                    unsafe {
+                        let _ = SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
+                    }
+                }
+            }
+
             tray::setup(&handle)?;
             hotkey::setup(&handle)?;
 

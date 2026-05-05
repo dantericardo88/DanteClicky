@@ -108,7 +108,7 @@ export default function CompanionPanel() {
   }
 
   const statusLabel: Record<typeof voiceState, string> = {
-    idle: "Hold Ctrl+Alt+Space to speak",
+    idle: `Hold ${hotkeyBinding} to speak`,
     listening: "Listening…",
     processing: "Processing…",
     responding: "Responding…",
@@ -436,10 +436,11 @@ export default function CompanionPanel() {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function OnboardingCard({ onOpenSettings }: { onOpenSettings: () => void }) {
+  const { hotkeyBinding } = useCompanionStore();
   const steps = [
     { num: "1", text: "Open ⚙ Settings" },
     { num: "2", text: "Paste your Anthropic API key" },
-    { num: "3", text: "Hold Ctrl+Alt+Space to ask anything" },
+    { num: "3", text: `Hold ${hotkeyBinding} to ask anything` },
   ];
 
   return (
@@ -994,6 +995,8 @@ function SttModeSection() {
 }
 
 function HotkeyHint() {
+  const { hotkeyBinding } = useCompanionStore();
+  const keys = hotkeyBinding.split("+").filter(Boolean);
   return (
     <div
       style={{
@@ -1007,7 +1010,7 @@ function HotkeyHint() {
     >
       <span style={{ ...typography.caption, color: colors.textSecondary }}>Push-to-talk</span>
       <div style={{ display: "flex", gap: "3px" }}>
-        {["Ctrl", "Alt", "Space"].map((k) => (
+        {keys.map((k) => (
           <span
             key={k}
             style={{

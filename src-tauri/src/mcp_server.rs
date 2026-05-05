@@ -30,7 +30,6 @@ type SessionMap = Arc<Mutex<HashMap<String, broadcast::Sender<String>>>>;
 
 #[derive(Clone)]
 struct McpState {
-    #[allow(dead_code)]
     app: AppHandle,
     sessions: SessionMap,
 }
@@ -151,12 +150,105 @@ async fn message_handler(
 // ── Tool dispatch ─────────────────────────────────────────────────────────────
 
 async fn handle_tool_call(app: &AppHandle, params: &Value) -> Result<Value, String> {
-    use crate::{capture, cursor, input};
+    use crate::{capture, cursor, input, monitors};
 
     let tool_name = params["name"].as_str().ok_or("Missing tool name")?;
     let args = params.get("arguments").cloned().unwrap_or(Value::Null);
 
     match tool_name {
+        // ── New clicky_* tools ────────────────────────────────────────────────
+
+        "clicky_screenshot" => {
+            let screens = capture::capture_all()?;
+            let content: Vec<Value> = screens
+                .into_iter()
+                .map(|s| {
+                    json!({
+                        "type": "image",
+                        "data": s["data"],
+                        "mimeType": "image/jpeg",
+                        "label": s["label"],
+                        "width": s["width"],
+                        "height": s["height"],
+                        "x": s["x"],
+                        "y": s["y"],
+                        "is_primary": s["is_primary"]
+                    })
+                })
+                .collect();
+            Ok(json!(content))
+        }
+
+        "clicky_click" => {
+            let x = args["x"].as_i64().ok_or("Missing x")? as i32;
+            let y = args["y"].as_i64().ok_or("Missing y")? as i32;
+            input::computer_use_click_raw(x, y)?;
+            Ok(json!([{ "type": "text", "text": format!("Left-clicked at ({x}, {y})") }]))
+        }
+
+        "clicky_double_click" => {
+            let x = args["x"].as_i64().ok_or("Missing x")? as i32;
+            let y = args["y"].as_i64().ok_or("Missing y")? as i32;
+            input::computer_use_double_click(x, y)?;
+            Ok(json!([{ "type": "text", "text": format!("Double-clicked at ({x}, {y})") }]))
+        }
+
+        "clicky_right_click" => {
+            let x = args["x"].as_i64().ok_or("Missing x")? as i32;
+            let y = args["y"].as_i64().ok_or("Missing y")? as i32;
+            input::computer_use_right_click(x, y)?;
+            Ok(json!([{ "type": "text", "text": format!("Right-clicked at ({x}, {y})") }]))
+        }
+
+        "clicky_type" => {
+            let text = args["text"].as_str().ok_or("Missing text")?;
+            input::computer_use_type_raw(text)?;
+            Ok(json!([{ "type": "text", "text": format!("Typed: {text}") }]))
+        }
+
+        "clicky_scroll" => {
+            let x = args["x"].as_i64().ok_or("Missing x")? as i32;
+            let y = args["y"].as_i64().ok_or("Missing y")? as i32;
+            let dx = args["dx"].as_i64().unwrap_or(0) as i32;
+            let dy = args["dy"].as_i64().unwrap_or(0) as i32;
+            input::computer_use_scroll_raw(x, y, dx, dy)?;
+            Ok(json!([{
+                "type": "text",
+                "text": format!("Scrolled at ({x},{y}) by dx={dx} dy={dy}")
+            }]))
+        }
+
+        "clicky_move_cursor" => {
+            let x = args["x"].as_i64().ok_or("Missing x")? as i32;
+            let y = args["y"].as_i64().ok_or("Missing y")? as i32;
+            tokio::task::spawn_blocking(move || cursor::animate_cursor_to_blocking(x, y))
+                .await
+                .map_err(|e| e.to_string())?;
+            Ok(json!([{ "type": "text", "text": format!("Moved cursor to ({x}, {y})") }]))
+        }
+
+        "clicky_get_monitors" => {
+            let mons = monitors::enumerate(app);
+            let list: Vec<Value> = mons
+                .iter()
+                .map(|m| {
+                    json!({
+                        "id": m.id,
+                        "label": m.label,
+                        "x": m.x,
+                        "y": m.y,
+                        "width": m.width,
+                        "height": m.height,
+                        "scale_factor": m.scale_factor,
+                        "is_primary": m.is_primary
+                    })
+                })
+                .collect();
+            Ok(json!([{ "type": "text", "text": serde_json::to_string(&list).unwrap_or_default() }]))
+        }
+
+        // ── Legacy tools (kept for backward compatibility) ────────────────────
+
         "capture_screen" => {
             let b64 = capture::capture_primary()?;
             Ok(json!([{ "type": "image", "data": b64, "mimeType": "image/jpeg" }]))
@@ -190,8 +282,6 @@ async fn handle_tool_call(app: &AppHandle, params: &Value) -> Result<Value, Stri
         "move_cursor" => {
             let x = args["x"].as_i64().ok_or("Missing x")? as i32;
             let y = args["y"].as_i64().ok_or("Missing y")? as i32;
-            // Run blocking animation on a spawn_blocking thread so we don't
-            // tie up the async executor during the ~320 ms sleep loop.
             tokio::task::spawn_blocking(move || cursor::animate_cursor_to_blocking(x, y))
                 .await
                 .map_err(|e| e.to_string())?;
@@ -221,6 +311,97 @@ async fn handle_tool_call(app: &AppHandle, params: &Value) -> Result<Value, Stri
 
 fn mcp_tools() -> Value {
     json!([
+        // ── New clicky_* tools ────────────────────────────────────────────────
+        {
+            "name": "clicky_screenshot",
+            "description": "Capture all monitors and return base64 JPEG images with monitor metadata",
+            "inputSchema": {
+                "type": "object",
+                "properties": {}
+            }
+        },
+        {
+            "name": "clicky_click",
+            "description": "Left-click at absolute screen coordinates",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "x": { "type": "number", "description": "X coordinate in physical pixels" },
+                    "y": { "type": "number", "description": "Y coordinate in physical pixels" }
+                },
+                "required": ["x", "y"]
+            }
+        },
+        {
+            "name": "clicky_double_click",
+            "description": "Double left-click at absolute screen coordinates",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "x": { "type": "number", "description": "X coordinate in physical pixels" },
+                    "y": { "type": "number", "description": "Y coordinate in physical pixels" }
+                },
+                "required": ["x", "y"]
+            }
+        },
+        {
+            "name": "clicky_right_click",
+            "description": "Right-click at absolute screen coordinates",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "x": { "type": "number", "description": "X coordinate in physical pixels" },
+                    "y": { "type": "number", "description": "Y coordinate in physical pixels" }
+                },
+                "required": ["x", "y"]
+            }
+        },
+        {
+            "name": "clicky_type",
+            "description": "Type text via keyboard injection at the current cursor focus",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "text": { "type": "string", "description": "Text to type" }
+                },
+                "required": ["text"]
+            }
+        },
+        {
+            "name": "clicky_scroll",
+            "description": "Scroll at absolute screen coordinates with horizontal and vertical deltas",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "x":  { "type": "number", "description": "X coordinate in physical pixels" },
+                    "y":  { "type": "number", "description": "Y coordinate in physical pixels" },
+                    "dx": { "type": "number", "description": "Horizontal scroll delta (positive = right)" },
+                    "dy": { "type": "number", "description": "Vertical scroll delta (positive = down)" }
+                },
+                "required": ["x", "y"]
+            }
+        },
+        {
+            "name": "clicky_move_cursor",
+            "description": "Smoothly animate the cursor to absolute screen coordinates",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "x": { "type": "number", "description": "X coordinate in physical pixels" },
+                    "y": { "type": "number", "description": "Y coordinate in physical pixels" }
+                },
+                "required": ["x", "y"]
+            }
+        },
+        {
+            "name": "clicky_get_monitors",
+            "description": "List all connected monitors with their positions, sizes, and scale factors",
+            "inputSchema": {
+                "type": "object",
+                "properties": {}
+            }
+        },
+        // ── Legacy tools (kept for backward compatibility) ────────────────────
         {
             "name": "capture_screen",
             "description": "Capture the primary monitor as a JPEG screenshot",

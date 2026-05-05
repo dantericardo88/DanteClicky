@@ -17,6 +17,64 @@ import { summarizeOldTurns } from "../lib/memorySummarizer";
 //   Cloud → AssemblyAI WebSocket real-time
 //   Local → whisper-rs offline (transcribe_local Tauri command)
 
+// ── Tool-use dispatch ─────────────────────────────────────────────────────────
+const TOOL_DISPATCH = {
+  computer_use: async (input: {
+    action: string;
+    x?: number;
+    y?: number;
+    text?: string;
+    delta?: number;
+  }) => {
+    switch (input.action) {
+      case "screenshot":
+        return await invoke("capture_screens");
+      case "click":
+        return await invoke("computer_use_click", { x: input.x, y: input.y });
+      case "type":
+        return await invoke("computer_use_type", { text: input.text });
+      case "scroll":
+        return await invoke("computer_use_scroll", {
+          x: input.x,
+          y: input.y,
+          delta: input.delta ?? 3,
+        });
+      case "move":
+        return await invoke("computer_use_move", { x: input.x, y: input.y });
+      default:
+        return { error: `Unknown action: ${input.action}` };
+    }
+  },
+} as const;
+
+function classifyAction(action: string): "safe" | "ui" | "system" {
+  if (action === "screenshot" || action === "move") return "safe";
+  if (action === "click" || action === "scroll" || action === "type") return "ui";
+  return "system";
+}
+
+interface ToolUseBlock {
+  type: "tool_use";
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
+// Parse tool_use blocks out of a JSON response body (Claude returns them in content[])
+function parseToolUseBlocks(rawResponse: string): ToolUseBlock[] {
+  try {
+    const parsed = JSON.parse(rawResponse);
+    if (Array.isArray(parsed?.content)) {
+      return parsed.content.filter(
+        (b: { type?: string }) => b?.type === "tool_use"
+      ) as ToolUseBlock[];
+    }
+  } catch {
+    // Not JSON — streaming text response has no tool_use blocks
+  }
+  return [];
+}
+
 export function useVoice() {
   const {
     selectedModel,
@@ -37,6 +95,7 @@ export function useVoice() {
     setConversationSummary,
     setError,
     clearError,
+    setLatencyMs,
   } = useCompanionStore();
 
   const sampleRateRef = useRef<number>(44100);
@@ -189,20 +248,31 @@ export function useVoice() {
         if (clean) elevenLabs.queueSentence(clean);
       }
 
+      // Build the message list for the initial AI call
+      type AiMessage = { role: "user" | "assistant"; content: string };
+      let aiMessages: AiMessage[] = [
+        ...conversationHistory.flatMap((t) => [
+          { role: "user" as const, content: t.userPrompt },
+          { role: "assistant" as const, content: t.assistantResponse },
+        ]),
+        { role: "user", content: transcript },
+      ];
+
+      const t0 = Date.now();
+      let firstToken = true;
+
       await streamChat({
         provider: selectedModel.provider,
         modelId: selectedModel.modelId,
         apiKey,
         systemPrompt: buildSystemPrompt({ memoryContext, conversationSummary, sessionNotes }),
-        messages: [
-          ...conversationHistory.flatMap((t) => [
-            { role: "user" as const, content: t.userPrompt },
-            { role: "assistant" as const, content: t.assistantResponse },
-          ]),
-          { role: "user", content: transcript },
-        ],
+        messages: aiMessages,
         images: selectedModel.supportsVision ? images : [],
         onChunk: (chunk) => {
+          if (firstToken) {
+            setLatencyMs(Date.now() - t0);
+            firstToken = false;
+          }
           appendResponse(chunk);
           fullResponse += chunk;
           sentenceBuffer += chunk;
@@ -215,6 +285,89 @@ export function useVoice() {
           }
         },
       });
+
+      // ── Tool-use dispatch loop (up to 10 iterations) ──────────────────────
+      const MAX_TOOL_ITERATIONS = 10;
+      let toolIteration = 0;
+      let loopResponse = fullResponse;
+
+      while (toolIteration < MAX_TOOL_ITERATIONS) {
+        const toolBlocks = parseToolUseBlocks(loopResponse);
+        if (toolBlocks.length === 0) break;
+
+        toolIteration++;
+
+        // Execute each tool in sequence and collect results
+        const toolResults: AiMessage[] = [];
+        for (const block of toolBlocks) {
+          const dispatchFn =
+            TOOL_DISPATCH[block.name as keyof typeof TOOL_DISPATCH];
+          let result: unknown;
+          if (dispatchFn) {
+            // Log the action classification for safety awareness
+            const safetyLevel = classifyAction(
+              (block.input as { action?: string }).action ?? block.name
+            );
+            console.info(
+              `[tool-loop] iter=${toolIteration} tool=${block.name} action=${
+                (block.input as { action?: string }).action ?? ""
+              } safety=${safetyLevel}`
+            );
+            try {
+              result = await (dispatchFn as (input: Record<string, unknown>) => Promise<unknown>)(
+                block.input
+              );
+            } catch (err) {
+              result = {
+                error: err instanceof Error ? err.message : String(err),
+              };
+            }
+          } else {
+            result = { error: `No handler for tool: ${block.name}` };
+          }
+
+          toolResults.push({
+            role: "user",
+            content: JSON.stringify({
+              type: "tool_result",
+              tool_use_id: block.id,
+              content: JSON.stringify(result),
+            }),
+          });
+        }
+
+        // Append assistant response + tool results to message history
+        aiMessages = [
+          ...aiMessages,
+          { role: "assistant", content: loopResponse },
+          ...toolResults,
+        ];
+
+        // Re-call AI with updated history
+        loopResponse = "";
+        await streamChat({
+          provider: selectedModel.provider,
+          modelId: selectedModel.modelId,
+          apiKey,
+          systemPrompt: buildSystemPrompt({ memoryContext, conversationSummary, sessionNotes }),
+          messages: aiMessages,
+          images: [],
+          onChunk: (chunk) => {
+            appendResponse(chunk);
+            loopResponse += chunk;
+            sentenceBuffer += chunk;
+            let idx = sentenceBuffer.search(SENTENCE_END);
+            while (idx !== -1) {
+              flushSentence(sentenceBuffer.slice(0, idx + 1));
+              sentenceBuffer = sentenceBuffer.slice(idx + 2);
+              idx = sentenceBuffer.search(SENTENCE_END);
+            }
+          },
+        });
+
+        // Append the follow-up text to the main fullResponse for history
+        fullResponse += "\n" + loopResponse;
+      }
 
       // Store clean text in history (no [POINT:] tags)
       pushConversationTurn({
@@ -306,6 +459,7 @@ export function useVoice() {
     pushConversationTurn,
     trimConversationHistory,
     setConversationSummary,
+    setLatencyMs,
     setError,
   ]);
 

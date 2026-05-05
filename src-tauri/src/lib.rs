@@ -6,6 +6,7 @@ mod hotkey;
 mod input;
 mod mcp_server;
 mod monitors;
+mod session;
 mod stt;
 mod tray;
 mod ws_server;
@@ -168,9 +169,19 @@ pub fn run() {
             chat_proxy::get_assemblyai_token,
             chat_proxy::elevenlabs_tts,
             hotkey::set_hotkey,
+            session::db_new_session,
+            session::db_save_message,
+            session::db_get_history,
+            session::db_search_history,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
+
+            // ── Session memory database ───────────────────────────────────────
+            app.handle().manage(
+                session::SessionDb::open(&handle)
+                    .expect("failed to open session database"),
+            );
 
             // ── Companion panel ───────────────────────────────────────────────
             let panel = WebviewWindowBuilder::new(

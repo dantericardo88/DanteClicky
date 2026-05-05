@@ -42,6 +42,10 @@ interface CompanionState {
   elevenLabsKey: string;
   assemblyAiKey: string;
   hotkeyBinding: string;
+  hotkeyCombo: string;
+
+  // TTS mode (persisted to localStorage)
+  ttsMode: "cloud" | "local";
 
   // Memory (persisted to localStorage)
   conversationSummary: string;
@@ -49,6 +53,7 @@ interface CompanionState {
 
   // Actions
   setVoiceState: (state: VoiceState) => void;
+  setTtsMode: (mode: "cloud" | "local") => void;
   setSelectedModel: (model: ModelOption) => void;
   setTranscript: (text: string) => void;
   setResponse: (text: string) => void;
@@ -60,6 +65,7 @@ interface CompanionState {
   setError: (msg: string) => void;
   clearError: () => void;
   setHotkeyBinding: (binding: string) => void;
+  setHotkeyCombo: (combo: string) => void;
   setConversationSummary: (summary: string) => void;
   setSessionNotes: (notes: string) => void;
 }
@@ -79,10 +85,13 @@ export const useCompanionStore = create<CompanionState>()(
       elevenLabsKey: "",
       assemblyAiKey: "",
       hotkeyBinding: "Ctrl+Alt+Space",
+      hotkeyCombo: "ctrl+alt+space",
+      ttsMode: "cloud" as const,
       conversationSummary: "",
       sessionNotes: "",
 
       setVoiceState: (voiceState) => set({ voiceState }),
+      setTtsMode: (ttsMode) => set({ ttsMode }),
       setSelectedModel: (selectedModel) => set({ selectedModel }),
       setTranscript: (transcript) => set({ transcript }),
       setResponse: (response) => set({ response }),
@@ -105,6 +114,7 @@ export const useCompanionStore = create<CompanionState>()(
       setError: (msg) => set({ lastError: msg }),
       clearError: () => set({ lastError: "" }),
       setHotkeyBinding: (binding) => set({ hotkeyBinding: binding }),
+      setHotkeyCombo: (combo) => set({ hotkeyCombo: combo }),
       setConversationSummary: (conversationSummary) => set({ conversationSummary }),
       setSessionNotes: (sessionNotes) => set({ sessionNotes }),
     }),
@@ -119,6 +129,8 @@ export const useCompanionStore = create<CompanionState>()(
         elevenLabsKey: s.elevenLabsKey,
         assemblyAiKey: s.assemblyAiKey,
         hotkeyBinding: s.hotkeyBinding,
+        hotkeyCombo: s.hotkeyCombo,
+        ttsMode: s.ttsMode,
         conversationSummary: s.conversationSummary,
         sessionNotes: s.sessionNotes,
       }),

@@ -29,10 +29,21 @@ rayon = "1"
 cpal = "0.15"
 
 # Phase 6 -- Win32 cursor animation (screenshots 0.8 already brings windows 0.58)
-windows = { version = "0.58", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Graphics_Gdi",
+    "Win32_System_Com",
+    "Win32_UI_Accessibility",
+    "Media_Ocr",
+    "Graphics_Imaging",
+    "Storage_Streams",
+    "Foundation_Collections",
+] }
 
-# Phase 7 -- Auto-start on Windows login
+# Phase 7 -- Auto-start on Windows login + auto-update
 tauri-plugin-autostart = "2"
+tauri-plugin-updater = "2"
 
 # Phase 8 -- Computer-use input control
 enigo = "0.2"
@@ -54,5 +65,15 @@ reqwest = { version = "0.12", features = ["json", "stream"] }
 # Enable with: cargo build --features local-stt
 whisper-rs = { version = "0.13", default-features = false, optional = true }
 
+# Dimension 1 -- Persistent Memory (SQLite with FTS5)
+rusqlite = { version = "0.31", features = ["bundled"] }
+anyhow = "1"
+
+# Dimension 4 -- Local TTS via Kokoro ONNX
+# Enable with: cargo build --features local-tts
+# ort downloads ONNX Runtime DLLs automatically (no cmake needed)
+ort = { version = "2.0.0-rc.12", features = ["download-binaries"], optional = true }
+
 [features]
 local-stt = ["whisper-rs"]
+local-tts = ["ort"]

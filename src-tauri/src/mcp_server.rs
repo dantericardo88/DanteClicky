@@ -213,6 +213,32 @@ async fn handle_tool_call(app: &AppHandle, params: &Value) -> Result<Value, Stri
             }
         }
 
+        "ocr_screen" => {
+            let b64 = capture::capture_primary()?;
+            let text = crate::ocr::ocr_screenshot_internal(&b64).await
+                .unwrap_or_default();
+            Ok(json!([{ "type": "text", "text": if text.is_empty() { "(no text detected)".to_string() } else { text } }]))
+        }
+
+        "recall_memory" => {
+            use crate::session::SessionDb;
+            use tauri::Manager;
+            let query = args["query"].as_str().unwrap_or("");
+            let limit = args["limit"].as_i64().unwrap_or(5) as i32;
+            let db = app.state::<std::sync::Mutex<SessionDb>>();
+            let rows = db.lock().map_err(|e| e.to_string())?
+                .search_history(query, limit)
+                .unwrap_or_default();
+            let text = if rows.is_empty() {
+                "No matching memory found.".to_string()
+            } else {
+                rows.iter().map(|r| {
+                    format!("[{}] user: {}\nassistant: {}", r.created_at, r.user_prompt, r.assistant_response)
+                }).collect::<Vec<_>>().join("\n\n")
+            };
+            Ok(json!([{ "type": "text", "text": text }]))
+        }
+
         _ => Err(format!("Unknown tool: {tool_name}")),
     }
 }
@@ -279,6 +305,23 @@ fn mcp_tools() -> Value {
             "name": "get_screen_size",
             "description": "Get primary monitor dimensions as WIDTHxHEIGHT",
             "inputSchema": { "type": "object", "properties": {}, "required": [] }
+        },
+        {
+            "name": "ocr_screen",
+            "description": "Extract text visible on the primary monitor using Windows OCR. Faster and more precise than asking the vision model to read text.",
+            "inputSchema": { "type": "object", "properties": {}, "required": [] }
+        },
+        {
+            "name": "recall_memory",
+            "description": "Search past conversations by keyword. Returns matching exchanges from the DanteClicky memory store.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "query": { "type": "string", "description": "Keywords to search in past conversations" },
+                    "limit": { "type": "integer", "description": "Max results to return (default 5)" }
+                },
+                "required": ["query"]
+            }
         }
     ])
 }

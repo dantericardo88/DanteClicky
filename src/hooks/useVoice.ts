@@ -17,6 +17,9 @@ import { summarizeOldTurns } from "../lib/memorySummarizer";
 //   Cloud → AssemblyAI WebSocket real-time
 //   Local → whisper-rs offline (transcribe_local Tauri command)
 
+// Maximum number of iterative computer-use loop steps per user request
+const MAX_CU_LOOP_STEPS = 5;
+
 export function useVoice() {
   const {
     selectedModel,
@@ -171,6 +174,57 @@ export function useVoice() {
         // Screenpipe unavailable — continue without memory context
       }
 
+      // OCR the primary screenshot — gives the AI exact text from screen
+      let ocrText = "";
+      if (primaryScreen) {
+        try {
+          ocrText = await invoke<string>("ocr_screenshot", { jpegB64: primaryScreen.data });
+        } catch {
+          // OCR unavailable — continue without text layer
+        }
+      }
+
+      // UIAutomation tree — interactive elements in the focused window
+      let uiTreeText = "";
+      try {
+        const elements = await invoke<Array<{ name: string; role: string; x: number; y: number; width: number; height: number }>>(
+          "get_ui_tree"
+        );
+        if (elements.length > 0) {
+          uiTreeText = elements
+            .map((e) => `${e.role} "${e.name}" at (${e.x},${e.y}) size ${e.width}×${e.height}`)
+            .join("\n");
+        }
+      } catch {
+        // UIAutomation unavailable — continue without element tree
+      }
+
+      // Pull cross-session memory from SQLite — recent + keyword-relevant past turns
+      let sqliteMemory = "";
+      try {
+        type TurnRow = { user_prompt: string; assistant_response: string; created_at: string };
+        const [recent, relevant] = await Promise.all([
+          invoke<TurnRow[]>("get_recent_turns", { limit: 3 }),
+          // FTS5 keyword search against current transcript — finds relevant past exchanges
+          invoke<TurnRow[]>("search_history", { query: transcript, limit: 3 }).catch(() => []),
+        ]);
+        const seen = new Set<string>();
+        const combined = [...recent, ...relevant].filter((t) => {
+          const key = t.created_at + t.user_prompt;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        if (combined.length > 0) {
+          sqliteMemory = combined
+            .slice(0, 5)
+            .map((t) => `[${t.created_at}] you: ${t.user_prompt} → me: ${t.assistant_response}`)
+            .join("\n");
+        }
+      } catch {
+        // DB unavailable — continue without cross-session memory
+      }
+
       const apiKey =
         selectedModel.provider === "claude"
           ? anthropicKey
@@ -193,7 +247,7 @@ export function useVoice() {
         provider: selectedModel.provider,
         modelId: selectedModel.modelId,
         apiKey,
-        systemPrompt: buildSystemPrompt({ memoryContext, conversationSummary, sessionNotes }),
+        systemPrompt: buildSystemPrompt({ memoryContext, sqliteMemory, ocrText, uiTreeText, conversationSummary, sessionNotes }),
         messages: [
           ...conversationHistory.flatMap((t) => [
             { role: "user" as const, content: t.userPrompt },
@@ -216,11 +270,20 @@ export function useVoice() {
         },
       });
 
+      const cleanResponse = stripPoints(fullResponse);
+
       // Store clean text in history (no [POINT:] tags)
       pushConversationTurn({
         userPrompt: transcript,
-        assistantResponse: stripPoints(fullResponse),
+        assistantResponse: cleanResponse,
       });
+
+      // Persist to SQLite for cross-session memory
+      invoke("save_turn", {
+        user: transcript,
+        assistant: cleanResponse,
+        screenshotB64: null,
+      }).catch(() => {});  // non-blocking, best-effort
 
       // Auto-summarize if history is getting long
       if (conversationHistory.length >= 10) {
@@ -244,8 +307,14 @@ export function useVoice() {
           const { px, py } = denormalize(points[0], primaryScreen.width, primaryScreen.height);
 
           if (selectedModel.provider === "claude" && anthropicKey) {
-            // Action verification loop: capture before → animate → click → capture after → ask AI
+            // Action verification + iterative computer-use loop:
+            // capture before → animate → click → capture after → verify → repeat up to MAX_CU_LOOP_STEPS
             try {
+              await emit("cu-step", {
+                step: 1,
+                max_steps: MAX_CU_LOOP_STEPS,
+                label: `clicking ${points[0].label}`,
+              });
               const beforeShot = await invoke<string>("capture_primary");
               await invoke("animate_cursor_to", { x: px, y: py });
               // Let the cursor animation settle before clicking
@@ -267,8 +336,79 @@ export function useVoice() {
                 label: points[0].label,
                 explanation: result.explanation,
               });
+
+              // ── Iterative computer-use loop ──────────────────────────────────
+              // Continue if the AI response hinted at a multi-step task.
+              // Stop after MAX_CU_LOOP_STEPS total steps.
+              let loopStep = 1;
+              while (loopStep < MAX_CU_LOOP_STEPS) {
+                const seemsMultiStep = /\b(then|next|after that|followed by|step)\b/i.test(
+                  fullResponse
+                );
+                if (!seemsMultiStep) break;
+
+                await emit("cu-step", {
+                  step: loopStep + 1,
+                  max_steps: MAX_CU_LOOP_STEPS,
+                  label: "checking result...",
+                });
+
+                const followUpScreen = await invoke<string>("capture_primary").catch(
+                  () => null
+                );
+                if (!followUpScreen) break;
+
+                // Ask the AI what happened and what to do next
+                let loopResponse = "";
+                await streamChat({
+                  provider: selectedModel.provider,
+                  modelId: selectedModel.modelId,
+                  apiKey,
+                  systemPrompt: buildSystemPrompt({
+                    memoryContext: "",
+                    conversationSummary,
+                    sessionNotes,
+                  }),
+                  messages: [
+                    { role: "user", content: transcript },
+                    { role: "assistant", content: fullResponse },
+                    {
+                      role: "user",
+                      content:
+                        "I executed the action. Look at the current screen — did it work? What should I do next? If the task is complete, just confirm.",
+                    },
+                  ],
+                  images: [followUpScreen],
+                  onChunk: (chunk) => {
+                    loopResponse += chunk;
+                  },
+                });
+
+                const nextPoints = parsePoints(loopResponse);
+                if (nextPoints.length === 0) break; // No more actions needed
+
+                const { px: npx, py: npy } = denormalize(
+                  nextPoints[0],
+                  primaryScreen.width,
+                  primaryScreen.height
+                );
+                await emit("cu-step", {
+                  step: loopStep + 1,
+                  max_steps: MAX_CU_LOOP_STEPS,
+                  label: `clicking ${nextPoints[0].label}`,
+                });
+                await invoke("animate_cursor_to", { x: npx, y: npy });
+                await new Promise<void>((r) => setTimeout(r, 600));
+                await invoke("computer_use_click", { x: npx, y: npy });
+
+                fullResponse = loopResponse;
+                loopStep++;
+              }
+
+              await emit("cu-done", { steps_taken: loopStep });
             } catch {
-              // Verification is best-effort — never block the user
+              // Computer-use loop is best-effort — never block the user
+              await emit("cu-done", { steps_taken: 1 }).catch(() => {});
             }
           } else {
             // Non-Claude provider: just animate, no verification
@@ -317,10 +457,26 @@ export function useVoice() {
       unlistenUp.then((fn) => fn());
     };
   }, [handleHotkeyDown, handleHotkeyUp]);
+
+  // Allow DanteAgents (via ws-speak event) to trigger TTS
+  useEffect(() => {
+    const unlisten = listen<string>("ws-speak", (event) => {
+      const text = event.payload;
+      if (text?.trim()) {
+        elevenLabs.queueSentence(text.trim());
+      }
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [elevenLabs]);
 }
 
 function buildSystemPrompt(opts: {
   memoryContext?: string;
+  sqliteMemory?: string;
+  ocrText?: string;
+  uiTreeText?: string;
   conversationSummary?: string;
   sessionNotes?: string;
 }): string {
@@ -361,8 +517,17 @@ when the user asks you to DO something (click, open an app, type text, navigate 
   if (opts.sessionNotes?.trim()) {
     prompt += `\n\n[things to always remember about this user]\n${opts.sessionNotes.trim()}\n[/things to always remember]`;
   }
+  if (opts.sqliteMemory?.trim()) {
+    prompt += `\n\n[past conversations — what you've talked about before]\n${opts.sqliteMemory.trim()}\n[/past conversations]`;
+  }
   if (opts.conversationSummary?.trim()) {
     prompt += `\n\n[earlier in this conversation]\n${opts.conversationSummary.trim()}\n[/earlier in this conversation]`;
+  }
+  if (opts.ocrText?.trim()) {
+    prompt += `\n\n[text extracted from screen via OCR]\n${opts.ocrText.trim()}\n[/ocr text]`;
+  }
+  if (opts.uiTreeText?.trim()) {
+    prompt += `\n\n[interactive elements in the focused window — use these exact names and positions for computer use]\n${opts.uiTreeText.trim()}\n[/ui elements]`;
   }
   if (opts.memoryContext?.trim()) {
     prompt += `\n\n[screen memory — what was recently on screen]\n${opts.memoryContext.trim()}\n[/screen memory]`;

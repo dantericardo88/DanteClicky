@@ -16,6 +16,8 @@ import {
   typography,
 } from "../lib/designSystem";
 import { validateKey, type KeyStatus, type Provider } from "../lib/apiValidation";
+import { AgentPanel } from "./AgentPanel";
+import { MemoryPanel } from "./MemoryPanel";
 
 export default function CompanionPanel() {
   useVoice();
@@ -30,6 +32,7 @@ export default function CompanionPanel() {
     elevenLabsKey,
     assemblyAiKey,
     hotkeyBinding,
+    ttsMode,
     conversationHistory,
     conversationSummary,
     sessionNotes,
@@ -37,12 +40,14 @@ export default function CompanionPanel() {
     setSelectedModel,
     setApiKey,
     setHotkeyBinding,
+    setTtsMode,
     clearConversation,
     setSessionNotes,
     clearError,
   } = useCompanionStore();
 
-  const [showSettings, setShowSettings] = useState(false);
+  const [activeTab, setActiveTab] = useState<"chat" | "memory" | "agents" | "settings">("chat");
+  const showSettings = activeTab === "settings";
   const [keyStatuses, setKeyStatuses] = useState<Record<string, KeyStatus>>({});
   const [autostart, setAutostart] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -174,8 +179,14 @@ export default function CompanionPanel() {
 
         <div style={{ marginLeft: "auto", display: "flex", gap: "6px" }}>
           <IconButton
+            title="Agents monitor"
+            onClick={() => setActiveTab((t) => t === "agents" ? "chat" : "agents")}
+          >
+            ◎
+          </IconButton>
+          <IconButton
             title={showSettings ? "Close settings" : "Settings"}
-            onClick={() => setShowSettings((v) => !v)}
+            onClick={() => setActiveTab((t) => t === "settings" ? "chat" : "settings")}
           >
             ⚙
           </IconButton>
@@ -223,10 +234,53 @@ export default function CompanionPanel() {
         </div>
       )}
 
-      <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "12px", flex: 1, overflowY: "auto" }}>
+      {/* Tab bar */}
+      <div style={{
+        display: "flex",
+        borderBottom: `1px solid ${colors.border}`,
+        padding: "0 16px",
+      }}>
+        {(["chat", "memory", "agents", "settings"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              padding: "8px 10px",
+              background: "none",
+              border: "none",
+              borderBottom: `2px solid ${activeTab === tab ? colors.accent : "transparent"}`,
+              color: activeTab === tab ? colors.text : colors.textTertiary,
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: activeTab === tab ? 600 : 400,
+              textTransform: "capitalize",
+              marginBottom: "-1px",
+              transition: "color 0.15s, border-color 0.15s",
+            }}
+          >
+            {tab === "memory" ? "Memory" : tab === "agents" ? "Agents" : tab === "settings" ? "Settings" : "Chat"}
+          </button>
+        ))}
+      </div>
+
+      {/* Agents panel */}
+      {activeTab === "agents" && (
+        <div style={{ padding: "16px", overflowY: "auto", flex: 1 }}>
+          <AgentPanel />
+        </div>
+      )}
+
+      {/* Memory panel */}
+      {activeTab === "memory" && (
+        <div style={{ padding: "16px", overflowY: "auto", flex: 1 }}>
+          <MemoryPanel />
+        </div>
+      )}
+
+      <div style={{ padding: "16px", flexDirection: "column", gap: "12px", flex: 1, overflowY: "auto", display: (activeTab === "agents" || activeTab === "memory") ? "none" : "flex" }}>
         {/* Onboarding card (shown when no API keys are configured) */}
         {!hasAnyKey && !showSettings ? (
-          <OnboardingCard onOpenSettings={() => setShowSettings(true)} />
+          <OnboardingCard onOpenSettings={() => setActiveTab("settings")} />
         ) : (
           /* Status */
           <StatusCard
@@ -407,6 +461,9 @@ export default function CompanionPanel() {
 
         {/* STT mode */}
         <SttModeSection />
+
+        {/* TTS mode (Dimension 4 — Local-First TTS) */}
+        <TtsModeSection ttsMode={ttsMode} setTtsMode={setTtsMode} />
 
         {/* Hotkey hint */}
         <HotkeyHint />
@@ -988,6 +1045,62 @@ function SttModeSection() {
               {downloadError}
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TtsModeSection({
+  ttsMode,
+  setTtsMode,
+}: {
+  ttsMode: "cloud" | "local";
+  setTtsMode: (mode: "cloud" | "local") => void;
+}) {
+  return (
+    <div>
+      <SectionLabel>Text-to-Speech</SectionLabel>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          onClick={() => setTtsMode("cloud")}
+          style={{
+            flex: 1,
+            padding: "6px 12px",
+            borderRadius: radii.sm,
+            border: `1px solid ${ttsMode === "cloud" ? colors.accent : colors.border}`,
+            background: ttsMode === "cloud" ? "rgba(10,132,255,0.12)" : "transparent",
+            color: ttsMode === "cloud" ? colors.text : colors.textSecondary,
+            fontSize: 12,
+            cursor: "pointer",
+          }}
+        >
+          Cloud (ElevenLabs)
+        </button>
+        <button
+          onClick={() => setTtsMode("local")}
+          style={{
+            flex: 1,
+            padding: "6px 12px",
+            borderRadius: radii.sm,
+            border: `1px solid ${ttsMode === "local" ? colors.accent : colors.border}`,
+            background: ttsMode === "local" ? "rgba(10,132,255,0.12)" : "transparent",
+            color: ttsMode === "local" ? colors.text : colors.textSecondary,
+            fontSize: 12,
+            cursor: "pointer",
+          }}
+        >
+          Local (Kokoro)
+        </button>
+      </div>
+      {ttsMode === "local" && (
+        <div style={{ ...typography.small, color: colors.textTertiary, marginTop: 6 }}>
+          Requires Kokoro-82M model (~330MB). Download via download_kokoro_model.
+        </div>
+      )}
+      {ttsMode === "cloud" && (
+        <div style={{ ...typography.small, color: colors.textTertiary, marginTop: 6 }}>
+          ElevenLabs — high quality, requires internet
         </div>
       )}
     </div>

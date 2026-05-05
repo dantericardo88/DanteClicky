@@ -1,13 +1,18 @@
 ﻿mod audio;
 mod capture;
 mod chat_proxy;
+mod accessibility;
+mod computer_use;
 mod cursor;
 mod hotkey;
 mod input;
 mod mcp_server;
 mod monitors;
+mod ocr;
+mod session;
 mod stt;
 mod tray;
+mod tts_local;
 mod ws_server;
 
 use std::sync::{Arc, Mutex};
@@ -115,6 +120,33 @@ fn transcribe_local(
 }
 
 #[tauri::command]
+fn save_turn(
+    user: String,
+    assistant: String,
+    screenshot_b64: Option<String>,
+    state: tauri::State<'_, Mutex<session::SessionDb>>,
+) -> Result<i64, String> {
+    state.lock().unwrap().save_turn(&user, &assistant, screenshot_b64)
+}
+
+#[tauri::command]
+fn search_history(
+    query: String,
+    limit: i32,
+    state: tauri::State<'_, Mutex<session::SessionDb>>,
+) -> Result<Vec<session::TurnRow>, String> {
+    state.lock().unwrap().search_history(&query, limit)
+}
+
+#[tauri::command]
+fn get_recent_turns(
+    limit: i32,
+    state: tauri::State<'_, Mutex<session::SessionDb>>,
+) -> Result<Vec<session::TurnRow>, String> {
+    state.lock().unwrap().get_recent_turns(limit)
+}
+
+#[tauri::command]
 fn show_overlay(app: tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("overlay") {
         let _ = w.show();
@@ -141,9 +173,13 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec![]),
         ))
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Mutex::new(audio::AudioState::new()))
         .manage(Mutex::new(stt::SttState::new()))
         .invoke_handler(tauri::generate_handler![
+            save_turn,
+            search_history,
+            get_recent_turns,
             get_monitors,
             capture_screens,
             capture::capture_primary,
@@ -168,9 +204,27 @@ pub fn run() {
             chat_proxy::get_assemblyai_token,
             chat_proxy::elevenlabs_tts,
             hotkey::set_hotkey,
+            ws_server::get_ws_connection_count,
+            tts_local::download_kokoro_model,
+            tts_local::kokoro_tts,
+            tts_local::get_kokoro_status,
+            ocr::ocr_screenshot,
+            accessibility::get_ui_tree,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
+
+            // ── Persistent Memory (Dimension 1) ───────────────────────────────
+            {
+                let db_path = app
+                    .path()
+                    .app_data_dir()
+                    .map_err(|e| Box::<dyn std::error::Error>::from(e.to_string()))?
+                    .join("sessions.db");
+                let session_db = session::SessionDb::open(&db_path)
+                    .map_err(|e| Box::<dyn std::error::Error>::from(e))?;
+                app.manage(Mutex::new(session_db));
+            }
 
             // ── Companion panel ───────────────────────────────────────────────
             let panel = WebviewWindowBuilder::new(

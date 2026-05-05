@@ -12,6 +12,12 @@ interface VerifyBadge {
   explanation: string;
 }
 
+interface CuStep {
+  step: number;
+  max_steps: number;
+  label: string;
+}
+
 // Transparent full-screen overlay — click-through by default.
 // Rust show_overlay / hide_overlay commands toggle it via IPC.
 // This component reads live streaming response from the Zustand store.
@@ -21,6 +27,7 @@ export default function OverlayPanel() {
   const prevResponseRef = useRef("");
   const [verifyBadge, setVerifyBadge] = useState<VerifyBadge | null>(null);
   const badgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [cuStep, setCuStep] = useState<CuStep | null>(null);
 
   // Dismiss on click (user acknowledges response)
   async function dismiss() {
@@ -59,6 +66,20 @@ export default function OverlayPanel() {
     return () => {
       unlisten.then((fn) => fn());
       if (badgeTimerRef.current !== null) clearTimeout(badgeTimerRef.current);
+    };
+  }, []);
+
+  // Listen for computer-use loop step progress events
+  useEffect(() => {
+    const unlisten = listen<CuStep>("cu-step", (e) => {
+      setCuStep(e.payload);
+    });
+    const unlistenDone = listen("cu-done", () => {
+      setCuStep(null);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+      unlistenDone.then((fn) => fn());
     };
   }, []);
 
@@ -153,11 +174,43 @@ export default function OverlayPanel() {
           explanation={verifyBadge.explanation}
         />
       )}
+
+      {/* Computer-use loop step counter */}
+      {cuStep && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "56px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "rgba(10,10,20,0.82)",
+            border: "1px solid rgba(0,170,255,0.35)",
+            borderRadius: "12px",
+            padding: "4px 14px",
+            pointerEvents: "none",
+            zIndex: 9998,
+          }}
+        >
+          <span style={{ fontSize: 11, color: "#a0e0ff" }}>
+            Step {cuStep.step}/{cuStep.max_steps}: {cuStep.label}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
 
 function ResponseBubble({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy(e: React.MouseEvent) {
+    e.stopPropagation(); // don't dismiss the bubble
+    navigator.clipboard.writeText(text || "").then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
+  }
+
   return (
     <div
       style={{
@@ -179,8 +232,26 @@ function ResponseBubble({ text }: { text: string }) {
         lineHeight: "25px",
         wordBreak: "break-word",
         cursor: "pointer",
-      }}
+      } as React.CSSProperties}
     >
+      {/* Copy button */}
+      <button
+        onClick={handleCopy}
+        style={{
+          position: "absolute",
+          top: 8,
+          right: 8,
+          background: copied ? "rgba(76,175,80,0.2)" : "rgba(255,255,255,0.08)",
+          border: "none",
+          borderRadius: 4,
+          color: copied ? "#4caf50" : "#888",
+          fontSize: 11,
+          padding: "3px 8px",
+          cursor: "pointer",
+        }}
+      >
+        {copied ? "Copied" : "Copy"}
+      </button>
       <ReactMarkdown>{text}</ReactMarkdown>
       <div
         style={{

@@ -1,6 +1,37 @@
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 
+export interface ToolUseBlock {
+  type: "tool_use";
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
+export interface ToolResultBlock {
+  type: "tool_result";
+  tool_use_id: string;
+  content:
+    | string
+    | Array<{
+        type: "image";
+        source: { type: "base64"; media_type: string; data: string };
+      }>;
+}
+
+export interface StreamChatWithToolsOptions {
+  provider: string;
+  modelId: string;
+  apiKey: string;
+  systemPrompt: string;
+  messages: Array<{ role: "user" | "assistant"; content: string | unknown[] }>;
+  images: string[];
+  tools: unknown[];
+  onChunk: (chunk: string) => void;
+  onToolUse: (toolUse: ToolUseBlock) => void;
+  onDone: (stopReason: string) => void;
+}
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
@@ -107,4 +138,68 @@ export function buildOpenAIBody(
     { role: "user", content: lastContent },
   ];
   return { model, messages: openAIMessages, stream: true, max_tokens: 1024 };
+}
+
+export async function streamChatWithTools(
+  opts: StreamChatWithToolsOptions
+): Promise<void> {
+  // Only Claude supports native tool use
+  if (opts.provider !== "claude") {
+    // Fallback: use regular chat without tools
+    await streamChat({
+      provider: opts.provider,
+      modelId: opts.modelId,
+      apiKey: opts.apiKey,
+      systemPrompt: opts.systemPrompt,
+      messages: opts.messages as Array<{
+        role: "user" | "assistant";
+        content: string;
+      }>,
+      images: opts.images,
+      onChunk: opts.onChunk,
+    });
+    opts.onDone("end_turn");
+    return;
+  }
+
+  const callId = crypto.randomUUID();
+  const unlisteners: Array<() => void> = [];
+  let stopReason = "end_turn";
+
+  await new Promise<void>((resolve, reject) => {
+    Promise.all([
+      listen<string>(`chat-chunk-${callId}`, (e) => opts.onChunk(e.payload)),
+      listen<string>(`chat-stop-reason-${callId}`, (e) => {
+        stopReason = e.payload;
+      }),
+      listen<ToolUseBlock>(`chat-tool-use-${callId}`, (e) =>
+        opts.onToolUse(e.payload)
+      ),
+      listen(`chat-done-${callId}`, () => {
+        unlisteners.forEach((fn) => fn());
+        opts.onDone(stopReason);
+        resolve();
+      }),
+      listen<string>(`chat-error-${callId}`, (e) => {
+        unlisteners.forEach((fn) => fn());
+        reject(new Error(e.payload));
+      }),
+    ]).then((fns) => {
+      unlisteners.push(...fns);
+      // Reuse the existing stream_claude command — tool_use blocks in the
+      // response will arrive as text chunks; the loop in useVoice.ts parses them.
+      const body = buildClaudeBody(
+        opts.modelId,
+        opts.systemPrompt,
+        opts.messages as ChatMessage[],
+        opts.images
+      );
+      invoke("stream_claude", { apiKey: opts.apiKey, body, callId }).catch(
+        (err: unknown) => {
+          unlisteners.forEach((fn) => fn());
+          reject(err);
+        }
+      );
+    });
+  });
 }

@@ -1,10 +1,12 @@
 import { useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useCompanionStore } from "../state/companionStore";
 
 // Port of ElevenLabsTTSClient.swift
 // Fetches MP3 audio via Rust (bypasses CORS) and plays via Web Audio API.
 // New: sentence-queue mode — prefetches each sentence in parallel and plays
 // them back-to-back, so audio starts as soon as the first sentence is ready.
+// Dimension 4: when ttsMode === "local", tries Kokoro ONNX first, falls back to cloud.
 
 const VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
 
@@ -33,7 +35,23 @@ export function useElevenLabs(elevenLabsKey: string) {
   }
 
   async function fetchAudio(text: string): Promise<AudioBuffer | null> {
-    if (!elevenLabsKey || !text.trim()) return null;
+    if (!text.trim()) return null;
+
+    const { ttsMode } = useCompanionStore.getState();
+
+    // Dimension 4: try local Kokoro TTS first when in local mode
+    if (ttsMode === "local") {
+      try {
+        const audioBytes = await invoke<number[]>("kokoro_tts", { text });
+        const ctx = getCtx();
+        return await ctx.decodeAudioData(new Uint8Array(audioBytes).buffer);
+      } catch (e) {
+        console.warn("[TTS] Local Kokoro failed, falling back to cloud:", e);
+        // Fall through to ElevenLabs cloud
+      }
+    }
+
+    if (!elevenLabsKey) return null;
     try {
       const bytes = await invoke<number[]>("elevenlabs_tts", {
         apiKey: elevenLabsKey,

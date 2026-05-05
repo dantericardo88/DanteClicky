@@ -1,0 +1,58 @@
+﻿[package]
+name = "dante-clicky-windows"
+version = "0.1.0"
+description = "DanteClicky - AI Companion for Windows"
+authors = ["DanteForge"]
+edition = "2021"
+
+[lib]
+name = "dante_clicky_windows_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-opener = "2"
+tauri-plugin-global-shortcut = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Phase 2 -- Screen capture
+screenshots = "0.8"
+image = { version = "0.24", default-features = false, features = ["jpeg"] }
+base64 = "0.22"
+rayon = "1"
+
+# Phase 3 -- Audio input
+cpal = "0.15"
+
+# Phase 6 -- Win32 cursor animation (screenshots 0.8 already brings windows 0.58)
+windows = { version = "0.58", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
+
+# Phase 7 -- Auto-start on Windows login
+tauri-plugin-autostart = "2"
+
+# Phase 8 -- Computer-use input control
+enigo = "0.2"
+
+# Phase 9 -- DanteAgents WebSocket bridge
+tokio = { version = "1", features = ["net", "rt-multi-thread"] }
+tokio-tungstenite = "0.24"
+futures-util = "0.3"
+
+# Phase P1-B -- MCP server (HTTP + SSE on port 9002)
+axum = { version = "0.7", features = ["macros"] }
+uuid = { version = "1", features = ["v4"] }
+async-stream = "0.3"
+
+# Phase 10 -- Direct API proxy (removes Cloudflare Worker dependency)
+reqwest = { version = "0.12", features = ["json", "stream"] }
+
+# Phase 11 -- Local Whisper STT (CPU-only, no CUDA/Metal)
+# Enable with: cargo build --features local-stt
+whisper-rs = { version = "0.13", default-features = false, optional = true }
+
+[features]
+local-stt = ["whisper-rs"]

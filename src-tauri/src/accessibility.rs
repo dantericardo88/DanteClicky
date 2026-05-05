@@ -25,7 +25,6 @@ pub fn get_ui_tree() -> Vec<UiElement> {
 #[cfg(target_os = "windows")]
 fn get_ui_tree_inner() -> Result<Vec<UiElement>, String> {
     use windows::{
-        core::Interface,
         Win32::{
             Foundation::HWND,
             System::Com::{CoCreateInstance, CoInitializeEx, CLSCTX_INPROC_SERVER, COINIT_MULTITHREADED},
@@ -80,7 +79,7 @@ fn get_ui_tree_inner() -> Result<Vec<UiElement>, String> {
             let cond = automation
                 .CreatePropertyCondition(
                     windows::Win32::UI::Accessibility::UIA_ControlTypePropertyId,
-                    &windows::core::VARIANT::from(*type_id),
+                    &windows::core::VARIANT::from(type_id.0 as i32),
                 )
                 .map_err(|e| e.to_string())?;
             conditions.push(cond);

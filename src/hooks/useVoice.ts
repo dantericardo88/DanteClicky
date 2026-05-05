@@ -246,7 +246,6 @@ export function useVoice() {
       await streamChat({
         provider: selectedModel.provider,
         modelId: selectedModel.modelId,
-        apiKey,
         systemPrompt: buildSystemPrompt({ memoryContext, sqliteMemory, ocrText, uiTreeText, conversationSummary, sessionNotes }),
         messages: [
           ...conversationHistory.flatMap((t) => [

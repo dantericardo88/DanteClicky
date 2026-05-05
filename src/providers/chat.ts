@@ -148,7 +148,6 @@ export async function streamChatWithTools(
     await streamChat({
       provider: opts.provider,
       modelId: opts.modelId,
-      apiKey: opts.apiKey,
       systemPrompt: opts.systemPrompt,
       messages: opts.messages as Array<{
         role: "user" | "assistant";

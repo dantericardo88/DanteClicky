@@ -2,13 +2,19 @@ use futures_util::StreamExt;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter};
 
+use crate::keystore::KeyStore;
+
 #[tauri::command]
 pub async fn stream_claude(
     app: AppHandle,
-    api_key: String,
+    keystore: tauri::State<'_, KeyStore>,
     body: Value,
     call_id: String,
 ) -> Result<(), String> {
+    let api_key = keystore
+        .get("anthropic")
+        .ok_or_else(|| "No API key configured for anthropic. Set it in Settings.".to_string())?;
+
     let client = reqwest::Client::new();
     let res = client
         .post("https://api.anthropic.com/v1/messages")
@@ -61,11 +67,18 @@ pub async fn stream_claude(
 #[tauri::command]
 pub async fn stream_openai_compat(
     app: AppHandle,
+    keystore: tauri::State<'_, KeyStore>,
     base_url: String,
-    api_key: String,
+    provider: String,
     body: Value,
     call_id: String,
 ) -> Result<(), String> {
+    // Map provider name to keystore key: "openai" → "openai", "grok" → "xai"
+    let store_key = if provider == "grok" { "xai" } else { provider.as_str() };
+    let api_key = keystore
+        .get(store_key)
+        .ok_or_else(|| format!("No API key configured for {provider}. Set it in Settings."))?;
+
     let client = reqwest::Client::new();
     let res = client
         .post(format!("{base_url}/chat/completions"))
@@ -113,7 +126,13 @@ pub async fn stream_openai_compat(
 }
 
 #[tauri::command]
-pub async fn get_assemblyai_token(api_key: String) -> Result<String, String> {
+pub async fn get_assemblyai_token(
+    keystore: tauri::State<'_, KeyStore>,
+) -> Result<String, String> {
+    let api_key = keystore
+        .get("assemblyai")
+        .ok_or_else(|| "No API key configured for assemblyai. Set it in Settings.".to_string())?;
+
     let client = reqwest::Client::new();
     let res = client
         .get("https://streaming.assemblyai.com/v3/token?expires_in_seconds=480")
@@ -135,10 +154,14 @@ pub async fn get_assemblyai_token(api_key: String) -> Result<String, String> {
 
 #[tauri::command]
 pub async fn elevenlabs_tts(
-    api_key: String,
+    keystore: tauri::State<'_, KeyStore>,
     text: String,
     voice_id: String,
 ) -> Result<Vec<u8>, String> {
+    let api_key = keystore
+        .get("elevenlabs")
+        .ok_or_else(|| "No API key configured for elevenlabs. Set it in Settings.".to_string())?;
+
     let client = reqwest::Client::new();
     let res = client
         .post(format!(

@@ -171,13 +171,6 @@ export function useVoice() {
         // Screenpipe unavailable — continue without memory context
       }
 
-      const apiKey =
-        selectedModel.provider === "claude"
-          ? anthropicKey
-          : selectedModel.provider === "grok"
-          ? grokKey
-          : openaiKey;
-
       let fullResponse = "";
       // Sentence-pipelining: flush TTS as each sentence arrives rather than waiting
       // for the full response. Sentence boundaries: [.!?] followed by whitespace.
@@ -192,7 +185,6 @@ export function useVoice() {
       await streamChat({
         provider: selectedModel.provider,
         modelId: selectedModel.modelId,
-        apiKey,
         systemPrompt: buildSystemPrompt({ memoryContext, conversationSummary, sessionNotes }),
         messages: [
           ...conversationHistory.flatMap((t) => [
@@ -227,7 +219,7 @@ export function useVoice() {
         const toSummarize = conversationHistory.slice(0, 7);
         const remaining = conversationHistory.slice(7);
         // Background summarization — non-blocking
-        summarizeOldTurns(toSummarize, anthropicKey).then((summary) => {
+        summarizeOldTurns(toSummarize, !!anthropicKey).then((summary) => {
           if (summary) {
             setConversationSummary(
               (conversationSummary ? conversationSummary + "\n\n" : "") + summary
@@ -256,7 +248,6 @@ export function useVoice() {
               const afterShot = await invoke<string>("capture_primary");
 
               const result = await verifyAction(
-                anthropicKey,
                 beforeShot,
                 afterShot,
                 `Click at (${px}, ${py}) — ${points[0].label}`

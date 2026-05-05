@@ -4,6 +4,7 @@ mod chat_proxy;
 mod cursor;
 mod hotkey;
 mod input;
+mod keystore;
 mod mcp_server;
 mod monitors;
 mod stt;
@@ -143,6 +144,7 @@ pub fn run() {
         ))
         .manage(Mutex::new(audio::AudioState::new()))
         .manage(Mutex::new(stt::SttState::new()))
+        .manage(keystore::KeyStore::new())
         .invoke_handler(tauri::generate_handler![
             get_monitors,
             capture_screens,
@@ -168,6 +170,8 @@ pub fn run() {
             chat_proxy::get_assemblyai_token,
             chat_proxy::elevenlabs_tts,
             hotkey::set_hotkey,
+            keystore::set_api_key,
+            keystore::clear_api_key,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

@@ -1,0 +1,52 @@
+name: Build & Test
+on:
+  push:
+    branches: [master, 'feat/**']
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test
+      - name: Cargo test
+        run: cargo test
+        working-directory: src-tauri
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+  build:
+    runs-on: windows-latest
+    needs: test
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'DanteClicky v__VERSION__'
+          releaseBody: 'Windows AI companion — voice + screen + computer use'
+          releaseDraft: true
+          prerelease: false

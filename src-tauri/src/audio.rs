@@ -2,10 +2,54 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{SampleFormat, StreamConfig};
 use std::sync::{
-    atomic::{AtomicU32, Ordering},
+    atomic::{AtomicBool, AtomicU32, Ordering},
     Arc, Mutex,
 };
 use tauri::{AppHandle, Emitter, Runtime};
+
+// ── Voice Activity Detection gate ─────────────────────────────────────────────
+
+const SILENCE_THRESHOLD_RMS: f32 = 0.01;
+const SILENCE_FRAMES_TO_FLUSH: usize = 24; // ~800ms at 512-sample frames @ 16kHz
+
+struct VadGate {
+    silence_count: usize,
+    speech_started: bool,
+}
+
+impl VadGate {
+    fn new() -> Self {
+        Self {
+            silence_count: 0,
+            speech_started: false,
+        }
+    }
+
+    fn process(&mut self, samples: &[f32]) -> VadDecision {
+        let rms = (samples.iter().map(|s| s * s).sum::<f32>() / samples.len() as f32).sqrt();
+        if rms > SILENCE_THRESHOLD_RMS {
+            self.silence_count = 0;
+            self.speech_started = true;
+            VadDecision::Speech
+        } else {
+            self.silence_count += 1;
+            if self.speech_started && self.silence_count >= SILENCE_FRAMES_TO_FLUSH {
+                self.speech_started = false;
+                self.silence_count = 0;
+                VadDecision::EndOfSpeech
+            } else {
+                VadDecision::Silence
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+enum VadDecision {
+    Speech,
+    Silence,
+    EndOfSpeech,
+}
 
 // ── PCM accumulator ───────────────────────────────────────────────────────────
 
@@ -40,6 +84,8 @@ impl PcmAccumulator {
 pub struct AudioState {
     pub stream: Option<cpal::Stream>,
     pub accumulator: Arc<Mutex<PcmAccumulator>>,
+    /// Shared flag readable from audio callbacks without holding the AudioState lock.
+    pub vad_enabled: Arc<AtomicBool>,
 }
 
 impl AudioState {
@@ -47,6 +93,7 @@ impl AudioState {
         Self {
             stream: None,
             accumulator: Arc::new(Mutex::new(PcmAccumulator::new())),
+            vad_enabled: Arc::new(AtomicBool::new(false)),
         }
     }
 }
@@ -59,6 +106,7 @@ unsafe impl Send for AudioState {}
 pub fn start<R: Runtime>(
     app: AppHandle<R>,
     acc: Arc<Mutex<PcmAccumulator>>,
+    vad_enabled: Arc<AtomicBool>,
 ) -> Result<cpal::Stream, String> {
     let host = cpal::default_host();
     let device = host
@@ -78,15 +126,18 @@ pub fn start<R: Runtime>(
     // Set actual device sample rate on the accumulator now that we know it
     acc.lock().unwrap().clear(sample_rate);
 
+    // Shared VAD gate — maintains state across audio callback invocations
+    let vad_gate = Arc::new(Mutex::new(VadGate::new()));
+
     let stream = match format {
         SampleFormat::F32 => {
-            build_stream_f32(&device, &config, app, sample_rate, channels, Arc::clone(&acc))?
+            build_stream_f32(&device, &config, app, sample_rate, channels, Arc::clone(&acc), Arc::clone(&vad_gate), Arc::clone(&vad_enabled))?
         }
         SampleFormat::I16 => {
-            build_stream_i16(&device, &config, app, sample_rate, channels, Arc::clone(&acc))?
+            build_stream_i16(&device, &config, app, sample_rate, channels, Arc::clone(&acc), Arc::clone(&vad_gate), Arc::clone(&vad_enabled))?
         }
         SampleFormat::U16 => {
-            build_stream_u16(&device, &config, app, sample_rate, channels, Arc::clone(&acc))?
+            build_stream_u16(&device, &config, app, sample_rate, channels, Arc::clone(&acc), Arc::clone(&vad_gate), Arc::clone(&vad_enabled))?
         }
         _ => return Err(format!("Unsupported sample format: {format:?}")),
     };
@@ -97,16 +148,13 @@ pub fn start<R: Runtime>(
     Ok(stream)
 }
 
-// ── Voice Activity Detection ──────────────────────────────────────────────────
+// ── set_vad_enabled command ───────────────────────────────────────────────────
 
-const SILENCE_THRESHOLD: f32 = 0.008; // RMS threshold — tune as needed
-
-fn is_silence(samples: &[f32]) -> bool {
-    if samples.is_empty() {
-        return true;
+#[tauri::command]
+pub fn set_vad_enabled(state: tauri::State<'_, Mutex<AudioState>>, enabled: bool) {
+    if let Ok(s) = state.lock() {
+        s.vad_enabled.store(enabled, Ordering::Relaxed);
     }
-    let rms = (samples.iter().map(|s| s * s).sum::<f32>() / samples.len() as f32).sqrt();
-    rms < SILENCE_THRESHOLD
 }
 
 // ── Audio level meter ─────────────────────────────────────────────────────────
@@ -151,6 +199,8 @@ fn build_stream_f32<R: Runtime>(
     sample_rate: u32,
     channels: u16,
     acc: Arc<Mutex<PcmAccumulator>>,
+    vad_gate: Arc<Mutex<VadGate>>,
+    vad_enabled: Arc<AtomicBool>,
 ) -> Result<cpal::Stream, String> {
     device
         .build_input_stream(
@@ -163,8 +213,14 @@ fn build_stream_f32<R: Runtime>(
                 } else {
                     data.to_vec()
                 };
-                // Only emit to STT when audio is not silence
-                if !is_silence(&mono_f32) {
+                // VAD gate: when enabled, only emit PCM during speech or end-of-speech frames
+                let should_emit = if vad_enabled.load(Ordering::Relaxed) {
+                    let decision = vad_gate.lock().unwrap().process(&mono_f32);
+                    matches!(decision, VadDecision::Speech | VadDecision::EndOfSpeech)
+                } else {
+                    true
+                };
+                if should_emit {
                     let mono_i16: Vec<i16> = mono_f32.iter().map(|&s| f32_to_i16(s)).collect();
                     emit_pcm(&app, &mono_i16, sample_rate);
                 }
@@ -186,6 +242,8 @@ fn build_stream_i16<R: Runtime>(
     sample_rate: u32,
     channels: u16,
     acc: Arc<Mutex<PcmAccumulator>>,
+    vad_gate: Arc<Mutex<VadGate>>,
+    vad_enabled: Arc<AtomicBool>,
 ) -> Result<cpal::Stream, String> {
     device
         .build_input_stream(
@@ -203,8 +261,14 @@ fn build_stream_i16<R: Runtime>(
                     .iter()
                     .map(|&s| s as f32 / i16::MAX as f32)
                     .collect();
-                // Only emit to STT when audio is not silence
-                if !is_silence(&mono_f32) {
+                // VAD gate: when enabled, only emit PCM during speech or end-of-speech frames
+                let should_emit = if vad_enabled.load(Ordering::Relaxed) {
+                    let decision = vad_gate.lock().unwrap().process(&mono_f32);
+                    matches!(decision, VadDecision::Speech | VadDecision::EndOfSpeech)
+                } else {
+                    true
+                };
+                if should_emit {
                     emit_pcm(&app, &mono, sample_rate);
                 }
                 // Always accumulate for local Whisper (captures speech + silence)
@@ -225,6 +289,8 @@ fn build_stream_u16<R: Runtime>(
     sample_rate: u32,
     channels: u16,
     acc: Arc<Mutex<PcmAccumulator>>,
+    vad_gate: Arc<Mutex<VadGate>>,
+    vad_enabled: Arc<AtomicBool>,
 ) -> Result<cpal::Stream, String> {
     device
         .build_input_stream(
@@ -242,8 +308,14 @@ fn build_stream_u16<R: Runtime>(
                     .iter()
                     .map(|&s| s as f32 / i16::MAX as f32)
                     .collect();
-                // Only emit to STT when audio is not silence
-                if !is_silence(&mono_f32) {
+                // VAD gate: when enabled, only emit PCM during speech or end-of-speech frames
+                let should_emit = if vad_enabled.load(Ordering::Relaxed) {
+                    let decision = vad_gate.lock().unwrap().process(&mono_f32);
+                    matches!(decision, VadDecision::Speech | VadDecision::EndOfSpeech)
+                } else {
+                    true
+                };
+                if should_emit {
                     emit_pcm(&app, &mono, sample_rate);
                 }
                 // Always accumulate for local Whisper (captures speech + silence)

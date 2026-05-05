@@ -6,6 +6,7 @@ mod hotkey;
 mod input;
 mod mcp_server;
 mod monitors;
+mod overlay;
 mod stt;
 mod tray;
 mod ws_server;
@@ -33,12 +34,12 @@ fn start_audio(
     app: tauri::AppHandle,
     state: tauri::State<'_, Mutex<audio::AudioState>>,
 ) -> Result<(), String> {
-    let acc = {
+    let (acc, vad_enabled) = {
         let s = state.lock().unwrap();
-        Arc::clone(&s.accumulator)
+        (Arc::clone(&s.accumulator), Arc::clone(&s.vad_enabled))
     };
     // audio::start() calls acc.clear(sample_rate) before opening the stream
-    let stream = audio::start(app, acc)?;
+    let stream = audio::start(app, acc, vad_enabled)?;
     state.lock().unwrap().stream = Some(stream);
     Ok(())
 }
@@ -168,6 +169,8 @@ pub fn run() {
             chat_proxy::get_assemblyai_token,
             chat_proxy::elevenlabs_tts,
             hotkey::set_hotkey,
+            audio::set_vad_enabled,
+            overlay::set_overlay_stealth,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

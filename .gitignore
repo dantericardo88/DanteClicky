@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Tauri build output
+src-tauri/target/
+# Whisper models
+*.bin
+# DanteForge worktrees
+wt-*/

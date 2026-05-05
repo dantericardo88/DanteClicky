@@ -762,6 +762,7 @@ function SettingsSection({
 }) {
   const [hotkeyDraft, setHotkeyDraft] = useState(hotkeyBinding);
   const [hotkeyError, setHotkeyError] = useState<string | null>(null);
+  const [stealthMode, setStealthMode] = useState(false);
 
   // Keep draft in sync if the binding changes externally
   useEffect(() => {
@@ -916,6 +917,60 @@ function SettingsSection({
               position: "absolute",
               top: "2px",
               left: autostart ? "18px" : "2px",
+              width: "16px",
+              height: "16px",
+              borderRadius: radii.full,
+              background: "#fff",
+              transition: "left 0.2s",
+            }}
+          />
+        </button>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingTop: "6px",
+          borderTop: `1px solid ${colors.border}`,
+        }}
+      >
+        <div>
+          <div style={{ ...typography.caption, color: colors.textSecondary }}>
+            Hide from screen recordings
+          </div>
+          <div style={{ ...typography.small, color: colors.textTertiary, marginTop: "1px" }}>
+            Screen capture tools won't see DanteClicky's window
+          </div>
+        </div>
+        <button
+          onClick={async () => {
+            const next = !stealthMode;
+            try {
+              await invoke("set_overlay_stealth", { enabled: next });
+              setStealthMode(next);
+            } catch (e) {
+              console.warn("[stealth]", e);
+            }
+          }}
+          style={{
+            width: "36px",
+            height: "20px",
+            borderRadius: radii.full,
+            border: "none",
+            background: stealthMode ? colors.accent : colors.surface,
+            cursor: "pointer",
+            position: "relative",
+            transition: "background 0.2s",
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: "2px",
+              left: stealthMode ? "18px" : "2px",
               width: "16px",
               height: "16px",
               borderRadius: radii.full,

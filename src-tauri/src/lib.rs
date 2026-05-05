@@ -10,6 +10,7 @@ mod keystore;
 mod mcp_server;
 mod monitors;
 mod ocr;
+mod overlay;
 mod session;
 mod stt;
 mod tray;
@@ -39,12 +40,12 @@ fn start_audio(
     app: tauri::AppHandle,
     state: tauri::State<'_, Mutex<audio::AudioState>>,
 ) -> Result<(), String> {
-    let acc = {
+    let (acc, vad_enabled) = {
         let s = state.lock().unwrap();
-        Arc::clone(&s.accumulator)
+        (Arc::clone(&s.accumulator), Arc::clone(&s.vad_enabled))
     };
     // audio::start() calls acc.clear(sample_rate) before opening the stream
-    let stream = audio::start(app, acc)?;
+    let stream = audio::start(app, acc, vad_enabled)?;
     state.lock().unwrap().stream = Some(stream);
     Ok(())
 }
@@ -218,6 +219,8 @@ pub fn run() {
             session::db_save_message,
             session::db_get_history,
             session::db_search_history,
+            audio::set_vad_enabled,
+            overlay::set_overlay_stealth,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

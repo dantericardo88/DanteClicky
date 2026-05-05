@@ -214,21 +214,19 @@ pub fn run() {
             accessibility::get_ui_tree,
             keystore::set_api_key,
             keystore::clear_api_key,
+            session::db_new_session,
+            session::db_save_message,
+            session::db_get_history,
+            session::db_search_history,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
 
-            // ── Persistent Memory (Dimension 1) ───────────────────────────────
-            {
-                let db_path = app
-                    .path()
-                    .app_data_dir()
-                    .map_err(|e| Box::<dyn std::error::Error>::from(e.to_string()))?
-                    .join("sessions.db");
-                let session_db = session::SessionDb::open(&db_path)
-                    .map_err(|e| Box::<dyn std::error::Error>::from(e))?;
-                app.manage(Mutex::new(session_db));
-            }
+            // ── Session memory database ───────────────────────────────────────
+            app.handle().manage(
+                session::SessionDb::open(&handle)
+                    .expect("failed to open session database"),
+            );
 
             // ── Companion panel ───────────────────────────────────────────────
             let panel = WebviewWindowBuilder::new(

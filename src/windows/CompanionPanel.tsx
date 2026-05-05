@@ -252,6 +252,7 @@ export default function CompanionPanel() {
         >
           <span>Update available — v{updateVersion}</span>
           <button
+            aria-label="Dismiss update notification"
             onClick={() => setUpdateVersion(null)}
             style={{
               background: "none",
@@ -344,6 +345,7 @@ export default function CompanionPanel() {
           >
             <span>{lastError}</span>
             <button
+              aria-label="Dismiss error"
               onClick={clearError}
               style={{
                 background: "none",
@@ -705,6 +707,8 @@ function StatusCard({
       }}
     >
       <div
+        role="status"
+        aria-label={`DanteClicky status: ${label}`}
         style={{
           width: "8px",
           height: "8px",
@@ -935,38 +939,48 @@ function ModelPicker({
   return (
     <div>
       <SectionLabel>Model</SectionLabel>
-      <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-        {MODEL_OPTIONS.map((m) => (
-          <button
-            key={`${m.provider}-${m.modelId}`}
-            onClick={() => onChange(m)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "7px 10px",
-              borderRadius: radii.sm,
-              border: `1px solid ${selected.modelId === m.modelId ? colors.accent : "transparent"}`,
-              background: selected.modelId === m.modelId ? "rgba(10,132,255,0.12)" : "transparent",
-              cursor: "pointer",
-              textAlign: "left",
-              transition: "all 0.12s",
-            }}
-          >
-            <span
+      <div
+        role="radiogroup"
+        aria-label="AI model selection"
+        style={{ display: "flex", flexDirection: "column", gap: "3px" }}
+      >
+        {MODEL_OPTIONS.map((m) => {
+          const isSelected = selected.modelId === m.modelId;
+          return (
+            <button
+              key={`${m.provider}-${m.modelId}`}
+              role="radio"
+              aria-checked={isSelected}
+              onClick={() => onChange(m)}
               style={{
-                width: "7px",
-                height: "7px",
-                borderRadius: radii.full,
-                background: providerColors[m.provider] ?? colors.accent,
-                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "7px 10px",
+                borderRadius: radii.sm,
+                border: `1px solid ${isSelected ? colors.accent : "transparent"}`,
+                background: isSelected ? "rgba(10,132,255,0.12)" : "transparent",
+                cursor: "pointer",
+                textAlign: "left",
+                transition: "all 0.12s",
               }}
-            />
-            <span style={{ ...typography.body, color: selected.modelId === m.modelId ? colors.text : colors.textSecondary }}>
-              {m.displayName}
-            </span>
-          </button>
-        ))}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: "7px",
+                  height: "7px",
+                  borderRadius: radii.full,
+                  background: providerColors[m.provider] ?? colors.accent,
+                  flexShrink: 0,
+                }}
+              />
+              <span style={{ ...typography.body, color: isSelected ? colors.text : colors.textSecondary }}>
+                {m.displayName}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -1205,6 +1219,7 @@ function IconButton({
   return (
     <button
       title={title}
+      aria-label={title}
       onClick={onClick}
       style={{
         width: "26px",
@@ -1219,7 +1234,16 @@ function IconButton({
         justifyContent: "center",
         fontSize: "14px",
         WebkitAppRegion: "no-drag",
+        outline: "none",
       } as React.CSSProperties}
+      onFocus={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.outline =
+          "2px solid " + colors.accent;
+        (e.currentTarget as HTMLButtonElement).style.outlineOffset = "2px";
+      }}
+      onBlur={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.outline = "none";
+      }}
     >
       {children}
     </button>

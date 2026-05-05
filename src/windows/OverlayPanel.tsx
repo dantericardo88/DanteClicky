@@ -143,6 +143,8 @@ export default function OverlayPanel() {
           }}
         >
           <div
+            role="progressbar"
+            aria-label="Processing"
             style={{
               width: "26px",
               height: "26px",
@@ -158,13 +160,17 @@ export default function OverlayPanel() {
 
       {/* Response bubble */}
       {voiceState === "responding" && displayText && (
-        <ResponseBubble text={displayText} />
+        <div role="status" aria-live="polite" aria-label="AI response">
+          <ResponseBubble text={displayText} />
+        </div>
       )}
 
-      {/* Point annotations — blue dots at detected UI element positions */}
-      {points.map((pt, i) => (
-        <PointDot key={i} x={pt.x} y={pt.y} label={pt.label} />
-      ))}
+      {/* Point annotations — blue dots at detected UI element positions (visual only) */}
+      <div aria-hidden="true">
+        {points.map((pt, i) => (
+          <PointDot key={i} x={pt.x} y={pt.y} label={pt.label} />
+        ))}
+      </div>
 
       {/* Action verification badge — briefly shown after a computer-use click */}
       {verifyBadge && (
@@ -254,6 +260,8 @@ function ResponseBubble({ text }: { text: string }) {
       </button>
       <ReactMarkdown>{text}</ReactMarkdown>
       <div
+        role="button"
+        aria-label="Dismiss"
         style={{
           marginTop: "10px",
           ...({} as object),

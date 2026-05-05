@@ -18,7 +18,65 @@ import { summarizeOldTurns } from "../lib/memorySummarizer";
 //   Local → whisper-rs offline (transcribe_local Tauri command)
 
 // Maximum number of iterative computer-use loop steps per user request
-const MAX_CU_LOOP_STEPS = 5;
+const MAX_CU_LOOP_STEPS = 10;
+
+// ── Tool-use dispatch ─────────────────────────────────────────────────────────
+const TOOL_DISPATCH = {
+  computer_use: async (input: {
+    action: string;
+    x?: number;
+    y?: number;
+    text?: string;
+    delta?: number;
+  }) => {
+    switch (input.action) {
+      case "screenshot":
+        return await invoke("capture_screens");
+      case "click":
+        return await invoke("computer_use_click", { x: input.x, y: input.y });
+      case "type":
+        return await invoke("computer_use_type", { text: input.text });
+      case "scroll":
+        return await invoke("computer_use_scroll", {
+          x: input.x,
+          y: input.y,
+          delta: input.delta ?? 3,
+        });
+      case "move":
+        return await invoke("computer_use_move", { x: input.x, y: input.y });
+      default:
+        return { error: `Unknown action: ${input.action}` };
+    }
+  },
+} as const;
+
+function classifyAction(action: string): "safe" | "ui" | "system" {
+  if (action === "screenshot" || action === "move") return "safe";
+  if (action === "click" || action === "scroll" || action === "type") return "ui";
+  return "system";
+}
+
+interface ToolUseBlock {
+  type: "tool_use";
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
+// Parse tool_use blocks out of a JSON response body (Claude returns them in content[])
+function parseToolUseBlocks(rawResponse: string): ToolUseBlock[] {
+  try {
+    const parsed = JSON.parse(rawResponse);
+    if (Array.isArray(parsed?.content)) {
+      return parsed.content.filter(
+        (b: { type?: string }) => b?.type === "tool_use"
+      ) as ToolUseBlock[];
+    }
+  } catch {
+    // Not JSON — streaming text response has no tool_use blocks
+  }
+  return [];
+}
 
 export function useVoice() {
   const {
@@ -40,6 +98,7 @@ export function useVoice() {
     setConversationSummary,
     setError,
     clearError,
+    setLatencyMs,
   } = useCompanionStore();
 
   const sampleRateRef = useRef<number>(44100);
@@ -243,6 +302,19 @@ export function useVoice() {
         if (clean) elevenLabs.queueSentence(clean);
       }
 
+      // Build the message list for the initial AI call
+      type AiMessage = { role: "user" | "assistant"; content: string };
+      let aiMessages: AiMessage[] = [
+        ...conversationHistory.flatMap((t) => [
+          { role: "user" as const, content: t.userPrompt },
+          { role: "assistant" as const, content: t.assistantResponse },
+        ]),
+        { role: "user", content: transcript },
+      ];
+
+      const t0 = Date.now();
+      let firstToken = true;
+
       await streamChat({
         provider: selectedModel.provider,
         modelId: selectedModel.modelId,
@@ -256,6 +328,10 @@ export function useVoice() {
         ],
         images: selectedModel.supportsVision ? images : [],
         onChunk: (chunk) => {
+          if (firstToken) {
+            setLatencyMs(Date.now() - t0);
+            firstToken = false;
+          }
           appendResponse(chunk);
           fullResponse += chunk;
           sentenceBuffer += chunk;
@@ -361,7 +437,6 @@ export function useVoice() {
                 await streamChat({
                   provider: selectedModel.provider,
                   modelId: selectedModel.modelId,
-                  apiKey,
                   systemPrompt: buildSystemPrompt({
                     memoryContext: "",
                     conversationSummary,
@@ -444,6 +519,7 @@ export function useVoice() {
     pushConversationTurn,
     trimConversationHistory,
     setConversationSummary,
+    setLatencyMs,
     setError,
   ]);
 

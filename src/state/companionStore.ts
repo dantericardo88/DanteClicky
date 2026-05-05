@@ -33,6 +33,8 @@ interface CompanionState {
   response: string;
   conversationHistory: ConversationTurn[];
   lastError: string;
+  latencyMs: number | null;
+  lastResponseMs: number | null;
 
   // User settings (persisted to localStorage)
   selectedModel: ModelOption;
@@ -52,6 +54,8 @@ interface CompanionState {
   sessionNotes: string;
 
   // Actions
+  setLatencyMs: (ms: number) => void;
+  clearLatency: () => void;
   setVoiceState: (state: VoiceState) => void;
   setTtsMode: (mode: "cloud" | "local") => void;
   setSelectedModel: (model: ModelOption) => void;
@@ -78,6 +82,8 @@ export const useCompanionStore = create<CompanionState>()(
       response: "",
       conversationHistory: [],
       lastError: "",
+      latencyMs: null,
+      lastResponseMs: null,
       selectedModel: MODEL_OPTIONS[0],
       anthropicKey: "",
       openaiKey: "",
@@ -90,6 +96,8 @@ export const useCompanionStore = create<CompanionState>()(
       conversationSummary: "",
       sessionNotes: "",
 
+      setLatencyMs: (ms) => set({ latencyMs: ms, lastResponseMs: ms }),
+      clearLatency: () => set({ latencyMs: null }),
       setVoiceState: (voiceState) => set({ voiceState }),
       setTtsMode: (ttsMode) => set({ ttsMode }),
       setSelectedModel: (selectedModel) => set({ selectedModel }),

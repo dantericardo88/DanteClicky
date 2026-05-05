@@ -40,7 +40,6 @@ export interface ChatMessage {
 export interface StreamChatOptions {
   provider: string;
   modelId: string;
-  apiKey: string;
   systemPrompt: string;
   messages: ChatMessage[];
   images?: string[];
@@ -48,7 +47,7 @@ export interface StreamChatOptions {
 }
 
 export async function streamChat(opts: StreamChatOptions): Promise<string> {
-  const { provider, modelId, apiKey, systemPrompt, messages, images = [], onChunk } = opts;
+  const { provider, modelId, systemPrompt, messages, images = [], onChunk } = opts;
   const callId = crypto.randomUUID();
 
   const body =
@@ -78,7 +77,7 @@ export async function streamChat(opts: StreamChatOptions): Promise<string> {
       unlisteners.push(u1, u2, u3);
 
       if (provider === "claude") {
-        invoke("stream_claude", { apiKey, body, callId }).catch((err: unknown) => {
+        invoke("stream_claude", { body, callId }).catch((err: unknown) => {
           cleanup();
           reject(err);
         });
@@ -87,7 +86,7 @@ export async function streamChat(opts: StreamChatOptions): Promise<string> {
           provider === "grok"
             ? "https://api.x.ai/v1"
             : "https://api.openai.com/v1";
-        invoke("stream_openai_compat", { baseUrl, apiKey, body, callId }).catch(
+        invoke("stream_openai_compat", { baseUrl, provider, body, callId }).catch(
           (err: unknown) => {
             cleanup();
             reject(err);

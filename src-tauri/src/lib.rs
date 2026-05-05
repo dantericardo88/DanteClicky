@@ -6,6 +6,7 @@ mod computer_use;
 mod cursor;
 mod hotkey;
 mod input;
+mod keystore;
 mod mcp_server;
 mod monitors;
 mod ocr;
@@ -176,6 +177,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Mutex::new(audio::AudioState::new()))
         .manage(Mutex::new(stt::SttState::new()))
+        .manage(keystore::KeyStore::new())
         .invoke_handler(tauri::generate_handler![
             save_turn,
             search_history,
@@ -210,6 +212,8 @@ pub fn run() {
             tts_local::get_kokoro_status,
             ocr::ocr_screenshot,
             accessibility::get_ui_tree,
+            keystore::set_api_key,
+            keystore::clear_api_key,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -287,15 +291,15 @@ pub fn run() {
 
             // Make the overlay invisible to all screen-capture APIs (Zoom, Teams, OBS, Game Bar).
             // WDA_EXCLUDEFROMCAPTURE requires Windows 10 20H1+; silently ignored if unavailable.
+            // Raw extern avoids windows-crate version mismatches in the dependency graph.
             #[cfg(target_os = "windows")]
-            {
-                use windows::Win32::UI::WindowsAndMessaging::{
-                    SetWindowDisplayAffinity, WDA_EXCLUDEFROMCAPTURE,
-                };
-                if let Ok(hwnd) = overlay.hwnd() {
-                    unsafe {
-                        let _ = SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
-                    }
+            if let Ok(hwnd) = overlay.hwnd() {
+                #[allow(non_snake_case)]
+                extern "system" {
+                    fn SetWindowDisplayAffinity(hWnd: *mut std::ffi::c_void, dwAffinity: u32) -> i32;
+                }
+                unsafe {
+                    SetWindowDisplayAffinity(hwnd.0, 0x0000_0011); // WDA_EXCLUDEFROMCAPTURE
                 }
             }
 

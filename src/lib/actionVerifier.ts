@@ -13,7 +13,6 @@ export interface VerifyResult {
  * with { success: true } so the user is never blocked.
  */
 export async function verifyAction(
-  apiKey: string,
   beforeScreenshot: string,
   afterScreenshot: string,
   actionDescription: string
@@ -83,7 +82,7 @@ export async function verifyAction(
       }),
     ]).then(([u1, u2, u3]) => {
       unlisteners.push(u1, u2, u3);
-      invoke("stream_claude", { apiKey, body, callId }).catch(() => {
+      invoke("stream_claude", { body, callId }).catch(() => {
         cleanup();
         resolve({ success: true, explanation: "Verification invoke error" });
       });

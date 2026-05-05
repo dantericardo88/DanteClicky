@@ -290,7 +290,7 @@ export function useVoice() {
         const toSummarize = conversationHistory.slice(0, 7);
         const remaining = conversationHistory.slice(7);
         // Background summarization — non-blocking
-        summarizeOldTurns(toSummarize, anthropicKey).then((summary) => {
+        summarizeOldTurns(toSummarize, !!anthropicKey).then((summary) => {
           if (summary) {
             setConversationSummary(
               (conversationSummary ? conversationSummary + "\n\n" : "") + summary
@@ -325,7 +325,6 @@ export function useVoice() {
               const afterShot = await invoke<string>("capture_primary");
 
               const result = await verifyAction(
-                anthropicKey,
                 beforeShot,
                 afterShot,
                 `Click at (${px}, ${py}) — ${points[0].label}`

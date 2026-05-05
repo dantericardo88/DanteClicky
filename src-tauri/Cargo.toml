@@ -28,8 +28,8 @@ rayon = "1"
 # Phase 3 -- Audio input
 cpal = "0.15"
 
-# Phase 6 -- Win32 cursor animation (screenshots 0.8 already brings windows 0.58)
-windows = { version = "0.58", features = [
+# Phase 6 -- Win32 cursor animation (0.61 aligns with Tauri 2.11 to avoid windows-core trait conflicts)
+windows = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_UI_WindowsAndMessaging",
     "Win32_Graphics_Gdi",

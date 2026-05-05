@@ -58,8 +58,42 @@ export default function CompanionPanel() {
 
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
+  // Seed the Rust KeyStore with any persisted keys on mount
+  useEffect(() => {
+    const entries: Array<[string, string]> = [
+      ["anthropic", anthropicKey],
+      ["openai", openaiKey],
+      ["xai", grokKey],
+      ["elevenlabs", elevenLabsKey],
+      ["assemblyai", assemblyAiKey],
+    ];
+    for (const [storeKey, key] of entries) {
+      if (key.trim()) {
+        invoke("set_api_key", { provider: storeKey, key }).catch(() => {});
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Map frontend provider names to the keystore keys used in Rust
+  const PROVIDER_STORE_KEY: Record<Provider, string> = {
+    anthropic: "anthropic",
+    openai: "openai",
+    grok: "xai",
+    elevenLabs: "elevenlabs",
+    assemblyAi: "assemblyai",
+  };
+
   function handleSetKey(provider: Provider, key: string) {
     setApiKey(provider, key);
+
+    // Push key into Rust KeyStore so IPC commands never receive it directly
+    const storeKey = PROVIDER_STORE_KEY[provider];
+    if (key.trim()) {
+      invoke("set_api_key", { provider: storeKey, key }).catch(() => {});
+    } else {
+      invoke("clear_api_key", { provider: storeKey }).catch(() => {});
+    }
 
     // Clear existing debounce timer for this provider
     if (debounceTimers.current[provider]) {

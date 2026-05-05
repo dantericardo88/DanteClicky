@@ -4,9 +4,9 @@ import type { ConversationTurn } from "../state/companionStore";
 
 export async function summarizeOldTurns(
   turns: ConversationTurn[],
-  apiKey: string
+  hasKey: boolean
 ): Promise<string> {
-  if (!apiKey || turns.length === 0) return "";
+  if (!hasKey || turns.length === 0) return "";
 
   const callId = crypto.randomUUID();
   const body = {
@@ -49,7 +49,7 @@ export async function summarizeOldTurns(
       }),
     ]).then(([u1, u2, u3]) => {
       unlisteners.push(u1, u2, u3);
-      invoke("stream_claude", { apiKey, body, callId }).catch(() => {
+      invoke("stream_claude", { body, callId }).catch(() => {
         cleanup();
         resolve("");
       });

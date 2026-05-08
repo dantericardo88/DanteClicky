@@ -15,7 +15,7 @@
 Press `Ctrl+Alt+Space` → speak → watch the cursor animate to the target → AI executes the action → hear TTS confirmation.
 
 The only Windows-native tool that combines:
-- **Voice push-to-talk** (AssemblyAI real-time STT + local Whisper toggle)
+- **Voice push-to-talk** (AssemblyAI U3 Pro multilingual STT + local Whisper language selector)
 - **Screen capture** (GPU-accelerated WGC, all monitors)
 - **Computer use** (click, type, scroll via enigo — AI controls your desktop)
 - **Model-agnostic** (Claude Sonnet/Opus/Haiku, GPT-4o/o3, Grok 2/3)
@@ -48,7 +48,7 @@ DanteClicky (Tauri 2.0)
 │
 ├── SENSORY    capture.rs   WGC GPU screen capture, all monitors, JPEG 85%
 │              audio.rs     cpal WASAPI 16kHz, push-to-talk accumulator
-│              stt.rs       AssemblyAI cloud OR whisper-rs local (toggle in settings)
+│              stt.rs       AssemblyAI cloud OR candle Whisper local (language-aware)
 │
 ├── ACTION     input.rs     enigo: click, double-click, right-click, type, scroll, move
 │              cursor.rs    Win32 SetCursorPos smooth animation to [POINT] coords
@@ -100,7 +100,7 @@ Connect DanteAgents (or any agent) to `ws://localhost:9001`:
 | Anthropic | claude-sonnet-4-5, claude-opus-4-5, claude-haiku-4-5 |
 | OpenAI | gpt-4o, gpt-4o-mini, o3-mini |
 | xAI | grok-2-vision-1212, grok-3-mini-beta |
-| Local | whisper-base.en STT (offline, 142MB download) |
+| Local | whisper-tiny.en or whisper-tiny multilingual STT (offline download) |
 
 ---
 
@@ -116,7 +116,7 @@ Connect DanteAgents (or any agent) to `ws://localhost:9001`:
 | Audio | cpal 0.15 (WASAPI) |
 | Screen | screenshots 0.8 (WGC) |
 | Input | enigo 0.2 |
-| STT | AssemblyAI WebSocket + whisper-rs 0.13 |
+| STT | AssemblyAI U3 Pro WebSocket + candle-transformers Whisper |
 | TTS | ElevenLabs Web Audio API |
 | HTTP | reqwest 0.12, axum 0.7 |
 | WS | tokio-tungstenite 0.24 |
@@ -153,3 +153,29 @@ Run tests:
 cargo test
 npm test
 ```
+
+---
+
+## License
+
+DanteClicky is licensed under the **MIT License**. See [LICENSE](./LICENSE) for full details.
+
+### Dependency Licenses
+
+All dependencies are validated for MIT, Apache-2.0, BSD, ISC, or MPL-2.0 compatibility. See `deny.toml` for audit configuration.
+
+**Key OSS dependencies:**
+- **Tauri 2.0** — Apache-2.0 / MIT  
+- **Rust ecosystem** — MIT / Apache-2.0 / 0BSD  
+- **React 19** — MIT  
+- **Vercel AI SDK** — Apache-2.0  
+- **candle-transformers** (Hugging Face) — Apache-2.0 (local Whisper)
+
+For commercial use, personal use, modification, and distribution: fully permitted under MIT.
+
+---
+
+## Questions?
+
+- Issues: [GitHub Issues](https://github.com/dantericardo88/DanteClicky/issues)
+- Discussions: [GitHub Discussions](https://github.com/dantericardo88/DanteClicky/discussions)

@@ -2,8 +2,12 @@
 name = "dante-clicky-windows"
 version = "0.1.0"
 description = "DanteClicky - AI Companion for Windows"
-authors = ["DanteForge"]
+authors = ["DanteForge Contributors"]
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/dantericardo88/DanteClicky"
+homepage = "https://github.com/dantericardo88/DanteClicky"
+readme = "../README.md"
 
 [lib]
 name = "dante_clicky_windows_lib"
@@ -59,15 +63,23 @@ uuid = { version = "1", features = ["v4"] }
 async-stream = "0.3"
 
 # Phase 10 -- Direct API proxy (removes Cloudflare Worker dependency)
-reqwest = { version = "0.12", features = ["json", "stream"] }
-
-# Phase 11 -- Local Whisper STT (CPU-only, no CUDA/Metal)
-# Enable with: cargo build --features local-stt
-whisper-rs = { version = "0.13", default-features = false, optional = true }
+reqwest = { version = "0.12", features = ["json", "stream", "multipart"] }
 
 # Dimension 1 -- Persistent Memory (SQLite with FTS5)
+# Use --features sqlcipher for production builds (adds SQLCipher AES-256 file-level encryption)
+# Tests run with plain bundled SQLite (no OpenSSL/Perl required)
 rusqlite = { version = "0.31", features = ["bundled"] }
 anyhow = "1"
+
+# Dimension 36 -- Memory encryption at rest (SQLCipher AES-256 file-level + ChaCha20-Poly1305 field-level)
+chacha20poly1305 = "0.10"
+rand = "0.8"
+
+# Dimension 3 -- Local Whisper STT via candle (pure Rust, no cmake, always in default binary)
+candle-core = { version = "0.8", default-features = false }
+candle-nn = { version = "0.8", default-features = false }
+candle-transformers = { version = "0.8", default-features = false }
+tokenizers = "0.20"
 
 # Dimension 4 -- Local TTS via Kokoro ONNX
 # Enable with: cargo build --features local-tts
@@ -75,5 +87,5 @@ anyhow = "1"
 ort = { version = "2.0.0-rc.12", features = ["download-binaries"], optional = true }
 
 [features]
-local-stt = ["whisper-rs"]
 local-tts = ["ort"]
+sqlcipher = ["rusqlite/bundled-sqlcipher-vendored-openssl"]

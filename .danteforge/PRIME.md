@@ -8,18 +8,18 @@ Canonical files:
 - State: `.danteforge/STATE.yaml`
 
 Current harsh score:
-- **8.43/10** as of 2026-05-09 (Session 25 Dim 47 release-readiness hardening)
-- Equivalent: **84.3/100**
+- **8.45/10** as of 2026-05-09 (Session 26 Dim 47 CI artifact proof)
+- Equivalent: **84.5/100**
 - Baseline at session start: **4.2/10**
-- Trajectory: 4.2 -> 7.40 -> 7.81 (S17 harsh rescore) -> 7.85 (S18 Dim 38 7->9) -> 7.99 (S19 Dim 29 0->7) -> 8.05 (S20c Dim 46 6->9.0) -> 8.21 (S22 reconciled Dim 16=8.7, Dim 29=8, Dim 46=9) -> 8.35 (S23 Dim 9=9) -> 8.42 (S24 Dim 47=6.5) -> **8.43 (S25 Dim 47=7.0)**
+- Trajectory: 4.2 -> 7.40 -> 7.81 (S17 harsh rescore) -> 7.85 (S18 Dim 38 7->9) -> 7.99 (S19 Dim 29 0->7) -> 8.05 (S20c Dim 46 6->9.0) -> 8.21 (S22 reconciled Dim 16=8.7, Dim 29=8, Dim 46=9) -> 8.35 (S23 Dim 9=9) -> 8.42 (S24 Dim 47=6.5) -> 8.43 (S25 Dim 47=7.0) -> **8.45 (S26 Dim 47=8.0)**
 
-Current next-four priorities (after Session 25 Dim 47 release-readiness hardening):
-1. **Dim 47 - Cross-platform proof/native parity**: current 7.0, target 9 (+0.04 composite). Architecture, diagnostics, updater artifact config, and proof scripts are in place; now needs actual macOS/Linux green runs, signed/notarized artifacts, smoke evidence, and native parity work.
+Current next-four priorities (after Session 26 Dim 47 CI artifact proof):
+1. **Dim 47 - Cross-platform signing/runtime parity**: current 8.0, target 9 (+0.02 composite). CI tests and no-bundle package-smoke artifacts are green on Windows/macOS/Linux; now needs signed/notarized tagged releases, real updater signatures, dated runtime smoke logs, and native parity work.
 2. **Dim 13 - Context depth / multi-screenshot**: current 7, target 9 (+0.04 composite). Use Dim 16 temporal buffer for multi-window/history snapshots.
 3. **Dim 29 - Local vision to UI-TARS parity**: current 8, target 9 (+0.02 composite). Fix grounding benchmark reliability or integrate UI-TARS/new Moondream coord decoder.
 4. **Dim 16 - Video / temporal context proof-hardening**: current 8.7, target 9+ (+0.01 composite). Live-screen/manual smoke, real-display test evidence, and semantic keyframe proof remove the cap.
-Total potential: +0.11 -> **8.54/10** with 1-2 focused weeks of work if CI/artifact work runs in parallel.
-Domain leadership after S25: DC leads all 6/6 domains in the reconciled matrix. Nearest domain threats are Screenpipe in Screen (7.40 vs DC 8.15) and Platform (7.00 vs DC 8.00), plus UI-TARS in Computer Use (7.80 vs DC 8.55).
+Total potential: +0.10 -> **8.55/10** with about 1 focused week of work if signing/runtime smoke work runs in parallel.
+Domain leadership after S26: DC leads all 6/6 domains in the reconciled matrix. Nearest domain threats are Screenpipe in Screen (7.40 vs DC 8.15) and Platform (7.00 vs DC 8.17), plus UI-TARS in Computer Use (7.80 vs DC 8.55).
 
 Important scoring notes:
 - Claude's project-memory matrix is now imported into `.danteforge` and is canonical for this repo.
@@ -39,6 +39,7 @@ Important scoring notes:
 - **Session 23 (2026-05-09): Dim 9 Wake word / always-on promoted 2->9.0** with opt-in local wake mode, native VAD segmentation, local Whisper wake phrase matching, cloud-audio suppression before wake, visible wake status/controls, onboarding default-off copy, and allowlisted wake telemetry. Verification: focused wake tests 10/10, full Vitest 453/453, `npx tsc --noEmit`, `npm run build`, `cargo check`, and Rust lib tests 135 passed/2 ignored. Held at 9.0, not higher, until live mic false-accept/false-reject benchmark, dedicated ONNX keyword spotter, and long-run CPU/battery trace.
 - **Session 24 (2026-05-09): Dim 47 Cross-platform promoted 3->6.5** with target-gated Windows crates, Windows-only hardware capture feature gating, non-Windows fallbacks for accessibility/OCR/cursor/overlay, `get_platform_capabilities`, Windows/macOS/Linux CI and release matrices, all-target Tauri bundle config, platform-neutral product copy, and a focused cross-platform architecture test. Verification: crossPlatformArchitecture 5/5, full Vitest 458/458, `npx tsc --noEmit`, `npm run build`, `cargo check --locked`, `cargo test --lib --no-run`, and `npm run tauri -- build --no-bundle`. Held at 6.5, not 9+, because macOS/Linux CI artifacts, signed/notarized packages, non-Windows native parity, and manual smoke evidence are still missing. Local Rust test execution is blocked by Windows Application Control (`os error 4551`), so use CI for execution proof.
 - **Session 25 (2026-05-09): Dim 47 Cross-platform promoted 6.5->7.0** with official Tauri Linux dependencies in build/release workflows, macOS ARM and Intel release targets, `createUpdaterArtifacts: true`, corrected updater endpoint, release artifact verification scripts, cross-platform smoke manifest, visible Settings platform diagnostics, and SessionDb state alignment to `Arc<SessionDb>`. Verification: crossPlatformArchitecture 8/8, full Vitest 461/461, `npx tsc --noEmit`, `npm run build`, `cargo check --locked`, `cargo test --lib` 135 passed/2 ignored, and `npm run tauri -- build --no-bundle`. Held at 7.0, not 9+, until macOS/Linux CI pass, signed/notarized artifacts and updater signatures exist, and dated smoke logs prove launch/tray/hotkey/capture/input/updater on all target OSes.
+- **Session 26 (2026-05-09): Dim 47 Cross-platform promoted 7.0->8.0** with external CI artifact proof. Fixed feature-branch CI blockers: startupArchitecture setup extraction is now CRLF-safe, and lazy Tauri window builders skip `transparent(true)` on macOS. Verification: local full Vitest 461/461, `npx tsc --noEmit`, `cargo check --locked`, `cargo test --lib` 135 passed/2 ignored, plus GitHub Actions Build & Test run `25609011008` succeeded on commit `5d2e1b5`. CI test jobs passed on `windows-latest`, `macos-latest`, and `ubuntu-latest`; package-smoke passed `npm run tauri -- build --no-bundle` and uploaded `danteclicky-windows-latest-no-bundle`, `danteclicky-macos-latest-no-bundle`, and `danteclicky-ubuntu-latest-no-bundle`. Held at 8.0, not 9+, until signed/notarized tagged releases, real updater signatures, and dated runtime smoke logs prove launch/tray/hotkey/capture/input/updater on all target OSes.
 - Do not use the earlier reconstructed 73.1/100 score. It has been superseded by the Claude memory import.
 
 When an agent changes a score, it must update:

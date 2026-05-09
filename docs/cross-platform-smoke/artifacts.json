@@ -1,10 +1,43 @@
 {
   "dimension": 47,
   "name": "Cross-platform",
-  "lastUpdated": "2026-05-09",
-  "status": "scaffolded-not-proven",
-  "scoreClaim": 7.0,
-  "scoreCap": "Below 9 until tagged release artifacts and macOS/Linux smoke logs exist.",
+  "lastUpdated": "2026-05-09T19:15:14.739Z",
+  "status": "ci-package-smoke-proven",
+  "scoreClaim": 8.0,
+  "scoreCap": "Below 9 until tagged signed/notarized release artifacts, real updater signatures, and dated runtime smoke logs exist.",
+  "ciProof": {
+    "workflow": "Build & Test",
+    "runId": 25609011008,
+    "runUrl": "https://github.com/dantericardo88/DanteClicky/actions/runs/25609011008",
+    "commit": "5d2e1b50494690fc2dce17f8b7440626fba99358",
+    "testJobs": {
+      "windows-latest": "passed",
+      "macos-latest": "passed",
+      "ubuntu-latest": "passed"
+    },
+    "packageSmokeJobs": {
+      "windows-latest": "passed",
+      "macos-latest": "passed",
+      "ubuntu-latest": "passed"
+    },
+    "artifacts": [
+      {
+        "name": "danteclicky-windows-latest-no-bundle",
+        "artifactId": 6897991744,
+        "sizeBytes": 16526018
+      },
+      {
+        "name": "danteclicky-macos-latest-no-bundle",
+        "artifactId": 6897967841,
+        "sizeBytes": 17047327
+      },
+      {
+        "name": "danteclicky-ubuntu-latest-no-bundle",
+        "artifactId": 6897966049,
+        "sizeBytes": 19824697
+      }
+    ]
+  },
   "expectedReleaseArtifacts": {
     "windows-x86_64": ["*.exe", "*.exe.sig"],
     "darwin-aarch64": ["*.app.tar.gz", "*.app.tar.gz.sig"],
@@ -17,11 +50,10 @@
     "docs/cross-platform-smoke/YYYY-MM-DD-linux.md"
   ],
   "checks": {
-    "windowsReleaseNoBundle": "passed locally before this artifact scaffold",
-    "macosCi": "not yet run in this session",
-    "linuxCi": "not yet run in this session",
+    "windowsReleaseNoBundle": "passed in CI package-smoke and uploaded artifact",
+    "macosCi": "passed test job and package-smoke with uploaded artifact",
+    "linuxCi": "passed test job and package-smoke with uploaded artifact",
     "notarization": "not yet proven",
     "updaterSignatures": "configured but not proven with real signing key"
   }
 }
-

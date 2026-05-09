@@ -4,6 +4,21 @@ workflowStage: initialized
 currentPhase: 0
 tasks: {}
 auditLog:
+  - "2026-05-09 | codex: Session 26 Dim 47 Cross-platform promoted 7.0 -> 8.0.
+    Fixed the CI blockers from the first feature-branch run: startupArchitecture
+    setup extraction is now line-ending robust, and lazy Tauri window builders
+    skip transparent(true) on macOS where that builder method is unavailable.
+    Verification: local full Vitest 461/461, npx tsc --noEmit, cargo check
+    --locked, cargo test --lib 135 passed/2 ignored, plus GitHub Actions Build
+    & Test run 25609011008 succeeded on commit 5d2e1b5. CI test jobs passed on
+    windows-latest, macos-latest, and ubuntu-latest. Tauri package-smoke passed
+    npm run tauri -- build --no-bundle on all three OSes and uploaded
+    danteclicky-windows-latest-no-bundle, danteclicky-macos-latest-no-bundle,
+    and danteclicky-ubuntu-latest-no-bundle artifacts. Canonical composite
+    8.43 -> 8.45. Held at 8.0, not 9+, until signed/notarized tagged releases,
+    real updater signatures, and dated runtime smoke logs prove launch/tray/
+    hotkey/capture/input/updater on all target OSes. Next four: Dim 47
+    signing/runtime parity, Dim 13, Dim 29, Dim 16."
   - "2026-05-09 | codex: Session 25 Dim 47 Cross-platform promoted 6.5 -> 7.0.
     Fixed the remaining release-readiness blockers found by the parallel audit:
     official Tauri Linux dependencies in build/release workflows, macOS ARM and

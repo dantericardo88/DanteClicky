@@ -1,10 +1,10 @@
 {
   "project": "DanteClicky-Windows",
-  "lastUpdated": "2026-05-09T18:12:35.000Z",
-  "composite": 8.43,
-  "previous_composite": 8.42,
-  "harsh_delta": "+0.01",
-  "note": "Session 25: Dim 47 Cross-platform promoted 6.5->7.0 after release workflows were corrected to official Tauri Linux dependencies, macOS ARM + Intel targets, v2 updater artifacts, GitHub release endpoint consistency, release artifact verification scripts, visible platform capability diagnostics, and a managed SessionDb state mismatch fix. Still capped well below 9 until macOS/Linux CI artifacts, signing/notarization, and smoke evidence exist.",
+  "lastUpdated": "2026-05-09T19:15:14.739Z",
+  "composite": 8.45,
+  "previous_composite": 8.43,
+  "harsh_delta": "+0.02",
+  "note": "Session 26: Dim 47 Cross-platform promoted 7.0->8.0 after GitHub Actions Build & Test run 25609011008 passed Windows, macOS, and Ubuntu test matrices plus no-bundle Tauri package-smoke on all three OSes with uploaded artifacts. Still capped below 9 until signed/notarized tagged release artifacts, real updater signatures, and dated runtime smoke logs prove launch/tray/hotkey/capture/input/updater on each target OS.",
   "competitors": {
     "closed_source": [
       "Screenpipe",
@@ -21,7 +21,7 @@
     ]
   },
   "competitor_composites": {
-    "DanteClicky": 8.43,
+    "DanteClicky": 8.45,
     "Screenpipe": 5.64,
     "Cluely": 5.12,
     "Clicky macOS": 5.24,
@@ -105,7 +105,7 @@
     },
     "Platform": {
       "dims": "45-50",
-      "DC": 8,
+      "DC": 8.17,
       "Screenpipe": 7,
       "Cluely": 6.5,
       "Raycast AI": 6.83,
@@ -115,7 +115,7 @@
       "UI-TARS Desktop": 5.67,
       "Open Interpreter": 5.83,
       "Goose (Block)": 6.83,
-      "note": "Session 25: Dim 47 6.5->7.0 adds corrected official Tauri Linux deps, macOS ARM/Intel release targets, v2 updater artifacts, release proof scripts, visible degraded capability UI, and a Tauri managed-state fix. Still capped below elite until actual macOS/Linux artifacts and smoke runs pass."
+      "note": "Session 26: Dim 47 7.0->8.0 after green Windows/macOS/Ubuntu CI and no-bundle Tauri package-smoke artifacts on all three OSes. Still capped below elite until tagged signed/notarized releases, real updater signatures, and runtime smoke parity exist."
     }
   },
   "dimensions": [
@@ -837,7 +837,7 @@
       "id": 47,
       "domain": "Platform",
       "what": "Cross-platform (macOS/Linux)",
-      "DC": 7,
+      "DC": 8,
       "Screenpipe": 8,
       "Cluely": 6,
       "Raycast AI": 2,
@@ -847,8 +847,8 @@
       "UI-TARS Desktop": 6,
       "Open Interpreter": 9,
       "Goose (Block)": 9,
-      "harsh_change": "3->7.0",
-      "why_harsh": "Cross-platform architecture is now real and release readiness is materially stronger: Windows API crates and windows-capture are behind cfg(target_os=\"windows\"), accessibility/OCR/cursor/overlay commands have non-Windows fallbacks, platform capabilities are exposed as a first-class contract and visible Settings UI, CI and release workflows include Windows/macOS/Linux with official Tauri Linux dependencies, release.yml splits macOS ARM and Intel targets, Tauri v2 updater artifacts are enabled, the updater endpoint is repository-correct, release artifact verification scripts and smoke evidence scaffolding exist, and a SessionDb managed-state mismatch was fixed. Verified by crossPlatformArchitecture 8/8, full Vitest 461/461, TypeScript, npm production build, cargo check, cargo test --lib 135 passed/2 ignored, and Windows tauri build --no-bundle. Capped at 7.0 because macOS/Linux CI has not yet run to green, no signed/notarized macOS/Linux artifacts are attached, updater signatures are not proven with a real key, and non-Windows native parity remains degraded for accessibility/OCR/overlay stealth."
+      "harsh_change": "3->8.0",
+      "why_harsh": "Cross-platform architecture is now real and externally proven in CI: Windows API crates and windows-capture are target-gated, non-Windows fallbacks exist for accessibility/OCR/cursor/overlay, platform capabilities are exposed in Rust and Settings UI, CI/release workflows cover Windows/macOS/Linux with official Tauri Linux dependencies, release.yml splits macOS ARM and Intel targets, updater artifacts and verification scripts exist, and the SessionDb managed-state mismatch is fixed. New evidence from GitHub Actions run 25609011008: Test jobs passed on windows-latest, macos-latest, and ubuntu-latest; package-smoke passed `npm run tauri -- build --no-bundle` on all three OSes; uploaded artifacts are danteclicky-windows-latest-no-bundle, danteclicky-macos-latest-no-bundle, and danteclicky-ubuntu-latest-no-bundle. Local verification also passed full Vitest 461/461, TypeScript, cargo check, Rust lib tests 135 passed/2 ignored. Capped at 8.0 because there is still no tagged signed/notarized release with real updater signatures, no dated runtime smoke logs for launch/tray/hotkey/capture/input/updater on macOS/Linux/Windows, and non-Windows native parity remains degraded for accessibility/OCR/overlay stealth."
     },
     {
       "id": 48,
@@ -901,12 +901,12 @@
       "rank": 1,
       "dim": 47,
       "what": "Cross-platform proof and native parity",
-      "current": 7,
+      "current": 8,
       "target": 9,
-      "lift": 2,
-      "composite_impact": "+0.04",
-      "effort_days": "4-7",
-      "why": "Release readiness is stronger, but 9+ still needs green macOS/Linux CI, signed/notarized artifacts, smoke evidence, and platform-specific accessibility/capture/input parity."
+      "lift": 1,
+      "composite_impact": "+0.02",
+      "effort_days": "3-5",
+      "why": "CI and no-bundle package artifacts are green on Windows/macOS/Linux; 9+ now requires signed/notarized tagged release artifacts, real updater signatures, dated runtime smoke logs, and platform-specific accessibility/capture/input parity."
     },
     {
       "rank": 2,
@@ -944,11 +944,11 @@
   ],
   "next_priorities_total": {
     "dims": 4,
-    "total_lift": 5.8,
-    "composite_gain": "+0.12",
-    "projected_score": "8.54/10",
-    "effort_window": "1-2 focused weeks with CI/artifact parallelism",
-    "note": "Dim 47 moved from architectural hole to proof/parity sprint. Remaining priorities are macOS/Linux evidence, deeper screen context, local-vision grounding, and Dim 16 evidence cap removal."
+    "total_lift": 4.8,
+    "composite_gain": "+0.10",
+    "projected_score": "8.55/10",
+    "effort_window": "1 focused week if signing/runtime smoke work runs in parallel",
+    "note": "Dim 47 moved from architectural proof to CI artifact proof. Remaining priorities are signed/runtime cross-platform evidence, deeper screen context, local-vision grounding, and Dim 16 evidence cap removal."
   },
   "dims_at_9_plus": [
     3,
@@ -994,6 +994,7 @@
     40,
     44,
     45,
+    47,
     48,
     49,
     50
@@ -1005,9 +1006,7 @@
     15,
     18
   ],
-  "dims_at_6_to_7": [
-    47
-  ],
+  "dims_at_6_to_7": [],
   "dims_under_6": [],
   "domain_leadership": {
     "Voice 1-10": {
@@ -1041,23 +1040,23 @@
       "dc_gap": "+1.69 DC LEADS"
     },
     "Platform 45-50": {
-      "DC": 8,
+      "DC": 8.17,
       "nearest_competitor": "Screenpipe",
       "nearest_score": 7,
-      "dc_gap": "+1.00 DC LEADS"
+      "dc_gap": "+1.17 DC LEADS"
     },
     "Overall": {
-      "DC": 8.43,
+      "DC": 8.45,
       "nearest_competitor": "Screenpipe",
       "nearest_score": 5.64,
-      "dc_lead": "+2.79",
-      "note": "Session 25 raises Dim 47 to 7.0 with corrected release machinery, updater artifact config, visible platform diagnostics, proof scripts, and local verification. DC leads all six domains; the remaining Platform cap is real macOS/Linux release proof and native parity."
+      "dc_lead": "+2.81",
+      "note": "Session 26 raises Dim 47 to 8.0 with green Windows/macOS/Ubuntu CI and no-bundle package artifacts. DC leads all six domains; the remaining Platform cap is signed tagged releases, updater signatures, runtime smoke evidence, and native parity."
     }
   },
   "harsh_score_notes": {
-    "rescore_date": "2026-05-09T18:12:35.000Z",
-    "session": "25",
-    "verdict": "Current harsh composite is 8.43/10 after Dim 47 Cross-platform moved from 6.5 to 7.0. This is a real release-readiness and diagnostics improvement, not a 9+ proof claim.",
+    "rescore_date": "2026-05-09T19:15:14.739Z",
+    "session": "26",
+    "verdict": "Current harsh composite is 8.45/10 after Dim 47 Cross-platform moved from 7.0 to 8.0. This is real CI/package artifact proof across Windows, macOS, and Ubuntu, not a 9+ runtime/signing claim.",
     "session_23_promotion": {
       "dim": 9,
       "before": 2,
@@ -1378,6 +1377,13 @@
       "after": 7,
       "evidence": "Official Tauri Linux dependencies in CI/release; macOS ARM and Intel release targets; createUpdaterArtifacts true; updater endpoint corrected to dantericardo88/DanteClicky; release artifact verification scripts; cross-platform smoke artifact manifest; Settings platform diagnostics; SessionDb state aligned to Arc<SessionDb>; crossPlatformArchitecture 8/8; full Vitest 461/461; TypeScript; npm production build; cargo check; cargo test --lib 135 passed/2 ignored; Windows tauri build --no-bundle.",
       "cap": "Held at 7.0, not 9+, until macOS/Linux CI pass, signed/notarized artifacts exist, updater signatures are generated with a real key, and dated smoke logs prove install/launch/tray/hotkey/capture/input/updater on all target OSes."
+    },
+    "session_26_promotion": {
+      "dim": 47,
+      "before": 7,
+      "after": 8,
+      "evidence": "GitHub Actions Build & Test run 25609011008 succeeded. Test jobs passed on windows-latest, macos-latest, and ubuntu-latest. Tauri package smoke passed `npm run tauri -- build --no-bundle` on all three OSes and uploaded danteclicky-windows-latest-no-bundle, danteclicky-macos-latest-no-bundle, and danteclicky-ubuntu-latest-no-bundle artifacts. Local checks passed full Vitest 461/461, TypeScript, cargo check, and Rust lib tests 135 passed/2 ignored.",
+      "cap": "Held at 8.0, not 9+, until a tagged release produces signed/notarized artifacts with real updater signatures and dated runtime smoke logs prove launch/tray/hotkey/capture/input/updater on Windows, macOS, and Linux."
     }
   }
 }

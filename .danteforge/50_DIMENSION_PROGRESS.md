@@ -1,6 +1,6 @@
 ﻿---
 name: DanteClicky Dimension Progress
-description: Tracks which 50-dimension scores have improved and which remain open. Composite 8.43/10 as of 2026-05-09.
+description: Tracks which 50-dimension scores have improved and which remain open. Composite 8.45/10 as of 2026-05-09.
 type: danteforge-canonical
 source: C:\Users\richa\.claude\projects\c--Projects-DanteClicky\memory\project_dimension_progress.md
 importedAt: 2026-05-06
@@ -10,12 +10,12 @@ importedAt: 2026-05-06
 
 Reference this before starting score, compete, leapfrog, ascend, or sprint work. Its job is to prevent duplicated effort and keep the 50-dimension matrix honest.
 
-Current composite: **8.43/10**
+Current composite: **8.45/10**
 
 Session-start composite: **4.2/10**
 ## Reconciled 2026-05-09
 
-Canonical score is now **8.43/10** after merging the latest evidenced updates: Dim 9 = 9.0, Dim 16 = 8.7, Dim 29 = 8.0, Dim 46 = 9.0, Dim 47 = 7.0. Authoritative JSON mirror: .danteforge/50_DIMENSION_COMPETITIVE_MATRIX.json.
+Canonical score is now **8.45/10** after merging the latest evidenced updates: Dim 9 = 9.0, Dim 16 = 8.7, Dim 29 = 8.0, Dim 46 = 9.0, Dim 47 = 8.0. Authoritative JSON mirror: .danteforge/50_DIMENSION_COMPETITIVE_MATRIX.json.
 
 Next four priority dimensions: **47 Cross-platform proof/native parity**, **13 Context depth / multi-screenshot**, **29 Local vision to UI-TARS parity**, **16 Video / temporal proof-hardening**.
 
@@ -84,7 +84,7 @@ Dims meaningfully improved so far: **38 of 50**
 |-----|------|--------------|-----|
 | 9 | Wake word / always-on voice | 2 -> 9.0 | Opt-in wake mode now uses native VAD to segment idle mic audio, local Whisper to transcribe wake segments, local phrase matching before opening a normal voice turn, and a hard guard so AssemblyAI/cloud STT only receives audio while `voiceState === "listening"`. Companion settings expose wake enable/phrase/sensitivity/status; onboarding says wake word is off by default; wake telemetry is allowlisted with safe metadata only. Verified by 10 focused wake tests, full Vitest 453/453, TypeScript, production build, cargo check, and Rust lib tests. Capped at 9.0 until live mic false-accept/false-reject benchmark, dedicated ONNX keyword spotter, and long-run CPU/battery trace exist. |
 | 46 | Startup time | 6 -> 9.0 | Release executable benchmark passed strict startup gates: `bench/startup/results.json` records 30/30 ok, 0 timeouts, app-ready p50 18ms, app-ready p95 37ms, launch-observed p50 55ms, launch-observed p95 155ms. Startup is now tray/hotkey native-first with no eager companion/onboarding webview, lazy companion/onboarding helpers, queued/drained first-hotkey events, native monitor enumeration before webview creation, markerized startup probe, and SessionDb warmup deferred behind native readiness. Verified by startup architecture tests, full Vitest, TypeScript, production build, Rust check/tests, release build, and 30-run benchmark. |
-| 47 | Cross-platform | 3 -> 7.0 | Windows-only native crates are target-gated; Windows hardware capture is behind `all(feature = "video-hw-capture", target_os = "windows")`; accessibility, OCR, cursor, and overlay commands expose safe non-Windows fallbacks; `get_platform_capabilities` reports per-OS support and now appears in Settings; build and release workflows matrix Windows/macOS/Linux with official Tauri Linux deps; release splits macOS ARM and Intel; Tauri v2 updater artifacts are enabled; release artifact verification scripts and smoke scaffolding exist; and the SessionDb Tauri state mismatch is fixed. Verified by focused cross-platform architecture tests 8/8, full Vitest 461/461, TypeScript, production build, cargo check, Rust lib tests 135 passed/2 ignored, and Windows `tauri build --no-bundle`. Capped at 7.0 until macOS/Linux CI artifacts, real signing/notarization, and manual smoke evidence exist. |
+| 47 | Cross-platform | 3 -> 8.0 | Windows-only native crates are target-gated; Windows hardware capture is behind `all(feature = "video-hw-capture", target_os = "windows")`; accessibility, OCR, cursor, and overlay commands expose safe non-Windows fallbacks; `get_platform_capabilities` reports per-OS support and now appears in Settings; build and release workflows matrix Windows/macOS/Linux with official Tauri Linux deps; release splits macOS ARM and Intel; Tauri v2 updater artifacts are enabled; release artifact verification scripts and smoke scaffolding exist; and the SessionDb Tauri state mismatch is fixed. Verified locally by focused cross-platform architecture tests 8/8, full Vitest 461/461, TypeScript, production build, cargo check, and Rust lib tests 135 passed/2 ignored. Verified externally by GitHub Actions run 25609011008: Windows/macOS/Ubuntu test jobs all passed, and no-bundle Tauri package-smoke passed and uploaded artifacts for all three OSes. Capped at 8.0 until signed/notarized tagged releases, real updater signatures, and dated runtime smoke evidence exist. |
 
 ## Dims Closed - Full List
 
@@ -94,7 +94,7 @@ Dims improved: **3, 6, 7, 8, 9, 12, 14, 16, 17, 20, 21, 22, 23, 25, 26, 27, 28, 
 
 | Priority | Dim | What | Current | Target | Blocker |
 |----------|-----|------|--------:|-------:|---------|
-| 1 | 47 | Cross-platform proof/native parity | 7.0 | 9 | Run/fix macOS + Linux CI, produce signed/notarized artifacts and Linux packages, add platform permission flows, and smoke tray/menu bar, global shortcut, screenshot, input, onboarding, chat, close-to-tray, and updater checks on all three OSes |
+| 1 | 47 | Cross-platform proof/native parity | 8.0 | 9 | Produce signed/notarized tagged release artifacts, real updater signatures, platform permission flows, and dated smoke logs for tray/menu bar, global shortcut, screenshot, input, onboarding, chat, close-to-tray, and updater checks on all three OSes |
 | 2 | 13 | Context depth / multi-screenshot | 7 | 9 | Multi-window stitching, recent-state retrieval, and history snapshots from Dim 16 ring buffer |
 | 3 | 29 | Local vision model | 8 | 9 | Reliable full grounding benchmark or UI-TARS/new Moondream coordinate decoder integration |
 | 4 | 16 | Video / temporal context | 8.7 | 9+ | Ignored live-screen test observed passing, manual app smoke run, per-keyframe semantic embedding, and perf benchmark evidence |

@@ -1,6 +1,6 @@
 ﻿---
 name: DanteClicky 50-Dimension Competitive Matrix
-description: Full 50-dimension harsh competitive matrix; DanteClicky composite 8.43/10 as of 2026-05-09.
+description: Full 50-dimension harsh competitive matrix; DanteClicky composite 8.45/10 as of 2026-05-09.
 type: danteforge-canonical
 source: C:\Users\richa\.claude\projects\c--Projects-DanteClicky\memory\project_competitive_matrix.md
 importedAt: 2026-05-06
@@ -10,7 +10,7 @@ importedAt: 2026-05-06
 
 This is the canonical repo-visible matrix for `/score`, `/compete`, `/competitive-leapfrog`, `/ascend`, `/party`, and agent handoffs.
 
-Current harsh composite: **8.43/10** (**84.3/100**)
+Current harsh composite: **8.45/10** (**84.5/100**)
 
 Baseline at session start: **4.2/10**
 
@@ -18,7 +18,7 @@ Next targets: **Dim 47 proof/parity**, **Dim 13**, **Dim 29**, **Dim 16** (Dim 9
 
 ## Harsh Evidence Audit - 2026-05-09 (Dim 47 Cross-Platform)
 
-Dimension 47, Cross-platform, is now scored **7.0/10**. Pre-sprint score was **3/10** because the app was framed and wired as Windows-first, with root Windows crates, Windows-only native paths, Windows-only packaging assumptions, and no macOS/Linux CI release surface.
+Dimension 47, Cross-platform, is now scored **8.0/10**. Pre-sprint score was **3/10** because the app was framed and wired as Windows-first, with root Windows crates, Windows-only native paths, Windows-only packaging assumptions, and no macOS/Linux CI release surface.
 
 Verification used:
 
@@ -29,6 +29,10 @@ Verification used:
 - `cargo check --manifest-path src-tauri/Cargo.toml --locked` - passed, warnings only.
 - `cargo test --manifest-path src-tauri/Cargo.toml --lib --quiet` - **135 passed, 0 failed, 2 ignored**.
 - `npm run tauri -- build --no-bundle` - Windows release smoke passed and produced `src-tauri/target/release/dante-clicky-windows.exe`.
+- GitHub Actions Build & Test run `25609011008` - **success** on commit `5d2e1b5`.
+- CI test jobs passed on `windows-latest`, `macos-latest`, and `ubuntu-latest`.
+- CI package-smoke jobs passed `npm run tauri -- build --no-bundle` on `windows-latest`, `macos-latest`, and `ubuntu-latest`.
+- Uploaded CI artifacts: `danteclicky-windows-latest-no-bundle`, `danteclicky-macos-latest-no-bundle`, and `danteclicky-ubuntu-latest-no-bundle`.
 
 Repo evidence:
 
@@ -44,14 +48,13 @@ Repo evidence:
 - `src-tauri/src/session.rs` now asks Tauri for the managed `Arc<SessionDb>` state that `lib.rs` actually registers, removing a real command-invocation mismatch.
 - `package.json`, `src-tauri/Cargo.toml`, `buildSystemPrompt.ts`, `memoryConsolidation.ts`, and `OnboardingWindow.tsx` no longer frame the product as Windows-only in user-facing/product metadata.
 
-Why **7.0**, not 9+:
+Why **8.0**, not 9+:
 
-- No macOS or Linux runner has actually produced a green CI result or downloadable artifact yet.
-- No signed/notarized macOS app, Linux AppImage/deb/rpm, or updater metadata has been validated by a tagged release with real signing credentials.
+- No tagged release has produced signed/notarized macOS app, Windows installer, Linux AppImage/deb/rpm, or updater metadata with real signing credentials.
 - Non-Windows capability parity is intentionally degraded today: accessibility tree and OCR return safe fallbacks, overlay capture exclusion is Windows-only, and native permission flows need real macOS/Linux implementation and smoke testing.
-- Manual acceptance is still missing on macOS and Linux: launch, tray/menu bar, global shortcut, onboarding, screenshot capture, cursor/input, provider chat, close-to-tray, update check.
+- Manual acceptance is still missing across target OSes: launch, tray/menu bar, global shortcut, onboarding, screenshot capture, cursor/input, provider chat, close-to-tray, update check.
 
-Path to 9.0+: run and fix the GitHub Windows/macOS/Linux CI matrix, produce real per-OS artifacts, add macOS Accessibility and Screen Recording permission flows, add Linux portal/AT-SPI-backed capability paths where feasible, and attach smoke evidence for each OS.
+Path to 9.0+: produce signed/notarized tagged release artifacts with real updater signatures, add macOS Accessibility and Screen Recording permission flows, add Linux portal/AT-SPI-backed capability paths where feasible, and attach dated runtime smoke evidence for each OS.
 
 ## Harsh Evidence Audit - 2026-05-09 (Dim 9 Wake Word / Always-On Voice)
 
@@ -373,23 +376,23 @@ CLI parity notes:
 
 ## Competitor Composite Scores
 
-Current harsh composite: **8.43/10**. Updated 2026-05-09T18:12:35.000Z from canonical JSON.
+Current harsh composite: **8.45/10**. Updated 2026-05-09T19:15:14.739Z from canonical JSON.
 
 Closed/source-available competitors: Screenpipe, Cluely, Raycast AI, Wispr Flow, Clicky macOS
 Open-source competitors: Pluely, UI-TARS Desktop, Open Interpreter, Goose (Block)
 
 | Rank | Product | Type | Composite | DC Lead |
 |-----:|---------|------|----------:|--------:|
-| 1 | DanteClicky | Desktop Tauri | 8.43 | - |
-| 2 | Screenpipe | Closed/source-available | 5.64 | +2.79 |
-| 3 | UI-TARS Desktop | Open source | 5.32 | +3.11 |
-| 4 | Clicky macOS | Closed/source-available | 5.24 | +3.19 |
-| 5 | Cluely | Closed/source-available | 5.12 | +3.31 |
-| 6 | Raycast AI | Closed/source-available | 4.96 | +3.47 |
-| 7 | Goose (Block) | Open source | 4.80 | +3.63 |
-| 8 | Pluely | Open source | 4.62 | +3.81 |
-| 9 | Open Interpreter | Open source | 4.52 | +3.91 |
-| 10 | Wispr Flow | Closed/source-available | 4.20 | +4.23 |
+| 1 | DanteClicky | Desktop Tauri | 8.45 | - |
+| 2 | Screenpipe | Closed/source-available | 5.64 | +2.81 |
+| 3 | UI-TARS Desktop | Open source | 5.32 | +3.13 |
+| 4 | Clicky macOS | Closed/source-available | 5.24 | +3.21 |
+| 5 | Cluely | Closed/source-available | 5.12 | +3.33 |
+| 6 | Raycast AI | Closed/source-available | 4.96 | +3.49 |
+| 7 | Goose (Block) | Open source | 4.80 | +3.65 |
+| 8 | Pluely | Open source | 4.62 | +3.83 |
+| 9 | Open Interpreter | Open source | 4.52 | +3.93 |
+| 10 | Wispr Flow | Closed/source-available | 4.20 | +4.25 |
 
 ## Full 50-Dimension Harsh Scores
 
@@ -441,7 +444,7 @@ Open-source competitors: Pluely, UI-TARS Desktop, Open Interpreter, Goose (Block
 | 44 | UX | Windows native quality | 8 | 7 | 7 | 0 | 7 | 0 | 6 | 7 | 5 | 6 |
 | 45 | Platform | Installer / distribution | 8 | 7 | 8 | 9 | 8 | 6 | 6 | 5 | 6 | 7 |
 | 46 | Platform | Startup time | 9 | 5 | 7 | 9 | 7 | 7 | 7 | 5 | 4 | 6 |
-| 47 | Platform | Cross-platform (macOS/Linux) | 7.0 | 8 | 6 | 2 | 6 | 1 | 7 | 6 | 9 | 9 |
+| 47 | Platform | Cross-platform (macOS/Linux) | 8.0 | 8 | 6 | 2 | 6 | 1 | 7 | 6 | 9 | 9 |
 | 48 | Platform | Auto-update | 8 | 7 | 8 | 9 | 8 | 7 | 6 | 5 | 5 | 6 |
 | 49 | Platform | Auto-start | 8 | 7 | 8 | 9 | 8 | 6 | 5 | 5 | 2 | 4 |
 | 50 | Platform | OSS / licensing clarity | 8 | 8 | 2 | 3 | 2 | 2 | 9 | 8 | 9 | 9 |
@@ -455,13 +458,13 @@ Open-source competitors: Pluely, UI-TARS Desktop, Open Interpreter, Goose (Block
 | Computer Use 21-30 | 8.55 | UI-TARS Desktop 7.80 | +0.75 DC LEADS |
 | Memory 31-36 | 9.00 | Screenpipe 7.67 | +1.33 DC LEADS |
 | UX 37-44 | 8.69 | Cluely 7.00 | +1.69 DC LEADS |
-| Platform 45-50 | 8.00 | Screenpipe 7.00 | +1.00 DC LEADS |
+| Platform 45-50 | 8.17 | Screenpipe 7.00 | +1.17 DC LEADS |
 
 ## Next 4 Priority Sprints
 
 | Priority | Dim | What | Current | Target | Why |
 |---------:|----:|------|--------:|-------:|-----|
-| 1 | 47 | Cross-platform proof and native parity | 7.0 | 9 | Release readiness is stronger, but 9+ still needs green macOS/Linux CI, signed/notarized artifacts, smoke evidence, and platform-specific accessibility/capture/input parity. |
+| 1 | 47 | Cross-platform proof and native parity | 8.0 | 9 | CI and no-bundle package artifacts are green on Windows/macOS/Linux; 9+ now requires signed/notarized tagged release artifacts, real updater signatures, dated runtime smoke logs, and platform-specific accessibility/capture/input parity. |
 | 2 | 13 | Context depth / multi-screenshot | 7 | 9 | Now unlocked by Dim 16 temporal buffer. Add multi-window stitching, recent-state retrieval, and history snapshots to close Screenpipe/UI-TARS context gap. |
 | 3 | 29 | Local vision model to UI-TARS parity | 8 | 9 | Strategic local-vision hardening: fix multi-fixture crash, complete grounding benchmark, or integrate UI-TARS-2B/newer Moondream coord decoder. |
 | 4 | 16 | Video / temporal context proof-hardening | 8.7 | 9+ | Near-closed dimension. Add live-screen/manual smoke, ignored real-display test evidence, and per-keyframe semantic embedding proof to remove the 8.7 cap. |

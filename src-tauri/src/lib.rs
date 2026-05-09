@@ -668,13 +668,16 @@ fn ensure_overlay_window(app: &tauri::AppHandle) -> Result<WebviewWindow, String
         return Ok(window);
     }
 
-    let overlay = WebviewWindowBuilder::new(
+    let overlay_builder = WebviewWindowBuilder::new(
         app,
         "overlay",
         WebviewUrl::App("index.html?window=overlay".into()),
     )
-    .decorations(false)
-    .transparent(true)
+    .decorations(false);
+    #[cfg(not(target_os = "macos"))]
+    let overlay_builder = overlay_builder.transparent(true);
+
+    let overlay = overlay_builder
     .always_on_top(true)
     .visible(false)
     .skip_taskbar(true)
@@ -719,7 +722,7 @@ pub(crate) fn ensure_companion_panel<R: Runtime>(
         return Ok(window);
     }
 
-    let panel = WebviewWindowBuilder::new(
+    let panel_builder = WebviewWindowBuilder::new(
         app,
         "companion-panel",
         WebviewUrl::App("index.html".into()),
@@ -727,8 +730,11 @@ pub(crate) fn ensure_companion_panel<R: Runtime>(
     .title("DanteClicky")
     .inner_size(360.0, 580.0)
     .min_inner_size(320.0, 400.0)
-    .decorations(false)
-    .transparent(true)
+    .decorations(false);
+    #[cfg(not(target_os = "macos"))]
+    let panel_builder = panel_builder.transparent(true);
+
+    let panel = panel_builder
     .resizable(false)
     .visible(false)
     .skip_taskbar(true)
@@ -766,7 +772,7 @@ fn ensure_onboarding_window<R: Runtime>(app: &AppHandle<R>) -> Result<WebviewWin
         return Ok(window);
     }
 
-    let onboarding = WebviewWindowBuilder::new(
+    let onboarding_builder = WebviewWindowBuilder::new(
         app,
         "onboarding",
         WebviewUrl::App("index.html?window=onboarding".into()),
@@ -774,8 +780,11 @@ fn ensure_onboarding_window<R: Runtime>(app: &AppHandle<R>) -> Result<WebviewWin
     .title("Welcome to DanteClicky")
     .inner_size(800.0, 560.0)
     .min_inner_size(800.0, 560.0)
-    .decorations(false)
-    .transparent(true)
+    .decorations(false);
+    #[cfg(not(target_os = "macos"))]
+    let onboarding_builder = onboarding_builder.transparent(true);
+
+    let onboarding = onboarding_builder
     .resizable(false)
     .visible(false)
     .skip_taskbar(false)

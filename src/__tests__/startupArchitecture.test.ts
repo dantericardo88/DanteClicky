@@ -9,13 +9,26 @@ function readProjectFile(relativePath: string): string {
 }
 
 function extractSetupSource(libSource: string): string {
-  const setupStart = libSource.search(/\.setup\((?:move\s*)?\|app\|\s*\{/);
-  const setupEnd = libSource.indexOf("        })\n        .build", setupStart);
-
+  const setupMatch = /\.setup\((?:move\s*)?\|app\|\s*\{/.exec(libSource);
+  const setupStart = setupMatch?.index ?? -1;
   expect(setupStart).toBeGreaterThan(-1);
-  expect(setupEnd).toBeGreaterThan(setupStart);
 
-  return libSource.slice(setupStart, setupEnd);
+  const openBrace = libSource.indexOf("{", setupStart);
+  expect(openBrace).toBeGreaterThan(setupStart);
+
+  let depth = 0;
+  for (let index = openBrace; index < libSource.length; index += 1) {
+    const char = libSource[index];
+    if (char === "{") depth += 1;
+    if (char === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return libSource.slice(setupStart, index + 1);
+      }
+    }
+  }
+
+  throw new Error("Unable to find the end of the Tauri setup closure");
 }
 
 describe("startup architecture", () => {

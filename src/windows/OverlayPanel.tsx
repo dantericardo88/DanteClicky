@@ -23,7 +23,7 @@ interface CuStep {
 // This component reads live streaming response from the Zustand store.
 
 export default function OverlayPanel() {
-  const { voiceState, response } = useCompanionStore();
+  const { voiceState, response, overlayOpacity, currentUiElements, speechLanguage, speechLanguageDetection } = useCompanionStore();
   const prevResponseRef = useRef("");
   const [verifyBadge, setVerifyBadge] = useState<VerifyBadge | null>(null);
   const badgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -112,22 +112,47 @@ export default function OverlayPanel() {
             left: "50%",
             transform: "translateX(-50%)",
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
-            gap: "5px",
+            gap: "12px",
           }}
         >
-          {[0, 1, 2, 3, 4].map((i) => (
+          <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                style={{
+                  width: "4px",
+                  borderRadius: "2px",
+                  background: colors.success,
+                  animation: `waveBar 0.7s ease-in-out ${i * 0.12}s infinite alternate`,
+                  height: `${12 + i * 5}px`,
+                }}
+              />
+            ))}
+          </div>
+          {(speechLanguage !== "en" || speechLanguageDetection?.detectedLanguageCode) && (
             <div
-              key={i}
               style={{
-                width: "4px",
-                borderRadius: "2px",
-                background: colors.success,
-                animation: `waveBar 0.7s ease-in-out ${i * 0.12}s infinite alternate`,
-                height: `${12 + i * 5}px`,
+                backgroundColor: "rgba(10, 132, 255, 0.9)",
+                color: "white",
+                padding: "6px 12px",
+                borderRadius: "6px",
+                fontSize: "12px",
+                fontWeight: 500,
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
               }}
-            />
-          ))}
+            >
+              <span>{(speechLanguageDetection?.detectedLanguageCode ?? speechLanguage).toUpperCase()}</span>
+              {speechLanguageDetection?.languageConfidence != null && (
+                <span style={{ opacity: 0.8 }}>
+                  {Math.round(speechLanguageDetection.languageConfidence * 100)}%
+                </span>
+              )}
+            </div>
+          )}
           <style>{`@keyframes waveBar { from{transform:scaleY(.35)} to{transform:scaleY(1.15)} }`}</style>
         </div>
       )}
@@ -158,10 +183,10 @@ export default function OverlayPanel() {
         </div>
       )}
 
-      {/* Response bubble */}
+      {/* Response bubble — streaming=true shows blinking cursor while AI generates */}
       {voiceState === "responding" && displayText && (
         <div role="status" aria-live="polite" aria-label="AI response">
-          <ResponseBubble text={displayText} />
+          <ResponseBubble text={displayText} streaming={voiceState === "responding"} opacity={overlayOpacity} />
         </div>
       )}
 
@@ -171,6 +196,51 @@ export default function OverlayPanel() {
           <PointDot key={i} x={pt.x} y={pt.y} label={pt.label} />
         ))}
       </div>
+
+      {/* Set-of-Mark numbered badges — shown during AI processing/responding so user can see element IDs */}
+      {(voiceState === "processing" || voiceState === "responding") && currentUiElements.length > 0 && (
+        <div aria-hidden="true">
+          {currentUiElements
+            .filter(el => ["Button", "Edit", "Link", "MenuItem", "ListItem", "ComboBox", "CheckBox", "RadioButton", "Hyperlink"].includes(el.role ?? ""))
+            .slice(0, 20)
+            .map((el) => {
+            const px = `${(el.cx / 1024) * 100}%`;
+            const py = `${(el.cy / 1024) * 100}%`;
+            return (
+              <div
+                key={el.id}
+                style={{
+                  position: "absolute",
+                  left: px,
+                  top: py,
+                  transform: "translate(-50%,-50%)",
+                  pointerEvents: "none",
+                  zIndex: 9990,
+                }}
+              >
+                <div
+                  style={{
+                    width: "18px",
+                    height: "18px",
+                    borderRadius: "50%",
+                    background: "rgba(10,132,255,0.9)",
+                    border: "1px solid rgba(255,255,255,0.6)",
+                    color: "#fff",
+                    fontSize: "9px",
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  {el.id}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Action verification badge — briefly shown after a computer-use click */}
       {verifyBadge && (
@@ -206,11 +276,19 @@ export default function OverlayPanel() {
   );
 }
 
-function ResponseBubble({ text }: { text: string }) {
+function ResponseBubble({ text, streaming, opacity = 0.94 }: { text: string; streaming: boolean; opacity?: number }) {
   const [copied, setCopied] = useState(false);
+  const [cursorVisible, setCursorVisible] = useState(true);
+
+  // Blink the streaming cursor while AI is still generating
+  useEffect(() => {
+    if (!streaming) return;
+    const id = setInterval(() => setCursorVisible((v) => !v), 500);
+    return () => clearInterval(id);
+  }, [streaming]);
 
   function handleCopy(e: React.MouseEvent) {
-    e.stopPropagation(); // don't dismiss the bubble
+    e.stopPropagation();
     navigator.clipboard.writeText(text || "").then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -218,61 +296,89 @@ function ResponseBubble({ text }: { text: string }) {
   }
 
   return (
-    <div
-      style={{
-        position: "absolute",
-        bottom: "100px",
-        left: "50%",
-        transform: "translateX(-50%)",
-        maxWidth: "680px",
-        minWidth: "180px",
-        padding: "16px 20px",
-        background: "rgba(28,28,30,0.94)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
-        borderRadius: radii.lg,
-        boxShadow: shadows.panel,
-        border: "1px solid rgba(255,255,255,0.10)",
-        color: colors.text,
-        fontSize: "16px",
-        lineHeight: "25px",
-        wordBreak: "break-word",
-        cursor: "pointer",
-      } as React.CSSProperties}
-    >
-      {/* Copy button */}
-      <button
-        onClick={handleCopy}
+    <>
+      <style>{`
+        @keyframes bubbleIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+      `}</style>
+      <div
         style={{
           position: "absolute",
-          top: 8,
-          right: 8,
-          background: copied ? "rgba(76,175,80,0.2)" : "rgba(255,255,255,0.08)",
-          border: "none",
-          borderRadius: 4,
-          color: copied ? "#4caf50" : "#888",
-          fontSize: 11,
-          padding: "3px 8px",
+          bottom: "100px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          maxWidth: "680px",
+          minWidth: "180px",
+          padding: "16px 20px",
+          background: `rgba(28,28,30,${opacity})`,
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          borderRadius: radii.lg,
+          boxShadow: shadows.panel,
+          border: "1px solid rgba(255,255,255,0.10)",
+          color: colors.text,
+          fontSize: "16px",
+          lineHeight: "25px",
+          wordBreak: "break-word",
           cursor: "pointer",
-        }}
+          animation: "bubbleIn 0.18s ease-out forwards",
+        } as React.CSSProperties}
       >
-        {copied ? "Copied" : "Copy"}
-      </button>
-      <ReactMarkdown>{text}</ReactMarkdown>
-      <div
-        role="button"
-        aria-label="Dismiss"
-        style={{
-          marginTop: "10px",
-          ...({} as object),
-          fontSize: "11px",
-          color: colors.textTertiary,
-          textAlign: "right",
-        }}
-      >
-        Click to dismiss
+        {/* Copy button */}
+        <button
+          onClick={handleCopy}
+          style={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            background: copied ? "rgba(76,175,80,0.2)" : "rgba(255,255,255,0.08)",
+            border: "none",
+            borderRadius: 4,
+            color: copied ? "#4caf50" : "#888",
+            fontSize: 11,
+            padding: "3px 8px",
+            cursor: "pointer",
+          }}
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
+
+        <div dir="auto"><ReactMarkdown>{text}</ReactMarkdown></div>
+
+        {/* Streaming cursor — pulses while AI is still generating */}
+        {streaming && (
+          <span
+            style={{
+              display: "inline-block",
+              width: "2px",
+              height: "16px",
+              background: colors.accent,
+              marginLeft: "2px",
+              verticalAlign: "text-bottom",
+              opacity: cursorVisible ? 1 : 0,
+              transition: "opacity 0.12s",
+            }}
+          />
+        )}
+
+        {!streaming && (
+          <div
+            role="button"
+            aria-label="Dismiss"
+            style={{
+              marginTop: "10px",
+              fontSize: "11px",
+              color: colors.textTertiary,
+              textAlign: "right",
+            }}
+          >
+            Click to dismiss
+          </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }
 

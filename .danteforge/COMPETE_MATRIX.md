@@ -1,9 +1,9 @@
 # DanteClicky — Competitive Harvest Loop Matrix
-> Generated: 2026-05-05 | CHL Engine
+> Generated: 2026-05-05 | Updated: 2026-05-09 (canonical score pointer refreshed) | CHL Engine
 
 ---
 
-## Overall Self Score: 5.3/10 (weighted average across 8 dimensions)
+## Overall Self Score: 8.43/10 (canonical 50-dim composite; see `.danteforge/50_DIMENSION_COMPETITIVE_MATRIX.json`)
 ## Composite Target: 9.3/10
 
 ---
@@ -12,14 +12,31 @@
 
 | Dimension | DC Self | Leader | Leader Score | Gap | Sprint? |
 |-----------|---------|--------|-------------|-----|---------|
-| memory_context | 1.0 | screenpipe | 10.0 | **-9.0** | 🎯 Sprint #1 |
-| integration_mcp | 0.0 | screenpipe | 8.0 | **-8.0** | Sprint #2 |
+| computer_use_arch | 9.0 | trycua/cua | 9.5 | **-0.5** | 🎯 Wave 6 (cua harvest in progress) |
+| model_coverage | ~7.0 | trycua/cua | 9.5 | **-2.5** | Wave 6 — Phase 2 wt-cua-registry |
+| extensibility | ~6.0 | trycua/cua | 9.5 | **-3.5** | Wave 6 — Phase 0 callback foundation |
+| ambient_ux | 7.0 | trycua/cua human-tool | 9.0 | **-2.0** | Wave 6 — Phase 2 wt-cua-human |
+| memory_context | 8.75 | screenpipe | 10.0 | **-1.25** | (Sprint #1 closed; preference learning at 9.2) |
+| integration_mcp | 8.0 | screenpipe | 8.0 | 0.0 | ✅ Leading (sustained via wt-cua-mcp Phase 2) |
 | quality_dist | 2.0 | Cluely | 8.0 | **-6.0** | Sprint #3 |
-| computer_use | 4.0 | UI-TARS | 9.0 | **-5.0** | Sprint #4 |
-| voice_pipeline | 8.0 | (DC leads) | 8.0 | 0.0 | ✅ Leading |
+| computer_use | 9.0 | UI-TARS / cua | 9.5 | **-0.5** | Wave 6 covers via composed_grounded |
+| voice_pipeline | 9.1 | (DC leads) | 9.1 | 0.0 | ✅ Leading |
 | screen_capture | 9.0 | screenpipe/UI-TARS | 9.0 | 0.0 | ✅ Leading |
 | model_agnostic | 9.0 | (DC leads) | 9.0 | 0.0 | ✅ Leading |
 | platform_fidelity | 9.0 | screenpipe/Pluely | 9.0 | 0.0 | ✅ Leading |
+
+### Catalogued Competitor: trycua/cua
+
+| Metric | Value |
+|--------|-------|
+| Stars | 15.8k |
+| License | MIT |
+| Domain | Computer-use agent framework (cross-platform sandbox + agent loops) |
+| Strengths | 21 vendor agent loops, callback lifecycle, composed grounding, MCP session manager, decorator-based agent registry, trajectory replay, PII anonymization, budget tracking |
+| Where they lead us | Dim 27 (architecture), Dim 49 (model coverage), Dim 50 (extensibility), Dim 38 (human-in-the-loop ambient UX) |
+| Where we lead them | Windows-native UIAutomation + Whisper Candle, screen-capture stealth (WDA_EXCLUDEFROMCAPTURE), preference-learning memory (Dim 33 9.2), DanteAgents bridge |
+| Harvest plan | `C:/Users/richa/.claude/plans/foamy-foraging-lynx.md` (Wave 6) |
+| Status | Phase 0a metadata catalogued 2026-05-08 |
 
 ---
 

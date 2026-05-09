@@ -1,7 +1,8 @@
-﻿# whisper-rs-sys build configuration
-# WHISPER_DONT_GENERATE_BINDINGS: use bundled bindings.rs instead of running bindgen (no LLVM needed)
+# whisper-rs-sys build configuration
+# WHISPER_DONT_GENERATE_BINDINGS uses bundled bindings.rs instead of running
+# bindgen, so contributors do not need LLVM just to check the Rust crate.
 [env]
 WHISPER_DONT_GENERATE_BINDINGS = "1"
 
-# Point the cmake crate directly to the cmake.exe installed by VS Build Tools
-CMAKE = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe'
+# Host-specific CMAKE/PERL paths intentionally stay out of shared config.
+# Windows encrypted release builders should provide them via PATH or CI env.

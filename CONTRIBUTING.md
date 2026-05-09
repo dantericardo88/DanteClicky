@@ -1,6 +1,6 @@
 # Contributing to DanteClicky
 
-Thank you for contributing to DanteClicky — the AI-powered Windows desktop companion.
+Thank you for contributing to DanteClicky - the AI-powered desktop companion.
 
 ---
 
@@ -11,9 +11,9 @@ Thank you for contributing to DanteClicky — the AI-powered Windows desktop com
 | Rust | 1.85+ (install via [rustup](https://rustup.rs)) |
 | Node.js | 20+ |
 | npm | 10+ (bundled with Node 20) |
-| Windows | 10 or 11 (64-bit) |
+| OS | Windows 10/11, current macOS, or a supported Linux desktop session |
 
-Additional Tauri dependencies: [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) is auto-downloaded by the installer on first run.
+Additional Tauri dependencies vary by OS. See `docs/cross-platform-verify.md` for the current platform matrix and smoke gates.
 
 ---
 

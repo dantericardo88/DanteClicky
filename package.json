@@ -2,7 +2,7 @@
   "name": "dante-clicky-windows",
   "private": true,
   "version": "0.1.0",
-  "description": "Voice-commanded, screen-aware, computer-use capable AI desktop companion for Windows",
+  "description": "Voice-commanded, screen-aware, computer-use capable AI desktop companion",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -16,6 +16,10 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "test": "vitest run",
+    "test:frontend": "vitest run",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml --lib --quiet",
+    "test:cross-platform": "vitest run src/__tests__/crossPlatformArchitecture.test.ts",
+    "test:ci": "npm run test:frontend -- --reporter=dot && npx tsc --noEmit --pretty false && npm run build && cargo check --manifest-path src-tauri/Cargo.toml --locked && npm run test:rust",
     "test:ui": "vitest --ui",
     "tauri:release": "tauri build -- --features sqlcipher"
   },

@@ -1,5 +1,6 @@
+use screenshots::Screen;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Runtime};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MonitorInfo {
@@ -13,42 +14,26 @@ pub struct MonitorInfo {
     pub is_primary: bool,
 }
 
-pub fn enumerate<R: Runtime>(app: &AppHandle<R>) -> Vec<MonitorInfo> {
-    let window = match app.get_webview_window("companion-panel") {
-        Some(w) => w,
-        None => return vec![],
-    };
-
-    let available = match window.available_monitors() {
-        Ok(m) => m,
+pub fn enumerate<R: Runtime>(_app: &AppHandle<R>) -> Vec<MonitorInfo> {
+    let screens = match Screen::all() {
+        Ok(screens) => screens,
         Err(_) => return vec![],
     };
 
-    let primary_pos = window
-        .primary_monitor()
-        .ok()
-        .flatten()
-        .map(|m| *m.position());
-
-    let mut result: Vec<MonitorInfo> = available
+    let mut result: Vec<MonitorInfo> = screens
         .iter()
         .enumerate()
-        .map(|(idx, m)| {
-            let pos = m.position();
-            let size = m.size();
-            let is_primary = primary_pos
-                .map(|pp| pp.x == pos.x && pp.y == pos.y)
-                .unwrap_or(idx == 0);
-
+        .map(|(idx, screen)| {
+            let info = &screen.display_info;
             MonitorInfo {
                 id: idx,
                 label: format!("screen{}", idx + 1),
-                x: pos.x,
-                y: pos.y,
-                width: size.width,
-                height: size.height,
-                scale_factor: m.scale_factor(),
-                is_primary,
+                x: info.x,
+                y: info.y,
+                width: info.width,
+                height: info.height,
+                scale_factor: info.scale_factor as f64,
+                is_primary: info.is_primary,
             }
         })
         .collect();

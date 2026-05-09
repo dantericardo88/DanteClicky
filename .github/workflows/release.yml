@@ -4,15 +4,64 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      releaseTag:
+        description: "Existing v* tag to build and publish"
+        required: true
+        type: string
+
+env:
+  RELEASE_TAG: ${{ inputs.releaseTag || github.ref_name }}
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
+  build:
+    name: Build ${{ matrix.platformName }}
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platformName: windows-x86_64
+            os: windows-latest
+            rustTarget: ""
+            tauriArgs: "-- --features sqlcipher"
+          - platformName: macos-aarch64
+            os: macos-latest
+            rustTarget: "aarch64-apple-darwin"
+            tauriArgs: "--target aarch64-apple-darwin"
+          - platformName: macos-x86_64
+            os: macos-15-intel
+            rustTarget: "x86_64-apple-darwin"
+            tauriArgs: "--target x86_64-apple-darwin"
+          - platformName: linux-x86_64
+            os: ubuntu-latest
+            rustTarget: ""
+            tauriArgs: ""
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Linux Tauri dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libasound2-dev \
+            libdbus-1-dev \
+            pkg-config
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -22,8 +71,10 @@ jobs:
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-pc-windows-msvc
+
+      - name: Add Rust target
+        if: matrix.rustTarget != ''
+        run: rustup target add ${{ matrix.rustTarget }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -40,16 +91,17 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "DanteClicky ${{ github.ref_name }}"
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: "DanteClicky ${{ env.RELEASE_TAG }}"
           releaseBody: |
-            AI Companion for Windows — see [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for what's new.
+            AI desktop companion for Windows, macOS, and Linux. See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for what is new.
           releaseDraft: false
           prerelease: false
           includeDebug: false
+          args: ${{ matrix.tauriArgs }}
 
   publish-update-manifest:
-    needs: build-windows
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -57,34 +109,64 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download release assets
+      - name: Download release signatures
         uses: robinraju/release-downloader@v1
         with:
-          tag: ${{ github.ref_name }}
+          tag: ${{ env.RELEASE_TAG }}
           fileName: "*.sig"
           out-file-path: "dist-artifacts"
 
       - name: Generate latest.json for updater
         run: |
-          VERSION="${{ github.ref_name }}"
+          VERSION="${RELEASE_TAG}"
           VERSION="${VERSION#v}"
-          NSIS_SIG=$(cat dist-artifacts/*.nsis.sig 2>/dev/null || echo "")
+          WIN_SIG=$(find dist-artifacts \( -name "*.exe.sig" -o -name "*.msi.sig" -o -name "*.nsis.sig" \) -print -quit | xargs -r cat)
+          MAC_ARM_SIG=$(find dist-artifacts \( -name "*aarch64*.app.tar.gz.sig" -o -name "*arm64*.app.tar.gz.sig" \) -print -quit | xargs -r cat)
+          MAC_X64_SIG=$(find dist-artifacts \( -name "*x64*.app.tar.gz.sig" -o -name "*x86_64*.app.tar.gz.sig" \) -print -quit | xargs -r cat)
+          LINUX_SIG=$(find dist-artifacts -name "*.AppImage.sig" -print -quit | xargs -r cat)
+          for sig_name in WIN_SIG MAC_ARM_SIG MAC_X64_SIG LINUX_SIG; do
+            if [ -z "${!sig_name}" ]; then
+              echo "::error::$sig_name is empty; refusing to publish latest.json with missing updater signatures"
+              exit 1
+            fi
+          done
           cat > latest.json << EOF
           {
             "version": "$VERSION",
-            "notes": "See https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}",
+            "notes": "See https://github.com/${{ github.repository }}/releases/tag/${RELEASE_TAG}",
             "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "platforms": {
               "windows-x86_64": {
-                "signature": "$NSIS_SIG",
-                "url": "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DanteClicky_${VERSION}_x64-setup.exe"
+                "signature": "$WIN_SIG",
+                "url": "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/DanteClicky_${VERSION}_x64-setup.exe"
+              },
+              "darwin-aarch64": {
+                "signature": "$MAC_ARM_SIG",
+                "url": "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/DanteClicky_${VERSION}_aarch64.app.tar.gz"
+              },
+              "darwin-x86_64": {
+                "signature": "$MAC_X64_SIG",
+                "url": "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/DanteClicky_${VERSION}_x64.app.tar.gz"
+              },
+              "linux-x86_64": {
+                "signature": "$LINUX_SIG",
+                "url": "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/DanteClicky_${VERSION}_amd64.AppImage"
               }
             }
           }
           EOF
+          python - <<'PY'
+          import json
+          with open("latest.json", "r", encoding="utf-8") as f:
+              manifest = json.load(f)
+          for platform in ("windows-x86_64", "darwin-aarch64", "darwin-x86_64", "linux-x86_64"):
+              entry = manifest["platforms"].get(platform)
+              if not entry or not entry.get("signature") or not entry.get("url"):
+                  raise SystemExit(f"latest.json is missing signature or URL for {platform}")
+          PY
 
       - name: Upload latest.json to release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ env.RELEASE_TAG }}
           files: latest.json

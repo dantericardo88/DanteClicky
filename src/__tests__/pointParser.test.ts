@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parsePoints, stripPoints, denormalize } from "../providers/pointParser";
+import { parsePoints, parseTypeAction, parseScrollAction, stripPoints, denormalize } from "../providers/pointParser";
 
 describe("parsePoints", () => {
   it("returns empty array on empty string", () => {
@@ -38,10 +38,36 @@ describe("parsePoints", () => {
   });
 
   it("ignores text that looks like a point tag but has wrong format", () => {
-    // Non-numeric coordinates
     expect(parsePoints("[POINT:abc,def:btn:screen1]")).toEqual([]);
-    // No colon separator between x and y
     expect(parsePoints("[POINT:512 256:btn:screen1]")).toEqual([]);
+  });
+
+  it("skips [POINT:none:none:screen1] — explicit no-action", () => {
+    expect(parsePoints("[POINT:none:none:screen1]")).toEqual([]);
+  });
+});
+
+describe("parseTypeAction", () => {
+  it("extracts text from [TYPE:\"...\"] tag", () => {
+    expect(parseTypeAction('some text [TYPE:"hello world"]')).toBe("hello world");
+  });
+
+  it("returns null when no TYPE tag", () => {
+    expect(parseTypeAction("[POINT:512,256:btn:screen1]")).toBeNull();
+  });
+});
+
+describe("parseScrollAction", () => {
+  it("parses positive scroll delta", () => {
+    expect(parseScrollAction("[SCROLL:3]")).toBe(3);
+  });
+
+  it("parses negative scroll delta (scroll up)", () => {
+    expect(parseScrollAction("[SCROLL:-5]")).toBe(-5);
+  });
+
+  it("returns null when no SCROLL tag", () => {
+    expect(parseScrollAction("[POINT:512,256:btn:screen1]")).toBeNull();
   });
 });
 

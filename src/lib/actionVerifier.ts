@@ -6,11 +6,18 @@ export interface VerifyResult {
   explanation: string;
 }
 
+export interface MoondreamStatus {
+  available: boolean;
+  model_path: string | null;
+  session_loaded: boolean;
+  last_description: string | null;
+  last_inference_ms: number | null;
+}
+
 /**
  * Asks Claude Haiku to compare before/after screenshots and determine whether
- * a computer-use click action succeeded.  Uses the existing stream_claude IPC
- * so no extra HTTP logic is needed.  Failure is always soft — errors resolve
- * with { success: true } so the user is never blocked.
+ * a computer-use action succeeded. Verifier failures resolve as unsuccessful
+ * so the agent loop can replan or stop instead of blindly continuing.
  */
 export async function verifyAction(
   beforeScreenshot: string,
@@ -60,8 +67,8 @@ export async function verifyAction(
     const cleanup = () => unlisteners.forEach((fn) => fn());
 
     Promise.all([
-      listen<string>(`chat-chunk-${callId}`, (e) => {
-        fullText += e.payload;
+      listen<string>(`chat-chunk-${callId}`, (event) => {
+        fullText += event.payload;
       }),
       listen<string>(`chat-done-${callId}`, () => {
         cleanup();
@@ -72,20 +79,48 @@ export async function verifyAction(
             explanation: json.explanation ?? "",
           });
         } catch {
-          // Claude didn't return valid JSON — assume success so we don't block the user
-          resolve({ success: true, explanation: "Verification parse error" });
+          resolve({ success: false, explanation: "Verification parse error" });
         }
       }),
       listen<string>(`chat-error-${callId}`, () => {
         cleanup();
-        resolve({ success: true, explanation: "Verification unavailable" });
+        resolve({ success: false, explanation: "Verification unavailable" });
       }),
-    ]).then(([u1, u2, u3]) => {
-      unlisteners.push(u1, u2, u3);
+    ]).then(([unlistenChunk, unlistenDone, unlistenError]) => {
+      unlisteners.push(unlistenChunk, unlistenDone, unlistenError);
       invoke("stream_claude", { body, callId }).catch(() => {
         cleanup();
-        resolve({ success: true, explanation: "Verification invoke error" });
+        resolve({ success: false, explanation: "Verification invoke error" });
       });
     });
   });
+}
+
+/**
+ * Verify action using local Moondream2 ONNX model if available,
+ * otherwise fall back to cloud-based Claude Haiku verification.
+ * Uses local vision inference to avoid API calls when the model is loaded.
+ */
+export async function verifyActionLocal(
+  beforeScreenshot: string,
+  afterScreenshot: string,
+  actionDescription: string
+): Promise<VerifyResult> {
+  try {
+    // Check if Moondream2 session is loaded
+    const status = await invoke<MoondreamStatus>("get_moondream_status");
+    if (status.session_loaded) {
+      // Use local model for verification
+      return invoke<VerifyResult>("moondream_verify_action", {
+        before_b64: beforeScreenshot,
+        after_b64: afterScreenshot,
+        action: actionDescription,
+      });
+    }
+  } catch (err) {
+    console.warn("Local verification failed, falling back to cloud:", err);
+  }
+
+  // Fall back to cloud verification
+  return verifyAction(beforeScreenshot, afterScreenshot, actionDescription);
 }

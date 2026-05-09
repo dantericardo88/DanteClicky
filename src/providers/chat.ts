@@ -1,5 +1,11 @@
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import {
+  captureTelemetryError,
+  recordTelemetryEvent,
+  startTelemetrySpan,
+  type TelemetryContext,
+} from "../lib/telemetry";
 
 export interface ToolUseBlock {
   type: "tool_use";
@@ -13,10 +19,10 @@ export interface ToolResultBlock {
   tool_use_id: string;
   content:
     | string
-    | Array<{
-        type: "image";
-        source: { type: "base64"; media_type: string; data: string };
-      }>;
+    | Array<
+        | { type: "text"; text: string }
+        | { type: "image"; source: { type: "base64"; media_type: string; data: string } }
+      >;
 }
 
 export interface StreamChatWithToolsOptions {
@@ -34,7 +40,7 @@ export interface StreamChatWithToolsOptions {
 
 export interface ChatMessage {
   role: "user" | "assistant";
-  content: string;
+  content: string | Array<Record<string, unknown>>;
 }
 
 export interface StreamChatOptions {
@@ -43,17 +49,47 @@ export interface StreamChatOptions {
   systemPrompt: string;
   messages: ChatMessage[];
   images?: string[];
+  screenWidth?: number;
+  screenHeight?: number;
+  maxTokens?: number;
   onChunk: (text: string) => void;
+  onToolUse?: (toolUse: ToolUseBlock) => void;
+  onStopReason?: (stopReason: string) => void;
+  telemetryContext?: TelemetryContext;
 }
 
 export async function streamChat(opts: StreamChatOptions): Promise<string> {
-  const { provider, modelId, systemPrompt, messages, images = [], onChunk } = opts;
+  const {
+    provider,
+    modelId,
+    systemPrompt,
+    messages,
+    images = [],
+    screenWidth,
+    screenHeight,
+    maxTokens,
+    onChunk,
+    onToolUse,
+    onStopReason,
+    telemetryContext,
+  } = opts;
   const callId = crypto.randomUUID();
+  const span = startTelemetrySpan("model.stream", {
+    provider,
+    modelId,
+    imageCount: images.length,
+    messageCount: messages.length,
+    maxTokens: maxTokens ?? null,
+    hasScreenDimensions: Boolean(screenWidth && screenHeight),
+  }, telemetryContext);
+  let chunkCount = 0;
+  let toolUseCount = 0;
+  let stopReason = "unknown";
 
   const body =
     provider === "claude"
-      ? buildClaudeBody(modelId, systemPrompt, messages, images)
-      : buildOpenAIBody(modelId, systemPrompt, messages, images);
+      ? buildClaudeBody(modelId, systemPrompt, messages, images, screenWidth, screenHeight, maxTokens)
+      : buildOpenAIBody(modelId, systemPrompt, messages, images, maxTokens);
 
   return new Promise<string>((resolve, reject) => {
     let fullText = "";
@@ -62,23 +98,70 @@ export async function streamChat(opts: StreamChatOptions): Promise<string> {
 
     Promise.all([
       listen<string>(`chat-chunk-${callId}`, (e) => {
+        chunkCount++;
         onChunk(e.payload);
         fullText += e.payload;
       }),
       listen<string>(`chat-done-${callId}`, () => {
         cleanup();
+        span.end({
+          stopReason,
+          chunkCount,
+          toolUseCount,
+          outputLengthBucket: bucketLength(fullText.length),
+        });
+        recordTelemetryEvent(
+          "model.stream.completed",
+          {
+            provider,
+            modelId,
+            stopReason,
+            chunkCount,
+            toolUseCount,
+            outputLengthBucket: bucketLength(fullText.length),
+          },
+          span.context
+        );
         resolve(fullText);
       }),
       listen<string>(`chat-error-${callId}`, (e) => {
         cleanup();
+        captureTelemetryError(
+          e.payload,
+          {
+            provider,
+            modelId,
+            route: "streamChat.event",
+          },
+          span.context
+        );
+        span.fail(e.payload, { chunkCount, toolUseCount });
         reject(new Error(e.payload));
       }),
-    ]).then(([u1, u2, u3]) => {
-      unlisteners.push(u1, u2, u3);
+      listen<ToolUseBlock>(`chat-tool-use-${callId}`, (e) => {
+        toolUseCount++;
+        onToolUse?.(e.payload);
+      }),
+      listen<string>(`chat-stop-reason-${callId}`, (e) => {
+        stopReason = e.payload;
+        onStopReason?.(e.payload);
+      }),
+    ]).then(([u1, u2, u3, u4, u5]) => {
+      unlisteners.push(u1, u2, u3, u4, u5);
 
       if (provider === "claude") {
         invoke("stream_claude", { body, callId }).catch((err: unknown) => {
           cleanup();
+          captureTelemetryError(
+            err,
+            {
+              provider,
+              modelId,
+              route: "streamChat.invoke",
+            },
+            span.context
+          );
+          span.fail(err, { chunkCount, toolUseCount });
           reject(err);
         });
       } else {
@@ -89,6 +172,16 @@ export async function streamChat(opts: StreamChatOptions): Promise<string> {
         invoke("stream_openai_compat", { baseUrl, provider, body, callId }).catch(
           (err: unknown) => {
             cleanup();
+            captureTelemetryError(
+              err,
+              {
+                provider,
+                modelId,
+                route: "streamChat.invoke",
+              },
+              span.context
+            );
+            span.fail(err, { chunkCount, toolUseCount });
             reject(err);
           }
         );
@@ -101,11 +194,15 @@ export function buildClaudeBody(
   model: string,
   systemPrompt: string,
   messages: ChatMessage[],
-  images: string[]
+  images: string[],
+  screenWidth?: number,
+  screenHeight?: number,
+  maxTokens = 4096,
 ) {
-  const lastUserContent: Array<object> = [
-    { type: "text", text: messages.at(-1)?.content ?? "" },
-  ];
+  const lastMessageContent = messages.at(-1)?.content ?? "";
+  const lastUserContent: Array<object> = Array.isArray(lastMessageContent)
+    ? [...lastMessageContent]
+    : [{ type: "text", text: lastMessageContent }];
   for (let i = 0; i < images.length; i++) {
     lastUserContent.push({
       type: "image",
@@ -116,14 +213,53 @@ export function buildClaudeBody(
     ...messages.slice(0, -1).map((m) => ({ role: m.role, content: m.content })),
     { role: "user", content: lastUserContent },
   ];
-  return { model, max_tokens: 1024, system: systemPrompt, messages: anthropicMessages, stream: true };
+
+  const body: Record<string, unknown> = {
+    model,
+    max_tokens: maxTokens,
+    system: systemPrompt,
+    messages: anthropicMessages,
+    stream: true,
+  };
+
+  // Include the computer_use tool when screen dimensions are known.
+  // This enables Claude's native coordinate grounding in addition to our [POINT] tags.
+  if (screenWidth && screenHeight) {
+    const tool = claudeComputerToolForModel(model);
+    body.tools = [{
+      type: tool.type,
+      name: "computer",
+      display_width_px: screenWidth,
+      display_height_px: screenHeight,
+    }];
+    // Required beta header is sent via the Rust proxy
+    body["betas"] = [tool.beta];
+  }
+
+  return body;
+}
+
+export function claudeComputerToolForModel(model: string): { type: string; beta: string } {
+  const normalized = model.toLowerCase();
+  const supportsLatestTool =
+    normalized.includes("4-6") ||
+    normalized.includes("4.6") ||
+    normalized.includes("4-7") ||
+    normalized.includes("4.7") ||
+    normalized.includes("opus-4-5") ||
+    normalized.includes("opus-4.5");
+
+  return supportsLatestTool
+    ? { type: "computer_20251124", beta: "computer-use-2025-11-24" }
+    : { type: "computer_20250124", beta: "computer-use-2025-01-24" };
 }
 
 export function buildOpenAIBody(
   model: string,
   systemPrompt: string,
   messages: ChatMessage[],
-  images: string[]
+  images: string[],
+  maxTokens = 1024
 ) {
   const lastContent: Array<object> = [
     { type: "text", text: messages.at(-1)?.content ?? "" },
@@ -136,7 +272,63 @@ export function buildOpenAIBody(
     ...messages.slice(0, -1).map((m) => ({ role: m.role, content: m.content })),
     { role: "user", content: lastContent },
   ];
-  return { model, messages: openAIMessages, stream: true, max_tokens: 1024 };
+  return { model, messages: openAIMessages, stream: true, max_tokens: maxTokens };
+}
+
+export function buildOpenAIResponsesComputerBody(opts: {
+  model: string;
+  input: string | Array<Record<string, unknown>>;
+  screenWidth: number;
+  screenHeight: number;
+  previousResponseId?: string;
+}) {
+  const body: Record<string, unknown> = {
+    model: opts.model,
+    tools: [
+      {
+        type: "computer",
+        display_width: opts.screenWidth,
+        display_height: opts.screenHeight,
+        environment: "windows",
+      },
+    ],
+    input: opts.input,
+  };
+
+  if (opts.previousResponseId) {
+    body.previous_response_id = opts.previousResponseId;
+  }
+
+  return body;
+}
+
+function bucketLength(length: number): string {
+  if (length <= 0) return "empty";
+  if (length < 500) return "<500";
+  if (length < 2_000) return "500-2k";
+  if (length < 8_000) return "2k-8k";
+  return "8k+";
+}
+
+export async function sendOpenAIResponse(
+  body: Record<string, unknown>,
+  telemetryContext?: TelemetryContext
+): Promise<unknown> {
+  const span = startTelemetrySpan("model.openai_responses", {
+    modelId: typeof body.model === "string" ? body.model : "unknown",
+    inputKind: Array.isArray(body.input) ? "array" : typeof body.input,
+    inputItemCount: Array.isArray(body.input) ? body.input.length : 1,
+    hasPreviousResponse: Boolean(body.previous_response_id),
+  }, telemetryContext);
+  try {
+    const response = await invoke("send_openai_response", { body });
+    span.end();
+    return response;
+  } catch (err) {
+    captureTelemetryError(err, { route: "sendOpenAIResponse" }, span.context);
+    span.fail(err);
+    throw err;
+  }
 }
 
 export async function streamChatWithTools(
@@ -192,7 +384,7 @@ export async function streamChatWithTools(
         opts.messages as ChatMessage[],
         opts.images
       );
-      invoke("stream_claude", { apiKey: opts.apiKey, body, callId }).catch(
+      invoke("stream_claude", { body, callId }).catch(
         (err: unknown) => {
           unlisteners.forEach((fn) => fn());
           reject(err);

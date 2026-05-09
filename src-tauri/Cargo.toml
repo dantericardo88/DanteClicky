@@ -1,7 +1,7 @@
-﻿[package]
+[package]
 name = "dante-clicky-windows"
 version = "0.1.0"
-description = "DanteClicky - AI Companion for Windows"
+description = "DanteClicky - AI desktop companion"
 authors = ["DanteForge Contributors"]
 edition = "2021"
 license = "MIT"
@@ -25,29 +25,19 @@ serde_json = "1"
 
 # Phase 2 -- Screen capture
 screenshots = "0.8"
-image = { version = "0.24", default-features = false, features = ["jpeg"] }
+image = { version = "0.24", default-features = false, features = ["jpeg", "png"] }
 base64 = "0.22"
 rayon = "1"
+num_cpus = "1"
 
 # Phase 3 -- Audio input
 cpal = "0.15"
 
-# Phase 6 -- Win32 cursor animation (0.61 aligns with Tauri 2.11 to avoid windows-core trait conflicts)
-windows = { version = "0.61", features = [
-    "Win32_Foundation",
-    "Win32_UI_WindowsAndMessaging",
-    "Win32_Graphics_Gdi",
-    "Win32_System_Com",
-    "Win32_UI_Accessibility",
-    "Media_Ocr",
-    "Graphics_Imaging",
-    "Storage_Streams",
-    "Foundation_Collections",
-] }
-
 # Phase 7 -- Auto-start on Windows login + auto-update
 tauri-plugin-autostart = "2"
 tauri-plugin-updater = "2"
+tauri-plugin-log = "2"
+log = "0.4"
 
 # Phase 8 -- Computer-use input control
 enigo = "0.2"
@@ -83,9 +73,35 @@ tokenizers = "0.20"
 
 # Dimension 4 -- Local TTS via Kokoro ONNX
 # Enable with: cargo build --features local-tts
-# ort downloads ONNX Runtime DLLs automatically (no cmake needed)
-ort = { version = "2.0.0-rc.12", features = ["download-binaries"], optional = true }
+# Dimension 29 -- Local Vision via Moondream2 (candle-transformers, see candle-* deps above).
+# The ort crate was removed in Session 20 (was unused after the switch from ONNX to safetensors).
+
+# Dimension 16 -- Video / temporal context (rolling video buffer + timeline)
+# Hardware capture is target-gated below so macOS/Linux builds compile without
+# Windows Graphics Capture or Media Foundation crates.
+ringbuf = { version = "0.4", optional = true }
+mp4 = { version = "0.14", optional = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+# Phase 6 -- Win32 cursor animation, UIAutomation, WinRT OCR, overlay stealth.
+windows = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Graphics_Gdi",
+    "Win32_System_Com",
+    "Win32_UI_Accessibility",
+    "Media_Ocr",
+    "Graphics_Imaging",
+    "Storage_Streams",
+    "Foundation_Collections",
+] }
+
+# Dimension 16 hardware backend. windows-capture and ringbuf are MIT; mp4 is MIT.
+windows-capture = { version = "1.4", optional = true }
 
 [features]
-local-tts = ["ort"]
+local-tts = []
 sqlcipher = ["rusqlite/bundled-sqlcipher-vendored-openssl"]
+# Pulls in real Windows Graphics Capture + Media Foundation encoder.
+# Off by default so cargo test runs without a display + keeps CI deterministic.
+video-hw-capture = ["dep:windows-capture", "dep:ringbuf", "dep:mp4"]

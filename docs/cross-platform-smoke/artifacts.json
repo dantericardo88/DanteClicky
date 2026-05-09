@@ -1,0 +1,27 @@
+{
+  "dimension": 47,
+  "name": "Cross-platform",
+  "lastUpdated": "2026-05-09",
+  "status": "scaffolded-not-proven",
+  "scoreClaim": 7.0,
+  "scoreCap": "Below 9 until tagged release artifacts and macOS/Linux smoke logs exist.",
+  "expectedReleaseArtifacts": {
+    "windows-x86_64": ["*.exe", "*.exe.sig"],
+    "darwin-aarch64": ["*.app.tar.gz", "*.app.tar.gz.sig"],
+    "darwin-x86_64": ["*.app.tar.gz", "*.app.tar.gz.sig"],
+    "linux-x86_64": ["*.AppImage", "*.AppImage.sig"]
+  },
+  "requiredSmokeLogs": [
+    "docs/cross-platform-smoke/YYYY-MM-DD-windows.md",
+    "docs/cross-platform-smoke/YYYY-MM-DD-macos.md",
+    "docs/cross-platform-smoke/YYYY-MM-DD-linux.md"
+  ],
+  "checks": {
+    "windowsReleaseNoBundle": "passed locally before this artifact scaffold",
+    "macosCi": "not yet run in this session",
+    "linuxCi": "not yet run in this session",
+    "notarization": "not yet proven",
+    "updaterSignatures": "configured but not proven with real signing key"
+  }
+}
+

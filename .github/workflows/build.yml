@@ -1,52 +1,117 @@
 name: Build & Test
+
 on:
   push:
-    branches: [master, 'feat/**']
+    branches: [master, "feat/**"]
   pull_request:
     branches: [master]
+  workflow_dispatch:
 
 jobs:
   test:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - run: npm test
-      - name: Cargo test
-        run: cargo test
-        working-directory: src-tauri
-      - name: Typecheck
-        run: npx tsc --noEmit
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
 
-  build:
-    runs-on: windows-latest
-    needs: test
-    if: github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Linux Tauri dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libasound2-dev \
+            libdbus-1-dev \
+            pkg-config
+
       - uses: dtolnay/rust-toolchain@stable
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
+
       - run: npm ci
-      - uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm test -- --reporter=dot
+      - run: npx tsc --noEmit --pretty false
+      - run: npm run build
+
+      - name: Cargo check
+        run: cargo check --manifest-path src-tauri/Cargo.toml --locked
+
+      - name: Cargo lib tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --lib --quiet
+
+  package-smoke:
+    name: Tauri package smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: test
+    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/feat/') || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux Tauri dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libasound2-dev \
+            libdbus-1-dev \
+            pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
         with:
-          tagName: v__VERSION__
-          releaseName: 'DanteClicky v__VERSION__'
-          releaseBody: 'Windows AI companion — voice + screen + computer use'
-          releaseDraft: true
-          prerelease: false
+          workspaces: src-tauri
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm run tauri -- build --no-bundle
+
+      - name: Upload package smoke binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: danteclicky-${{ matrix.os }}-no-bundle
+          path: |
+            src-tauri/target/release/dante-clicky-windows*
+            src-tauri/target/release/bundle/**
+          if-no-files-found: warn

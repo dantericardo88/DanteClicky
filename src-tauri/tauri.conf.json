@@ -19,7 +19,7 @@
     "updater": {
       "pubkey": "__TAURI_UPDATER_PUBKEY__",
       "endpoints": [
-        "https://github.com/danteforge/dante-clicky/releases/latest/download/latest.json"
+        "https://github.com/dantericardo88/DanteClicky/releases/latest/download/latest.json"
       ],
       "dialog": true,
       "windows": {
@@ -29,7 +29,8 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi"],
+    "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -51,7 +52,7 @@
     "resources": [],
     "externalBin": [],
     "copyright": "© 2026 DanteForge",
-    "longDescription": "DanteClicky is an AI-powered Windows desktop companion. Hold Ctrl+Alt+Space to ask a question — it sees your screen, hears your voice, and responds with speech and visual annotations.",
-    "shortDescription": "AI Companion for Windows"
+    "longDescription": "DanteClicky is an AI-powered desktop companion. Hold the global shortcut to ask a question; it sees your screen, hears your voice, and responds with speech and visual annotations.",
+    "shortDescription": "AI desktop companion"
   }
 }

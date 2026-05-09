@@ -1,9 +1,9 @@
-# DanteClicky — Windows AI Companion
+# DanteClicky - AI Desktop Companion
 
-> Voice-commanded, screen-aware, computer-use capable AI desktop companion for Windows.  
+> Voice-commanded, screen-aware, computer-use capable AI desktop companion.  
 > 100% local-first. Your screenshots never leave your device.
 
-![Platform](https://img.shields.io/badge/platform-Windows-blue)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 ![Stack](https://img.shields.io/badge/stack-Tauri%202%20%2B%20Rust%20%2B%20React-orange)
 ![Score](https://img.shields.io/badge/score-76%2F100-green)
 ![License](https://img.shields.io/badge/license-MIT-brightgreen)
@@ -14,9 +14,9 @@
 
 Press `Ctrl+Alt+Space` → speak → watch the cursor animate to the target → AI executes the action → hear TTS confirmation.
 
-The only Windows-native tool that combines:
+A local-first desktop companion that combines:
 - **Voice push-to-talk** (AssemblyAI U3 Pro multilingual STT + local Whisper language selector)
-- **Screen capture** (GPU-accelerated WGC, all monitors)
+- **Screen capture** (native desktop capture with platform capability reporting)
 - **Computer use** (click, type, scroll via enigo — AI controls your desktop)
 - **Model-agnostic** (Claude Sonnet/Opus/Haiku, GPT-4o/o3, Grok 2/3)
 - **DanteAgents bridge** (WebSocket on :9001 — AI agents get GPU vision + desktop control)
@@ -30,7 +30,7 @@ The only Windows-native tool that combines:
 ## Quick start
 
 ```bash
-# Prerequisites: Rust 1.85+, Node 20+, Windows 10/11
+# Prerequisites: Rust 1.85+, Node 20+, Tauri desktop prerequisites for your OS
 git clone https://github.com/dantericardo88/DanteClicky.git
 cd DanteClicky
 npm install
@@ -46,12 +46,12 @@ Enter your API keys in the Settings panel (gear icon in tray). No server to depl
 ```
 DanteClicky (Tauri 2.0)
 │
-├── SENSORY    capture.rs   WGC GPU screen capture, all monitors, JPEG 85%
-│              audio.rs     cpal WASAPI 16kHz, push-to-talk accumulator
+├── SENSORY    capture.rs   native screen capture, all monitors, JPEG 85%
+│              audio.rs     cpal audio input, push-to-talk accumulator
 │              stt.rs       AssemblyAI cloud OR candle Whisper local (language-aware)
 │
 ├── ACTION     input.rs     enigo: click, double-click, right-click, type, scroll, move
-│              cursor.rs    Win32 SetCursorPos smooth animation to [POINT] coords
+│              cursor.rs    platform cursor bridge with smooth animation to [POINT] coords
 │
 ├── BRAIN      chat_proxy.rs  reqwest SSE streaming → Claude / OpenAI / Grok
 │              mcp_server.rs  axum SSE on :9002 — Claude Desktop / Cursor integration
@@ -113,8 +113,8 @@ Connect DanteAgents (or any agent) to `ws://localhost:9001`:
 | Frontend | React 19.1 + TypeScript 5.8 + Vite 7 |
 | State | Zustand 5 |
 | AI SDK | Vercel AI SDK 6 |
-| Audio | cpal 0.15 (WASAPI) |
-| Screen | screenshots 0.8 (WGC) |
+| Audio | cpal 0.15 |
+| Screen | screenshots 0.8 with platform capability reporting |
 | Input | enigo 0.2 |
 | STT | AssemblyAI U3 Pro WebSocket + candle-transformers Whisper |
 | TTS | ElevenLabs Web Audio API |
@@ -127,7 +127,7 @@ Connect DanteAgents (or any agent) to `ws://localhost:9001`:
 
 | | DanteClicky | Cluely | Pluely | screenpipe | UI-TARS |
 |-|-------------|--------|--------|-----------|---------|
-| Windows native | ✅ | ⚠️ | ✅ | ✅ | ✅ |
+| Desktop reach | Windows proven; macOS/Linux CI configured | macOS/Windows | cross-platform | cross-platform | cross-platform |
 | Voice pipeline | ✅ | ✅ | ⚠️ | ⚠️ | ❌ |
 | Computer use | ✅ | ⚠️ | ❌ | ❌ | ✅ |
 | Local-first | ✅ | **❌ (breach)** | ✅ | ✅ | ✅ |
@@ -139,7 +139,7 @@ Connect DanteAgents (or any agent) to `ws://localhost:9001`:
 
 ## Development score
 
-Current: **76/100** → Target: **93/100**  
+Current: **84.2/100** -> Target: **93/100**  
 See `.danteforge/ASCEND_REPORT.md` for full dimension breakdown and sprint plan.
 
 ---

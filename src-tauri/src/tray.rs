@@ -1,7 +1,7 @@
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager, Runtime,
+    AppHandle, Runtime,
 };
 
 pub fn setup<R: Runtime>(app: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
@@ -10,7 +10,7 @@ pub fn setup<R: Runtime>(app: &AppHandle<R>) -> Result<(), Box<dyn std::error::E
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&open, &sep, &quit])?;
 
-    TrayIconBuilder::new()
+    TrayIconBuilder::with_id("main")
         .icon(app.default_window_icon().unwrap().clone())
         .menu(&menu)
         .tooltip("DanteClicky — AI Companion")
@@ -34,13 +34,22 @@ pub fn setup<R: Runtime>(app: &AppHandle<R>) -> Result<(), Box<dyn std::error::E
     Ok(())
 }
 
-fn toggle_panel<R: Runtime>(app: &AppHandle<R>) {
-    if let Some(window) = app.get_webview_window("companion-panel") {
-        if window.is_visible().unwrap_or(false) {
-            let _ = window.hide();
-        } else {
-            let _ = window.show();
-            let _ = window.set_focus();
-        }
+/// Update the tray tooltip to reflect ambient mode state.
+#[tauri::command]
+pub fn set_tray_tooltip(app: AppHandle, ambient_on: bool, capture_count: u32) {
+    let tooltip = if ambient_on {
+        format!(
+            "DanteClicky — Ambient ON · {} captures today",
+            capture_count
+        )
+    } else {
+        "DanteClicky — AI Companion".to_string()
+    };
+    if let Some(tray) = app.tray_by_id("main") {
+        let _ = tray.set_tooltip(Some(&tooltip));
     }
+}
+
+fn toggle_panel<R: Runtime>(app: &AppHandle<R>) {
+    crate::toggle_primary_window(app);
 }

@@ -314,10 +314,9 @@ async fn handle_tool_call(app: &AppHandle, params: &Value) -> Result<Value, Stri
             use crate::session::SessionDb;
             use tauri::Manager;
             let query = args["query"].as_str().unwrap_or("");
-            let limit = args["limit"].as_i64().unwrap_or(5) as i32;
-            let db = app.state::<std::sync::Mutex<SessionDb>>();
-            let rows = db.lock().map_err(|e| e.to_string())?
-                .search_history(query, limit)
+            let limit = args["limit"].as_i64().unwrap_or(5);
+            let db = app.state::<SessionDb>();
+            let rows = db.search_history(query, limit)
                 .unwrap_or_default();
             let text = if rows.is_empty() {
                 "No matching memory found.".to_string()

@@ -7,49 +7,7 @@ use std::sync::{
 };
 use tauri::{AppHandle, Emitter, Runtime};
 
-// ── Voice Activity Detection gate ─────────────────────────────────────────────
-
-const SILENCE_THRESHOLD_RMS: f32 = 0.01;
-const SILENCE_FRAMES_TO_FLUSH: usize = 24; // ~800ms at 512-sample frames @ 16kHz
-
-struct VadGate {
-    silence_count: usize,
-    speech_started: bool,
-}
-
-impl VadGate {
-    fn new() -> Self {
-        Self {
-            silence_count: 0,
-            speech_started: false,
-        }
-    }
-
-    fn process(&mut self, samples: &[f32]) -> VadDecision {
-        let rms = (samples.iter().map(|s| s * s).sum::<f32>() / samples.len() as f32).sqrt();
-        if rms > SILENCE_THRESHOLD_RMS {
-            self.silence_count = 0;
-            self.speech_started = true;
-            VadDecision::Speech
-        } else {
-            self.silence_count += 1;
-            if self.speech_started && self.silence_count >= SILENCE_FRAMES_TO_FLUSH {
-                self.speech_started = false;
-                self.silence_count = 0;
-                VadDecision::EndOfSpeech
-            } else {
-                VadDecision::Silence
-            }
-        }
-    }
-}
-
-#[derive(Debug)]
-enum VadDecision {
-    Speech,
-    Silence,
-    EndOfSpeech,
-}
+use crate::vad::{AutoGain, EnhancedVad, VadDecision};
 
 // ── PCM accumulator ───────────────────────────────────────────────────────────
 
@@ -86,6 +44,9 @@ pub struct AudioState {
     pub accumulator: Arc<Mutex<PcmAccumulator>>,
     /// Shared flag readable from audio callbacks without holding the AudioState lock.
     pub vad_enabled: Arc<AtomicBool>,
+    // Pre-cached device info to reduce first-hotkey WASAPI init latency
+    cached_device: Option<cpal::Device>,
+    cached_config: Option<cpal::SupportedStreamConfig>,
 }
 
 impl AudioState {
@@ -94,7 +55,38 @@ impl AudioState {
             stream: None,
             accumulator: Arc::new(Mutex::new(PcmAccumulator::new())),
             vad_enabled: Arc::new(AtomicBool::new(false)),
+            cached_device: None,
+            cached_config: None,
         }
+    }
+
+    pub fn prewarm_input_device(&mut self) {
+        if self.cached_device.is_some() && self.cached_config.is_some() {
+            return;
+        }
+        let Some(device) = cpal::default_host().default_input_device() else {
+            return;
+        };
+        let Ok(config) = device.default_input_config() else {
+            return;
+        };
+        self.cached_device = Some(device);
+        self.cached_config = Some(config);
+    }
+
+    /// Return the pre-warmed device and config, or try to acquire them fresh.
+    pub fn acquire_device(&mut self) -> Result<(cpal::Device, cpal::SupportedStreamConfig), String> {
+        // Re-use cached values from construction if still present
+        if let (Some(dev), Some(cfg)) = (self.cached_device.take(), self.cached_config.take()) {
+            return Ok((dev, cfg));
+        }
+        let dev = cpal::default_host()
+            .default_input_device()
+            .ok_or("No audio input device found")?;
+        let cfg = dev
+            .default_input_config()
+            .map_err(|e| format!("No input config: {e}"))?;
+        Ok((dev, cfg))
     }
 }
 
@@ -103,20 +95,14 @@ unsafe impl Send for AudioState {}
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-pub fn start<R: Runtime>(
+/// Start recording using a pre-acquired device + config (fast path via AudioState cache).
+pub fn start_with_device<R: Runtime>(
     app: AppHandle<R>,
+    device: cpal::Device,
+    default_config: cpal::SupportedStreamConfig,
     acc: Arc<Mutex<PcmAccumulator>>,
     vad_enabled: Arc<AtomicBool>,
 ) -> Result<cpal::Stream, String> {
-    let host = cpal::default_host();
-    let device = host
-        .default_input_device()
-        .ok_or("No audio input device found")?;
-
-    let default_config = device
-        .default_input_config()
-        .map_err(|e| format!("No input config: {e}"))?;
-
     let sample_rate = default_config.sample_rate().0;
     let channels = default_config.channels();
     let format = default_config.sample_format();
@@ -127,17 +113,20 @@ pub fn start<R: Runtime>(
     acc.lock().unwrap().clear(sample_rate);
 
     // Shared VAD gate — maintains state across audio callback invocations
-    let vad_gate = Arc::new(Mutex::new(VadGate::new()));
+    let vad_gate = Arc::new(Mutex::new(EnhancedVad::new()));
+    // AGC envelope follower — applied to cloud-streamed PCM only (frontend
+    // accumulator stores untouched audio so local Whisper sees the original).
+    let agc = Arc::new(Mutex::new(AutoGain::new()));
 
     let stream = match format {
         SampleFormat::F32 => {
-            build_stream_f32(&device, &config, app, sample_rate, channels, Arc::clone(&acc), Arc::clone(&vad_gate), Arc::clone(&vad_enabled))?
+            build_stream_f32(&device, &config, app, sample_rate, channels, Arc::clone(&acc), Arc::clone(&vad_gate), Arc::clone(&agc), Arc::clone(&vad_enabled))?
         }
         SampleFormat::I16 => {
-            build_stream_i16(&device, &config, app, sample_rate, channels, Arc::clone(&acc), Arc::clone(&vad_gate), Arc::clone(&vad_enabled))?
+            build_stream_i16(&device, &config, app, sample_rate, channels, Arc::clone(&acc), Arc::clone(&vad_gate), Arc::clone(&agc), Arc::clone(&vad_enabled))?
         }
         SampleFormat::U16 => {
-            build_stream_u16(&device, &config, app, sample_rate, channels, Arc::clone(&acc), Arc::clone(&vad_gate), Arc::clone(&vad_enabled))?
+            build_stream_u16(&device, &config, app, sample_rate, channels, Arc::clone(&acc), Arc::clone(&vad_gate), Arc::clone(&agc), Arc::clone(&vad_enabled))?
         }
         _ => return Err(format!("Unsupported sample format: {format:?}")),
     };
@@ -173,6 +162,35 @@ fn emit_audio_level<R: Runtime>(app: &AppHandle<R>, mono_f32: &[f32]) {
     }
 }
 
+/// Runs the VAD gate on a mono F32 frame.
+/// Returns true if PCM should be forwarded to the STT stream.
+/// When VAD detects end-of-speech, emits "vad-end-of-speech" so the
+/// frontend can auto-stop recording without waiting for the hotkey release.
+fn run_vad<R: Runtime>(
+    app: &AppHandle<R>,
+    mono_f32: &[f32],
+    vad_gate: &Arc<Mutex<EnhancedVad>>,
+    vad_enabled: &Arc<AtomicBool>,
+) -> bool {
+    if !vad_enabled.load(Ordering::Relaxed) {
+        return true; // VAD disabled → pass everything through
+    }
+    let decision = vad_gate.lock().unwrap().process(mono_f32);
+    if matches!(decision, VadDecision::EndOfSpeech) {
+        app.emit("vad-end-of-speech", ()).ok();
+    }
+    matches!(decision, VadDecision::Speech | VadDecision::EndOfSpeech)
+}
+
+/// Apply gain normalization to mono F32 samples in place. Used only on the
+/// PCM stream forwarded to AssemblyAI — the local accumulator keeps the raw
+/// signal so candle Whisper sees what the mic actually captured.
+fn apply_agc(agc: &Arc<Mutex<AutoGain>>, samples: &mut [f32]) {
+    if let Ok(mut g) = agc.lock() {
+        g.apply(samples);
+    }
+}
+
 // ── PCM emit helper ───────────────────────────────────────────────────────────
 
 fn emit_pcm<R: Runtime>(app: &AppHandle<R>, mono: &[i16], sample_rate: u32) {
@@ -199,7 +217,8 @@ fn build_stream_f32<R: Runtime>(
     sample_rate: u32,
     channels: u16,
     acc: Arc<Mutex<PcmAccumulator>>,
-    vad_gate: Arc<Mutex<VadGate>>,
+    vad_gate: Arc<Mutex<EnhancedVad>>,
+    agc: Arc<Mutex<AutoGain>>,
     vad_enabled: Arc<AtomicBool>,
 ) -> Result<cpal::Stream, String> {
     device
@@ -213,20 +232,14 @@ fn build_stream_f32<R: Runtime>(
                 } else {
                     data.to_vec()
                 };
-                // VAD gate: when enabled, only emit PCM during speech or end-of-speech frames
-                let should_emit = if vad_enabled.load(Ordering::Relaxed) {
-                    let decision = vad_gate.lock().unwrap().process(&mono_f32);
-                    matches!(decision, VadDecision::Speech | VadDecision::EndOfSpeech)
-                } else {
-                    true
-                };
+                let should_emit = run_vad(&app, &mono_f32, &vad_gate, &vad_enabled);
                 if should_emit {
-                    let mono_i16: Vec<i16> = mono_f32.iter().map(|&s| f32_to_i16(s)).collect();
+                    let mut amplified = mono_f32.clone();
+                    apply_agc(&agc, &mut amplified);
+                    let mono_i16: Vec<i16> = amplified.iter().map(|&s| f32_to_i16(s)).collect();
                     emit_pcm(&app, &mono_i16, sample_rate);
                 }
-                // Always accumulate for local Whisper (captures speech + silence)
                 push_f32_to_acc(&acc, &mono_f32);
-                // Emit audio level for UI meter
                 emit_audio_level(&app, &mono_f32);
             },
             |e| eprintln!("[audio] F32 stream error: {e}"),
@@ -242,7 +255,8 @@ fn build_stream_i16<R: Runtime>(
     sample_rate: u32,
     channels: u16,
     acc: Arc<Mutex<PcmAccumulator>>,
-    vad_gate: Arc<Mutex<VadGate>>,
+    vad_gate: Arc<Mutex<EnhancedVad>>,
+    agc: Arc<Mutex<AutoGain>>,
     vad_enabled: Arc<AtomicBool>,
 ) -> Result<cpal::Stream, String> {
     device
@@ -261,19 +275,15 @@ fn build_stream_i16<R: Runtime>(
                     .iter()
                     .map(|&s| s as f32 / i16::MAX as f32)
                     .collect();
-                // VAD gate: when enabled, only emit PCM during speech or end-of-speech frames
-                let should_emit = if vad_enabled.load(Ordering::Relaxed) {
-                    let decision = vad_gate.lock().unwrap().process(&mono_f32);
-                    matches!(decision, VadDecision::Speech | VadDecision::EndOfSpeech)
-                } else {
-                    true
-                };
+                let should_emit = run_vad(&app, &mono_f32, &vad_gate, &vad_enabled);
                 if should_emit {
-                    emit_pcm(&app, &mono, sample_rate);
+                    let mut amplified = mono_f32.clone();
+                    apply_agc(&agc, &mut amplified);
+                    let amplified_i16: Vec<i16> =
+                        amplified.iter().map(|&s| f32_to_i16(s)).collect();
+                    emit_pcm(&app, &amplified_i16, sample_rate);
                 }
-                // Always accumulate for local Whisper (captures speech + silence)
                 push_f32_to_acc(&acc, &mono_f32);
-                // Emit audio level for UI meter
                 emit_audio_level(&app, &mono_f32);
             },
             |e| eprintln!("[audio] I16 stream error: {e}"),
@@ -289,7 +299,8 @@ fn build_stream_u16<R: Runtime>(
     sample_rate: u32,
     channels: u16,
     acc: Arc<Mutex<PcmAccumulator>>,
-    vad_gate: Arc<Mutex<VadGate>>,
+    vad_gate: Arc<Mutex<EnhancedVad>>,
+    agc: Arc<Mutex<AutoGain>>,
     vad_enabled: Arc<AtomicBool>,
 ) -> Result<cpal::Stream, String> {
     device
@@ -308,19 +319,15 @@ fn build_stream_u16<R: Runtime>(
                     .iter()
                     .map(|&s| s as f32 / i16::MAX as f32)
                     .collect();
-                // VAD gate: when enabled, only emit PCM during speech or end-of-speech frames
-                let should_emit = if vad_enabled.load(Ordering::Relaxed) {
-                    let decision = vad_gate.lock().unwrap().process(&mono_f32);
-                    matches!(decision, VadDecision::Speech | VadDecision::EndOfSpeech)
-                } else {
-                    true
-                };
+                let should_emit = run_vad(&app, &mono_f32, &vad_gate, &vad_enabled);
                 if should_emit {
-                    emit_pcm(&app, &mono, sample_rate);
+                    let mut amplified = mono_f32.clone();
+                    apply_agc(&agc, &mut amplified);
+                    let amplified_i16: Vec<i16> =
+                        amplified.iter().map(|&s| f32_to_i16(s)).collect();
+                    emit_pcm(&app, &amplified_i16, sample_rate);
                 }
-                // Always accumulate for local Whisper (captures speech + silence)
                 push_f32_to_acc(&acc, &mono_f32);
-                // Emit audio level for UI meter
                 emit_audio_level(&app, &mono_f32);
             },
             |e| eprintln!("[audio] U16 stream error: {e}"),

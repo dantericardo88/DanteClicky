@@ -1027,10 +1027,19 @@ fn write_startup_probe_json<R: Runtime>(app: &AppHandle<R>, mut payload: serde_j
         return;
     }
 
-    let Ok(dir) = app.path().app_local_data_dir() else {
+    let probe_path = if let Some(path) = std::env::var_os("DANTE_STARTUP_PROBE_PATH") {
+        std::path::PathBuf::from(path)
+    } else {
+        let Ok(dir) = app.path().app_local_data_dir() else {
+            return;
+        };
+        dir.join("startup-probe.jsonl")
+    };
+
+    let Some(probe_dir) = probe_path.parent() else {
         return;
     };
-    if std::fs::create_dir_all(&dir).is_err() {
+    if std::fs::create_dir_all(probe_dir).is_err() {
         return;
     }
 
@@ -1047,7 +1056,7 @@ fn write_startup_probe_json<R: Runtime>(app: &AppHandle<R>, mut payload: serde_j
     if let Ok(mut file) = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
-        .open(dir.join("startup-probe.jsonl"))
+        .open(probe_path)
     {
         let _ = writeln!(file, "{line}");
     }

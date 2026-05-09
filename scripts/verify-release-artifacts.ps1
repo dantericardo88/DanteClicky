@@ -5,17 +5,34 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-function Assert-Match {
+function Assert-AnyMatch {
   param(
-    [string]$Pattern,
+    [string[]]$Patterns,
     [string]$Label
   )
 
-  $matches = Get-ChildItem -Path $ArtifactDir -Recurse -File -Filter $Pattern -ErrorAction SilentlyContinue
-  if (-not $matches -or $matches.Count -eq 0) {
-    throw "Missing $Label artifact matching '$Pattern' under '$ArtifactDir'."
+  foreach ($pattern in $Patterns) {
+    $matches = Get-ChildItem -Path $ArtifactDir -Recurse -File -Filter $pattern -ErrorAction SilentlyContinue
+    if ($matches -and $matches.Count -gt 0) {
+      return $matches[0].FullName
+    }
   }
-  return $matches[0].FullName
+
+  throw "Missing $Label artifact matching any of '$($Patterns -join "', '")' under '$ArtifactDir'."
+}
+
+function Assert-ManifestArtifact {
+  param(
+    [string]$Url,
+    [string]$Platform
+  )
+
+  $assetName = [System.IO.Path]::GetFileName(([Uri]$Url).LocalPath)
+  $assetName = [Uri]::UnescapeDataString($assetName)
+  $matches = Get-ChildItem -Path $ArtifactDir -Recurse -File -Filter $assetName -ErrorAction SilentlyContinue
+  if (-not $matches -or $matches.Count -eq 0) {
+    throw "latest.json platform '$Platform' URL points to '$assetName', but that artifact was not downloaded."
+  }
 }
 
 if (-not (Test-Path $ArtifactDir)) {
@@ -23,16 +40,18 @@ if (-not (Test-Path $ArtifactDir)) {
 }
 
 $checks = @(
-  @{ Pattern = "*.exe"; Label = "Windows installer" },
-  @{ Pattern = "*.exe.sig"; Label = "Windows updater signature" },
-  @{ Pattern = "*.app.tar.gz"; Label = "macOS updater bundle" },
-  @{ Pattern = "*.app.tar.gz.sig"; Label = "macOS updater signature" },
-  @{ Pattern = "*.AppImage"; Label = "Linux AppImage" },
-  @{ Pattern = "*.AppImage.sig"; Label = "Linux updater signature" }
+  @{ Patterns = @("*.exe", "*.msi"); Label = "Windows installer" },
+  @{ Patterns = @("*.exe.sig", "*.msi.sig", "*.nsis.sig"); Label = "Windows updater signature" },
+  @{ Patterns = @("*aarch64*.app.tar.gz", "*arm64*.app.tar.gz"); Label = "macOS Apple Silicon updater bundle" },
+  @{ Patterns = @("*aarch64*.app.tar.gz.sig", "*arm64*.app.tar.gz.sig"); Label = "macOS Apple Silicon updater signature" },
+  @{ Patterns = @("*x64*.app.tar.gz", "*x86_64*.app.tar.gz"); Label = "macOS Intel updater bundle" },
+  @{ Patterns = @("*x64*.app.tar.gz.sig", "*x86_64*.app.tar.gz.sig"); Label = "macOS Intel updater signature" },
+  @{ Patterns = @("*.AppImage"); Label = "Linux AppImage" },
+  @{ Patterns = @("*.AppImage.sig"); Label = "Linux updater signature" }
 )
 
 foreach ($check in $checks) {
-  $path = Assert-Match -Pattern $check.Pattern -Label $check.Label
+  $path = Assert-AnyMatch -Patterns $check.Patterns -Label $check.Label
   Write-Host "ok: $($check.Label) -> $path"
 }
 
@@ -48,9 +67,9 @@ if (Test-Path $ManifestPath) {
     if (-not $manifest.platforms.$platform.url) {
       throw "latest.json platform '$platform' is missing a URL."
     }
+    Assert-ManifestArtifact -Url $manifest.platforms.$platform.url -Platform $platform
   }
   Write-Host "ok: latest.json contains all expected updater platforms"
 }
 
 Write-Host "release artifact verification passed"
-

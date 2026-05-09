@@ -191,6 +191,7 @@ describe("startup architecture", () => {
     expect(libSource).toContain("fn write_startup_probe");
     expect(libSource).toContain("fn write_startup_probe_marker");
     expect(libSource).toContain("DANTE_STARTUP_PROBE");
+    expect(libSource).toContain("DANTE_STARTUP_PROBE_PATH");
     expect(libSource).toContain("startup.ready elapsed_ms=");
     expect(libSource).toContain("write_startup_probe(&handle, ready_elapsed)");
     expect(libSource).toContain("write_startup_probe_marker(&handle, \"tray_ready\")");

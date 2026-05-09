@@ -36,6 +36,8 @@ jobs:
             patchelf \
             libasound2-dev \
             libdbus-1-dev \
+            xvfb \
+            dbus-x11 \
             pkg-config
 
       - uses: dtolnay/rust-toolchain@stable
@@ -90,6 +92,8 @@ jobs:
             patchelf \
             libasound2-dev \
             libdbus-1-dev \
+            xvfb \
+            dbus-x11 \
             pkg-config
 
       - uses: dtolnay/rust-toolchain@stable
@@ -106,6 +110,29 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run tauri -- build --no-bundle
+
+      - name: Runtime smoke (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci-runtime-smoke.ps1 -ExePath "src-tauri/target/release/dante-clicky-windows.exe"
+
+      - name: Runtime smoke (macOS)
+        if: runner.os == 'macOS'
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci-runtime-smoke.ps1 -ExePath "src-tauri/target/release/dante-clicky-windows"
+
+      - name: Runtime smoke (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: xvfb-run -a dbus-run-session -- pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci-runtime-smoke.ps1 -ExePath "src-tauri/target/release/dante-clicky-windows"
+
+      - name: Upload runtime smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: danteclicky-${{ matrix.os }}-runtime-smoke
+          path: target/runtime-smoke/**
+          if-no-files-found: warn
 
       - name: Upload package smoke binary
         uses: actions/upload-artifact@v4

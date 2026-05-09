@@ -107,8 +107,20 @@ describe("cross-platform architecture", () => {
     expect(buildWorkflow).toContain("cargo check --manifest-path src-tauri/Cargo.toml --locked");
     expect(buildWorkflow).toContain("workflow_dispatch");
     expect(buildWorkflow).toContain("startsWith(github.ref, 'refs/heads/feat/')");
+    expect(buildWorkflow).toContain("scripts/ci-runtime-smoke.ps1");
+    expect(buildWorkflow).toContain("xvfb-run -a dbus-run-session");
+    expect(buildWorkflow).toContain("danteclicky-${{ matrix.os }}-runtime-smoke");
     expect(buildWorkflow).toContain("actions/upload-artifact@v4");
     expect(buildWorkflow).toContain("danteclicky-${{ matrix.os }}-no-bundle");
+    expect(releaseWorkflow).toContain("release-preflight");
+    expect(releaseWorkflow).toContain("__TAURI_UPDATER_PUBKEY__");
+    expect(releaseWorkflow).toContain("Missing required release secret");
+    expect(releaseWorkflow).toContain("WINDOWS_CERTIFICATE");
+    expect(releaseWorkflow).toContain("APPLE_CERTIFICATE");
+    expect(releaseWorkflow).toContain("APPLE_TEAM_ID");
+    expect(releaseWorkflow).toContain("Import Windows signing certificate");
+    expect(releaseWorkflow).toContain("Import macOS signing certificate");
+    expect(releaseWorkflow).toContain("Verify release artifacts and manifest");
     expect(releaseWorkflow).toContain("macos-aarch64");
     expect(releaseWorkflow).toContain("linux-x86_64");
     expect(releaseWorkflow).toContain("windows-x86_64");
@@ -130,9 +142,25 @@ describe("cross-platform architecture", () => {
 
   it("ships auditable release artifact proof scaffolding", () => {
     expect(existsSync(resolve(root, "CHANGELOG.md"))).toBe(true);
+    expect(existsSync(resolve(root, "scripts/ci-runtime-smoke.ps1"))).toBe(true);
     expect(existsSync(resolve(root, "scripts/verify-release-artifacts.ps1"))).toBe(true);
     expect(existsSync(resolve(root, "scripts/verify-release-artifacts.sh"))).toBe(true);
     expect(existsSync(resolve(root, "docs/cross-platform-smoke/artifacts.json"))).toBe(true);
+
+    const runtimeSmoke = readProjectFile("scripts/ci-runtime-smoke.ps1");
+    const verifyPs1 = readProjectFile("scripts/verify-release-artifacts.ps1");
+    const verifySh = readProjectFile("scripts/verify-release-artifacts.sh");
+
+    expect(runtimeSmoke).toContain("DANTE_STARTUP_PROBE_PATH");
+    expect(runtimeSmoke).toContain("tray_ready");
+    expect(runtimeSmoke).toContain("hotkey_registered");
+    expect(runtimeSmoke).toContain("native_ready");
+    expect(verifyPs1).toContain("macOS Apple Silicon updater bundle");
+    expect(verifyPs1).toContain("macOS Intel updater bundle");
+    expect(verifyPs1).toContain("latest.json platform '$Platform' URL points to");
+    expect(verifySh).toContain("macOS Apple Silicon updater bundle");
+    expect(verifySh).toContain("macOS Intel updater bundle");
+    expect(verifySh).toContain("but that artifact was not downloaded");
   });
 
   it("product metadata no longer frames the app as Windows-only", () => {

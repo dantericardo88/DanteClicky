@@ -15,9 +15,69 @@ env:
   RELEASE_TAG: ${{ inputs.releaseTag || github.ref_name }}
 
 jobs:
+  release-preflight:
+    name: Release preflight
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate release tag, updater key, and signing secrets
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          case "$RELEASE_TAG" in
+            v*) ;;
+            *)
+              echo "::error::RELEASE_TAG must start with v. Got '$RELEASE_TAG'."
+              exit 1
+              ;;
+          esac
+
+          if grep -q "__TAURI_UPDATER_PUBKEY__" src-tauri/tauri.conf.json; then
+            echo "::error::src-tauri/tauri.conf.json still contains the placeholder updater pubkey."
+            exit 1
+          fi
+
+          missing=0
+          for secret_name in \
+            TAURI_SIGNING_PRIVATE_KEY \
+            TAURI_SIGNING_PRIVATE_KEY_PASSWORD \
+            APPLE_ID \
+            APPLE_PASSWORD \
+            APPLE_TEAM_ID \
+            APPLE_CERTIFICATE \
+            APPLE_CERTIFICATE_PASSWORD \
+            KEYCHAIN_PASSWORD \
+            WINDOWS_CERTIFICATE \
+            WINDOWS_CERTIFICATE_PASSWORD
+          do
+            if [ -z "${!secret_name}" ]; then
+              echo "::error::Missing required release secret: $secret_name"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
   build:
     name: Build ${{ matrix.platformName }}
     runs-on: ${{ matrix.os }}
+    needs: release-preflight
     permissions:
       contents: write
     strategy:
@@ -84,12 +144,69 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Import Windows signing certificate
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          New-Item -ItemType Directory -Force -Path certificate | Out-Null
+          Set-Content -Path certificate/tempCert.txt -Value $env:WINDOWS_CERTIFICATE
+          certutil -decode certificate/tempCert.txt certificate/certificate.pfx
+          Remove-Item -LiteralPath certificate/tempCert.txt -Force
+
+          $password = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -Force -AsPlainText
+          $cert = @(Import-PfxCertificate -FilePath certificate/certificate.pfx -CertStoreLocation Cert:\CurrentUser\My -Password $password)[0]
+          if (-not $cert.Thumbprint) {
+            throw "Windows certificate import did not return a thumbprint."
+          }
+
+          $configPath = "src-tauri/tauri.conf.json"
+          $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+          $config.bundle.windows | Add-Member -NotePropertyName certificateThumbprint -NotePropertyValue $cert.Thumbprint -Force
+          $config.bundle.windows | Add-Member -NotePropertyName digestAlgorithm -NotePropertyValue "sha256" -Force
+          $config.bundle.windows | Add-Member -NotePropertyName timestampUrl -NotePropertyValue "http://timestamp.digicert.com" -Force
+          $config | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath $configPath -Encoding UTF8
+
+      - name: Import macOS signing certificate
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          security find-identity -v -p codesigning build.keychain
+
+          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep -E "Developer ID Application|Apple Distribution" | head -n 1 || true)
+          if [ -z "$CERT_INFO" ]; then
+            echo "::error::No Developer ID Application or Apple Distribution signing identity found."
+            exit 1
+          fi
+
+          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
+          echo "APPLE_SIGNING_IDENTITY=$CERT_ID" >> "$GITHUB_ENV"
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY }}
         with:
           tagName: ${{ env.RELEASE_TAG }}
           releaseName: "DanteClicky ${{ env.RELEASE_TAG }}"
@@ -109,11 +226,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download release signatures
+      - name: Download release artifacts
         uses: robinraju/release-downloader@v1
         with:
           tag: ${{ env.RELEASE_TAG }}
-          fileName: "*.sig"
+          fileName: "*"
           out-file-path: "dist-artifacts"
 
       - name: Generate latest.json for updater
@@ -124,9 +241,19 @@ jobs:
           MAC_ARM_SIG=$(find dist-artifacts \( -name "*aarch64*.app.tar.gz.sig" -o -name "*arm64*.app.tar.gz.sig" \) -print -quit | xargs -r cat)
           MAC_X64_SIG=$(find dist-artifacts \( -name "*x64*.app.tar.gz.sig" -o -name "*x86_64*.app.tar.gz.sig" \) -print -quit | xargs -r cat)
           LINUX_SIG=$(find dist-artifacts -name "*.AppImage.sig" -print -quit | xargs -r cat)
+          WIN_ASSET=$(basename "$(find dist-artifacts \( -name "*.exe" -o -name "*.msi" \) -print -quit)")
+          MAC_ARM_ASSET=$(basename "$(find dist-artifacts \( -name "*aarch64*.app.tar.gz" -o -name "*arm64*.app.tar.gz" \) -print -quit)")
+          MAC_X64_ASSET=$(basename "$(find dist-artifacts \( -name "*x64*.app.tar.gz" -o -name "*x86_64*.app.tar.gz" \) -print -quit)")
+          LINUX_ASSET=$(basename "$(find dist-artifacts -name "*.AppImage" -print -quit)")
           for sig_name in WIN_SIG MAC_ARM_SIG MAC_X64_SIG LINUX_SIG; do
             if [ -z "${!sig_name}" ]; then
               echo "::error::$sig_name is empty; refusing to publish latest.json with missing updater signatures"
+              exit 1
+            fi
+          done
+          for asset_name in WIN_ASSET MAC_ARM_ASSET MAC_X64_ASSET LINUX_ASSET; do
+            if [ -z "${!asset_name}" ]; then
+              echo "::error::$asset_name is empty; refusing to publish latest.json with missing release artifacts"
               exit 1
             fi
           done
@@ -138,19 +265,19 @@ jobs:
             "platforms": {
               "windows-x86_64": {
                 "signature": "$WIN_SIG",
-                "url": "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/DanteClicky_${VERSION}_x64-setup.exe"
+                "url": "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/${WIN_ASSET}"
               },
               "darwin-aarch64": {
                 "signature": "$MAC_ARM_SIG",
-                "url": "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/DanteClicky_${VERSION}_aarch64.app.tar.gz"
+                "url": "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/${MAC_ARM_ASSET}"
               },
               "darwin-x86_64": {
                 "signature": "$MAC_X64_SIG",
-                "url": "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/DanteClicky_${VERSION}_x64.app.tar.gz"
+                "url": "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/${MAC_X64_ASSET}"
               },
               "linux-x86_64": {
                 "signature": "$LINUX_SIG",
-                "url": "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/DanteClicky_${VERSION}_amd64.AppImage"
+                "url": "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/${LINUX_ASSET}"
               }
             }
           }
@@ -164,6 +291,9 @@ jobs:
               if not entry or not entry.get("signature") or not entry.get("url"):
                   raise SystemExit(f"latest.json is missing signature or URL for {platform}")
           PY
+
+      - name: Verify release artifacts and manifest
+        run: bash scripts/verify-release-artifacts.sh dist-artifacts latest.json
 
       - name: Upload latest.json to release
         uses: softprops/action-gh-release@v2

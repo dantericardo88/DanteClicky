@@ -1,6 +1,6 @@
 # Cross-Platform Verification
 
-Dimension 47 is scored on proven desktop reach across Windows, macOS, and Linux. The current implementation is architecture-ready, but not yet 9+ until the platform matrix produces real artifacts and smoke evidence.
+Dimension 47 is scored on proven desktop reach across Windows, macOS, and Linux. The current implementation has CI-proven no-bundle artifacts and native runtime startup on all three OSes, but is not yet 9+ until a tagged release produces signed/notarized artifacts with real updater signatures and dated manual smoke evidence.
 
 ## Current Status
 
@@ -19,9 +19,10 @@ Dimension 47 is scored on proven desktop reach across Windows, macOS, and Linux.
 ## Required 9+ Evidence
 
 1. Green GitHub Actions build matrix on `windows-latest`, `macos-latest`, and `ubuntu-latest`.
-2. Green release matrix with downloadable Windows, macOS, and Linux artifacts.
-3. macOS smoke: launch, menu bar/tray presence, onboarding, microphone permission, screen recording permission, screenshot capture, global shortcut, chat turn, cursor/input action, close-to-tray/menu bar, update check.
-4. Linux smoke: launch, tray support under the target desktop session, screenshot capture, global shortcut, chat turn, cursor/input action, close-to-tray, update check.
+2. Green no-bundle package-smoke and runtime-smoke matrix proving `tray_ready`, `hotkey_registered`, and `native_ready` on all three OSes.
+3. Green tagged release matrix with downloadable signed Windows, notarized macOS, and signed-updater Linux artifacts.
+4. macOS smoke: launch, menu bar/tray presence, onboarding, microphone permission, screen recording permission, screenshot capture, global shortcut, chat turn, cursor/input action, close-to-tray/menu bar, update check.
+5. Linux smoke: launch, tray support under the target desktop session, screenshot capture, global shortcut, chat turn, cursor/input action, close-to-tray, update check.
 5. Platform capability panel or diagnostics export confirming degraded features are explicit rather than silent.
 6. Documentation of unsupported or degraded features per OS.
 
@@ -43,5 +44,6 @@ npm run tauri -- build --no-bundle
 
 - **6.5**: architecture target-gated, fallback-safe, CI/release matrices present, Windows release smoke passes.
 - **8.0**: macOS and Linux CI build/test jobs pass at least once.
-- **9.0**: all three OSes produce artifacts and pass manual smoke with documented capability differences.
+- **8.6**: all three OSes produce no-bundle artifacts and pass CI runtime smoke for tray, hotkey, and native readiness.
+- **9.0**: all three OSes produce signed/notarized tagged-release artifacts and pass manual smoke with documented capability differences.
 - **9.3+**: macOS Accessibility and Linux AT-SPI/portal integrations move core capabilities from fallback to native support.

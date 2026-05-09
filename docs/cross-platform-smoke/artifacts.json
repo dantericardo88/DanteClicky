@@ -1,15 +1,15 @@
 {
   "dimension": 47,
   "name": "Cross-platform",
-  "lastUpdated": "2026-05-09T19:15:14.739Z",
-  "status": "ci-package-smoke-proven",
-  "scoreClaim": 8.0,
-  "scoreCap": "Below 9 until tagged signed/notarized release artifacts, real updater signatures, and dated runtime smoke logs exist.",
+  "lastUpdated": "2026-05-09T19:50:27.000Z",
+  "status": "ci-runtime-smoke-proven",
+  "scoreClaim": 8.6,
+  "scoreCap": "Below 9 until tagged signed/notarized release artifacts, real updater signatures, and dated manual smoke logs prove capture, input, updater, onboarding, chat, close-to-tray, and platform permission flows.",
   "ciProof": {
     "workflow": "Build & Test",
-    "runId": 25609011008,
-    "runUrl": "https://github.com/dantericardo88/DanteClicky/actions/runs/25609011008",
-    "commit": "5d2e1b50494690fc2dce17f8b7440626fba99358",
+    "runId": 25610105987,
+    "runUrl": "https://github.com/dantericardo88/DanteClicky/actions/runs/25610105987",
+    "commit": "18e712aef6145d5320639bc473297e53130e515d",
     "testJobs": {
       "windows-latest": "passed",
       "macos-latest": "passed",
@@ -20,21 +20,62 @@
       "macos-latest": "passed",
       "ubuntu-latest": "passed"
     },
+    "runtimeSmokeJobs": {
+      "windows-latest": {
+        "status": "passed",
+        "nativeReadyMs": 18,
+        "elapsedMs": 394,
+        "requiredMarkers": ["tray_ready", "hotkey_registered", "native_ready"],
+        "artifact": "danteclicky-windows-latest-runtime-smoke",
+        "artifactId": 6898203008
+      },
+      "macos-latest": {
+        "status": "passed",
+        "nativeReadyMs": 497,
+        "elapsedMs": 786,
+        "requiredMarkers": ["tray_ready", "hotkey_registered", "native_ready"],
+        "artifact": "danteclicky-macos-latest-runtime-smoke",
+        "artifactId": 6898188608
+      },
+      "ubuntu-latest": {
+        "status": "passed",
+        "nativeReadyMs": 495,
+        "elapsedMs": 870,
+        "requiredMarkers": ["tray_ready", "hotkey_registered", "native_ready"],
+        "artifact": "danteclicky-ubuntu-latest-runtime-smoke",
+        "artifactId": 6898194282
+      }
+    },
     "artifacts": [
       {
         "name": "danteclicky-windows-latest-no-bundle",
-        "artifactId": 6897991744,
-        "sizeBytes": 16526018
+        "artifactId": 6898203221,
+        "sizeBytes": 16534232
       },
       {
         "name": "danteclicky-macos-latest-no-bundle",
-        "artifactId": 6897967841,
-        "sizeBytes": 17047327
+        "artifactId": 6898188794,
+        "sizeBytes": 17045844
       },
       {
         "name": "danteclicky-ubuntu-latest-no-bundle",
-        "artifactId": 6897966049,
-        "sizeBytes": 19824697
+        "artifactId": 6898194609,
+        "sizeBytes": 19813889
+      },
+      {
+        "name": "danteclicky-windows-latest-runtime-smoke",
+        "artifactId": 6898203008,
+        "sizeBytes": 660
+      },
+      {
+        "name": "danteclicky-macos-latest-runtime-smoke",
+        "artifactId": 6898188608,
+        "sizeBytes": 660
+      },
+      {
+        "name": "danteclicky-ubuntu-latest-runtime-smoke",
+        "artifactId": 6898194282,
+        "sizeBytes": 665
       }
     ]
   },
@@ -44,16 +85,18 @@
     "darwin-x86_64": ["*.app.tar.gz", "*.app.tar.gz.sig"],
     "linux-x86_64": ["*.AppImage", "*.AppImage.sig"]
   },
-  "requiredSmokeLogs": [
+  "requiredManualSmokeLogs": [
     "docs/cross-platform-smoke/YYYY-MM-DD-windows.md",
     "docs/cross-platform-smoke/YYYY-MM-DD-macos.md",
     "docs/cross-platform-smoke/YYYY-MM-DD-linux.md"
   ],
   "checks": {
     "windowsReleaseNoBundle": "passed in CI package-smoke and uploaded artifact",
-    "macosCi": "passed test job and package-smoke with uploaded artifact",
-    "linuxCi": "passed test job and package-smoke with uploaded artifact",
-    "notarization": "not yet proven",
-    "updaterSignatures": "configured but not proven with real signing key"
+    "macosCi": "passed test job, package-smoke, and runtime smoke with uploaded artifacts",
+    "linuxCi": "passed test job, package-smoke, and runtime smoke with uploaded artifacts",
+    "releasePreflight": "configured to fail if updater pubkey placeholder or signing/notarization secrets are missing",
+    "notarization": "blocked: not yet proven by tagged macOS release",
+    "updaterSignatures": "blocked: configured and fail-fast guarded, but not proven with real production signing key",
+    "manualSmoke": "blocked: capture, input, updater, onboarding, chat, close-to-tray, and permission flows still need dated OS logs"
   }
 }

@@ -3,7 +3,7 @@
 
 ---
 
-## Overall Self Score: 8.45/10 (canonical 50-dim composite; see `.danteforge/50_DIMENSION_COMPETITIVE_MATRIX.json`)
+## Overall Self Score: 8.46/10 (canonical 50-dim composite; see `.danteforge/50_DIMENSION_COMPETITIVE_MATRIX.json`)
 ## Composite Target: 9.3/10
 
 ---

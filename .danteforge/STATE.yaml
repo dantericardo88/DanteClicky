@@ -4,6 +4,23 @@ workflowStage: initialized
 currentPhase: 0
 tasks: {}
 auditLog:
+  - "2026-05-09 | codex: Session 27 Dim 47 Cross-platform promoted 8.0 -> 8.6.
+    Added portable DANTE_STARTUP_PROBE_PATH support, scripts/ci-runtime-smoke.ps1,
+    CI runtime-smoke jobs for Windows/macOS/Linux, release preflight gates for
+    updater pubkey and signing/notarization secrets, Windows/macOS signing import
+    steps, and stricter release artifact/manifest verification. Verification:
+    local focused architecture tests, full Vitest 461/461, npx tsc --noEmit,
+    npm run build, cargo check --locked, cargo test --lib 135 passed/2 ignored,
+    release verifier dry runs, plus GitHub Actions Build & Test run 25610105987
+    succeeded on commit 18e712a. Runtime smoke launched no-bundle executables
+    on windows-latest, macos-latest, and ubuntu-latest and required tray_ready,
+    hotkey_registered, and native_ready markers. Reports: Windows nativeReadyMs
+    18 / elapsedMs 394, macOS nativeReadyMs 497 / elapsedMs 786, Ubuntu
+    nativeReadyMs 495 / elapsedMs 870. Canonical composite 8.45 -> 8.46. Held
+    at 8.6, not 9+, until signed/notarized tagged releases, real updater
+    signatures, and dated manual smoke logs prove capture/input/updater on all
+    target OSes. Next four: Dim 47 signed release/manual smoke, Dim 13, Dim 29,
+    Dim 16."
   - "2026-05-09 | codex: Session 26 Dim 47 Cross-platform promoted 7.0 -> 8.0.
     Fixed the CI blockers from the first feature-branch run: startupArchitecture
     setup extraction is now line-ending robust, and lazy Tauri window builders

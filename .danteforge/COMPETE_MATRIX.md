@@ -1,9 +1,9 @@
 # DanteClicky — Competitive Harvest Loop Matrix
-> Generated: 2026-05-05 | Updated: 2026-05-09 (canonical score pointer refreshed) | CHL Engine
+> Generated: 2026-05-05 | Updated: 2026-05-10 (Session 39 adversarial Dim 47 correction; full 50-dim JSON/chat render updated; Dim 47 8.6 -> 8.2) | CHL Engine
 
 ---
 
-## Overall Self Score: 8.46/10 (canonical 50-dim composite; see `.danteforge/50_DIMENSION_COMPETITIVE_MATRIX.json`)
+## Overall Self Score: 8.49/10 (canonical 50-dim composite; see `.danteforge/50_DIMENSION_COMPETITIVE_MATRIX.json`)
 ## Composite Target: 9.3/10
 
 ---

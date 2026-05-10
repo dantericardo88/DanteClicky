@@ -1,0 +1,1530 @@
+{
+  "generatedAt": "2026-05-10T07:09:44.597Z",
+  "project": "DanteClicky-Windows",
+  "composite": 8.49,
+  "previousComposite": 8.5,
+  "harshDelta": "-0.01",
+  "verdict": "Harsh score is 8.49/10 after adversarial correction. Dim 47 is 8.2, not 8.6: the repo has strong release gates, but no pushed tagged signed release, verified release assets/latest.json/SHA256SUMS/trust evidence/attestations, or installed-artifact OS smoke logs yet.",
+  "competitors": {
+    "closed_source": [
+      {
+        "name": "Cluely",
+        "score": 5.12
+      },
+      {
+        "name": "Raycast AI",
+        "score": 4.96
+      },
+      {
+        "name": "Wispr Flow",
+        "score": 4.2
+      },
+      {
+        "name": "Clicky macOS",
+        "score": 5.24
+      }
+    ],
+    "open_source": [
+      {
+        "name": "Screenpipe",
+        "score": 5.64
+      },
+      {
+        "name": "Pluely",
+        "score": 4.62
+      },
+      {
+        "name": "UI-TARS Desktop",
+        "score": 5.32
+      },
+      {
+        "name": "Open Interpreter",
+        "score": 4.52
+      },
+      {
+        "name": "Goose (Block)",
+        "score": 4.8
+      }
+    ]
+  },
+  "counts": {
+    "dimsAt9Plus": 26,
+    "dims8ToLt9": 20,
+    "dims7ToLt8": 4,
+    "dimsUnder6": 0,
+    "dims_at_9_plus": 26,
+    "dims_at_8_to_9": 20,
+    "dims_at_7_to_8": 4,
+    "dims_under_7": 0
+  },
+  "nextPriorities": [
+    {
+      "rank": 1,
+      "dim": 47,
+      "what": "Cross-platform signed release and manual smoke",
+      "current": 8.2,
+      "target": 9,
+      "lift": 0.8,
+      "composite_impact": "+0.02",
+      "effort_days": "1-3 plus credential lead time",
+      "why": "Adversarial recheck lowered Dim 47 to 8.2: release gates are strong, but 9+ requires external Apple/Windows signing credentials, a real signed/notarized v* release, verified release assets/latest.json/SHA256SUMS/trust evidence/attestations, and strict installed-artifact smoke logs.",
+      "reason": "Adversarial recheck lowered Dim 47 to 8.2: release gates are strong, but 9+ requires external Apple/Windows signing credentials, a real signed/notarized v* release, verified release assets/latest.json/SHA256SUMS/trust evidence/attestations, and strict installed-artifact smoke logs.",
+      "why_next": "Highest near-term platform gap, but blocked on external signed release credentials, tag/release execution, and manual OS smoke proof."
+    },
+    {
+      "rank": 2,
+      "dim": 29,
+      "what": "Local vision model to UI-TARS parity",
+      "current": 8,
+      "target": 9,
+      "lift": 1,
+      "composite_impact": "+0.02",
+      "effort_days": "3-5",
+      "why": "Real local Moondream inference exists, but the harsh cap stays until grounding benchmark stability, coordinate accuracy, and/or a stronger UI-TARS-class local coordinate decoder are proven across multi-fixture desktop tasks."
+    },
+    {
+      "rank": 3,
+      "dim": 16,
+      "what": "Video / temporal context proof-hardening",
+      "current": 8.7,
+      "target": 9,
+      "lift": 0.3,
+      "composite_impact": "+0.01",
+      "effort_days": "1-2",
+      "why": "Implementation is close, but needs live-screen/manual smoke, ignored real-display test evidence, perf evidence, and semantic keyframe retrieval over OCR/captions to remove the 8.7 cap."
+    },
+    {
+      "rank": 4,
+      "dim": 26,
+      "what": "GUI grounding / Set-of-Mark hardening",
+      "current": 8.5,
+      "target": 9,
+      "lift": 0.5,
+      "composite_impact": "+0.01",
+      "effort_days": "1-2",
+      "why": "Multi-screen SoM is in place, but 9 needs robust non-UIA labels, object-region fallback, and live desktop replay evidence that closes the gap with UI-TARS-style visual grounding."
+    }
+  ],
+  "dimensions": [
+    {
+      "id": 1,
+      "domain": "Voice",
+      "what": "Mic / push-to-talk UX",
+      "score": 8,
+      "bar": "########--"
+    },
+    {
+      "id": 2,
+      "domain": "Voice",
+      "what": "STT cloud accuracy",
+      "score": 7,
+      "bar": "#######---"
+    },
+    {
+      "id": 3,
+      "domain": "Voice",
+      "what": "STT local fallback",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 4,
+      "domain": "Voice",
+      "what": "PTT latency / UX",
+      "score": 8,
+      "bar": "########--"
+    },
+    {
+      "id": 5,
+      "domain": "Voice",
+      "what": "TTS voice quality",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 6,
+      "domain": "Voice",
+      "what": "TTS latency",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 7,
+      "domain": "Voice",
+      "what": "TTS voice variety / cloning",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 8,
+      "domain": "Voice",
+      "what": "Multilingual support",
+      "score": 7,
+      "bar": "#######---"
+    },
+    {
+      "id": 9,
+      "domain": "Voice",
+      "what": "Wake word / always-on",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 10,
+      "domain": "Voice",
+      "what": "Audio privacy",
+      "score": 8,
+      "bar": "########--"
+    },
+    {
+      "id": 11,
+      "domain": "Screen",
+      "what": "Screenshot quality",
+      "score": 8,
+      "bar": "########--"
+    },
+    {
+      "id": 12,
+      "domain": "Screen",
+      "what": "OCR accuracy",
+      "score": 8,
+      "bar": "########--"
+    },
+    {
+      "id": 13,
+      "domain": "Screen",
+      "what": "Context depth / multi-screenshot",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 14,
+      "domain": "Screen",
+      "what": "Screen-share stealth",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 15,
+      "domain": "Screen",
+      "what": "Multi-monitor support",
+      "score": 7,
+      "bar": "#######---"
+    },
+    {
+      "id": 16,
+      "domain": "Screen",
+      "what": "Video / temporal context",
+      "score": 8.7,
+      "bar": "#########-"
+    },
+    {
+      "id": 17,
+      "domain": "Screen",
+      "what": "UI tree / accessibility",
+      "score": 8.8,
+      "bar": "#########-"
+    },
+    {
+      "id": 18,
+      "domain": "Screen",
+      "what": "Capture speed",
+      "score": 7,
+      "bar": "#######---"
+    },
+    {
+      "id": 19,
+      "domain": "Screen",
+      "what": "Privacy controls",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 20,
+      "domain": "Screen",
+      "what": "Tool use / MCP",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 21,
+      "domain": "CU",
+      "what": "Coordinate accuracy",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 22,
+      "domain": "CU",
+      "what": "System prompt quality",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 23,
+      "domain": "CU",
+      "what": "Context compression",
+      "score": 8,
+      "bar": "########--"
+    },
+    {
+      "id": 24,
+      "domain": "CU",
+      "what": "Multi-model support",
+      "score": 8,
+      "bar": "########--"
+    },
+    {
+      "id": 25,
+      "domain": "CU",
+      "what": "Click / type actions",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 26,
+      "domain": "CU",
+      "what": "GUI grounding / Set-of-Mark",
+      "score": 8.5,
+      "bar": "########--"
+    },
+    {
+      "id": 27,
+      "domain": "CU",
+      "what": "Multi-step agentic loops",
+      "score": 8,
+      "bar": "########--"
+    },
+    {
+      "id": 28,
+      "domain": "CU",
+      "what": "Computer use safety",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 29,
+      "domain": "CU",
+      "what": "Local vision model",
+      "score": 8,
+      "bar": "########--"
+    },
+    {
+      "id": 30,
+      "domain": "CU",
+      "what": "Agent error recovery",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 31,
+      "domain": "Memory",
+      "what": "Session memory",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 32,
+      "domain": "Memory",
+      "what": "Cross-session memory",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 33,
+      "domain": "Memory",
+      "what": "Preference learning",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 34,
+      "domain": "Memory",
+      "what": "Semantic search",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 35,
+      "domain": "Memory",
+      "what": "Memory consolidation",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 36,
+      "domain": "Memory",
+      "what": "Memory privacy",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 37,
+      "domain": "UX",
+      "what": "First-run onboarding",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 38,
+      "domain": "UX",
+      "what": "Ambient / always-on UX",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 39,
+      "domain": "UX",
+      "what": "Visual design polish",
+      "score": 8.5,
+      "bar": "########--"
+    },
+    {
+      "id": 40,
+      "domain": "UX",
+      "what": "Stealth / overlay UI",
+      "score": 8,
+      "bar": "########--"
+    },
+    {
+      "id": 41,
+      "domain": "UX",
+      "what": "Settings configurability",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 42,
+      "domain": "UX",
+      "what": "Error handling",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 43,
+      "domain": "UX",
+      "what": "Hotkey ergonomics",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 44,
+      "domain": "UX",
+      "what": "Windows native quality",
+      "score": 8,
+      "bar": "########--"
+    },
+    {
+      "id": 45,
+      "domain": "Platform",
+      "what": "Installer / distribution",
+      "score": 8,
+      "bar": "########--"
+    },
+    {
+      "id": 46,
+      "domain": "Platform",
+      "what": "Startup time",
+      "score": 9,
+      "bar": "#########-"
+    },
+    {
+      "id": 47,
+      "domain": "Platform",
+      "what": "Cross-platform (macOS/Linux)",
+      "score": 8.2,
+      "bar": "########--",
+      "why_harsh": "Held at 8.2 after adversarial /party scoring. The release gates are now committed locally and tag-addressable on this branch, but the current evidence is still pre-release readiness: no pushed v* tag, no GitHub release, no downloadable signed/notarized assets/latest.json/SHA256SUMS/trust evidence/attestations from a real release, and no strict Windows/macOS/Linux installed-artifact smoke logs. 9+ remains blocked until the strict release readiness gate is green against a real tagged release."
+    },
+    {
+      "id": 48,
+      "domain": "Platform",
+      "what": "Auto-update",
+      "score": 8,
+      "bar": "########--"
+    },
+    {
+      "id": 49,
+      "domain": "Platform",
+      "what": "Auto-start",
+      "score": 8,
+      "bar": "########--"
+    },
+    {
+      "id": 50,
+      "domain": "Platform",
+      "what": "OSS / licensing clarity",
+      "score": 8,
+      "bar": "########--"
+    }
+  ],
+  "fullMatrix": [
+    {
+      "id": 1,
+      "domain": "Voice",
+      "what": "Mic / push-to-talk UX",
+      "DanteClicky": 8,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 7,
+        "Raycast AI": 6,
+        "Wispr Flow": 9,
+        "Clicky macOS": 8
+      },
+      "open_source": {
+        "Screenpipe": 3,
+        "Pluely": 4,
+        "UI-TARS Desktop": 2,
+        "Open Interpreter": 1,
+        "Goose (Block)": 2
+      }
+    },
+    {
+      "id": 2,
+      "domain": "Voice",
+      "what": "STT cloud accuracy",
+      "DanteClicky": 7,
+      "bar": "#######---",
+      "closed_source": {
+        "Cluely": 7,
+        "Raycast AI": 6,
+        "Wispr Flow": 9,
+        "Clicky macOS": 8
+      },
+      "open_source": {
+        "Screenpipe": 6,
+        "Pluely": 5,
+        "UI-TARS Desktop": 2,
+        "Open Interpreter": 3,
+        "Goose (Block)": 2
+      }
+    },
+    {
+      "id": 3,
+      "domain": "Voice",
+      "what": "STT local fallback",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 0,
+        "Raycast AI": 0,
+        "Wispr Flow": 0,
+        "Clicky macOS": 0
+      },
+      "open_source": {
+        "Screenpipe": 7,
+        "Pluely": 3,
+        "UI-TARS Desktop": 2,
+        "Open Interpreter": 2,
+        "Goose (Block)": 0
+      }
+    },
+    {
+      "id": 4,
+      "domain": "Voice",
+      "what": "PTT latency / UX",
+      "DanteClicky": 8,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 7,
+        "Raycast AI": 6,
+        "Wispr Flow": 9,
+        "Clicky macOS": 8
+      },
+      "open_source": {
+        "Screenpipe": 2,
+        "Pluely": 4,
+        "UI-TARS Desktop": 1,
+        "Open Interpreter": 1,
+        "Goose (Block)": 1
+      }
+    },
+    {
+      "id": 5,
+      "domain": "Voice",
+      "what": "TTS voice quality",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 6,
+        "Raycast AI": 4,
+        "Wispr Flow": 2,
+        "Clicky macOS": 8
+      },
+      "open_source": {
+        "Screenpipe": 3,
+        "Pluely": 3,
+        "UI-TARS Desktop": 2,
+        "Open Interpreter": 4,
+        "Goose (Block)": 2
+      }
+    },
+    {
+      "id": 6,
+      "domain": "Voice",
+      "what": "TTS latency",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 6,
+        "Raycast AI": 5,
+        "Wispr Flow": 3,
+        "Clicky macOS": 8
+      },
+      "open_source": {
+        "Screenpipe": 3,
+        "Pluely": 3,
+        "UI-TARS Desktop": 2,
+        "Open Interpreter": 3,
+        "Goose (Block)": 2
+      }
+    },
+    {
+      "id": 7,
+      "domain": "Voice",
+      "what": "TTS voice variety / cloning",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 4,
+        "Raycast AI": 3,
+        "Wispr Flow": 3,
+        "Clicky macOS": 7
+      },
+      "open_source": {
+        "Screenpipe": 2,
+        "Pluely": 2,
+        "UI-TARS Desktop": 1,
+        "Open Interpreter": 2,
+        "Goose (Block)": 1
+      }
+    },
+    {
+      "id": 8,
+      "domain": "Voice",
+      "what": "Multilingual support",
+      "DanteClicky": 7,
+      "bar": "#######---",
+      "closed_source": {
+        "Cluely": 4,
+        "Raycast AI": 5,
+        "Wispr Flow": 7,
+        "Clicky macOS": 4
+      },
+      "open_source": {
+        "Screenpipe": 5,
+        "Pluely": 3,
+        "UI-TARS Desktop": 3,
+        "Open Interpreter": 3,
+        "Goose (Block)": 2
+      }
+    },
+    {
+      "id": 9,
+      "domain": "Voice",
+      "what": "Wake word / always-on",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 3,
+        "Raycast AI": 2,
+        "Wispr Flow": 4,
+        "Clicky macOS": 2
+      },
+      "open_source": {
+        "Screenpipe": 3,
+        "Pluely": 1,
+        "UI-TARS Desktop": 1,
+        "Open Interpreter": 1,
+        "Goose (Block)": 1
+      }
+    },
+    {
+      "id": 10,
+      "domain": "Voice",
+      "what": "Audio privacy",
+      "DanteClicky": 8,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 3,
+        "Raycast AI": 5,
+        "Wispr Flow": 5,
+        "Clicky macOS": 6
+      },
+      "open_source": {
+        "Screenpipe": 6,
+        "Pluely": 7,
+        "UI-TARS Desktop": 7,
+        "Open Interpreter": 7,
+        "Goose (Block)": 7
+      }
+    },
+    {
+      "id": 11,
+      "domain": "Screen",
+      "what": "Screenshot quality",
+      "DanteClicky": 8,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 7,
+        "Raycast AI": 5,
+        "Wispr Flow": 2,
+        "Clicky macOS": 7
+      },
+      "open_source": {
+        "Screenpipe": 9,
+        "Pluely": 6,
+        "UI-TARS Desktop": 9,
+        "Open Interpreter": 3,
+        "Goose (Block)": 3
+      }
+    },
+    {
+      "id": 12,
+      "domain": "Screen",
+      "what": "OCR accuracy",
+      "DanteClicky": 8,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 7,
+        "Raycast AI": 3,
+        "Wispr Flow": 1,
+        "Clicky macOS": 6
+      },
+      "open_source": {
+        "Screenpipe": 8,
+        "Pluely": 5,
+        "UI-TARS Desktop": 7,
+        "Open Interpreter": 3,
+        "Goose (Block)": 2
+      }
+    },
+    {
+      "id": 13,
+      "domain": "Screen",
+      "what": "Context depth / multi-screenshot",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 7,
+        "Raycast AI": 4,
+        "Wispr Flow": 2,
+        "Clicky macOS": 6
+      },
+      "open_source": {
+        "Screenpipe": 9,
+        "Pluely": 5,
+        "UI-TARS Desktop": 8,
+        "Open Interpreter": 3,
+        "Goose (Block)": 4
+      }
+    },
+    {
+      "id": 14,
+      "domain": "Screen",
+      "what": "Screen-share stealth",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 9,
+        "Raycast AI": 4,
+        "Wispr Flow": 7,
+        "Clicky macOS": 7
+      },
+      "open_source": {
+        "Screenpipe": 5,
+        "Pluely": 7,
+        "UI-TARS Desktop": 5,
+        "Open Interpreter": 8,
+        "Goose (Block)": 8
+      }
+    },
+    {
+      "id": 15,
+      "domain": "Screen",
+      "what": "Multi-monitor support",
+      "DanteClicky": 7,
+      "bar": "#######---",
+      "closed_source": {
+        "Cluely": 5,
+        "Raycast AI": 6,
+        "Wispr Flow": 3,
+        "Clicky macOS": 5
+      },
+      "open_source": {
+        "Screenpipe": 8,
+        "Pluely": 5,
+        "UI-TARS Desktop": 7,
+        "Open Interpreter": 2,
+        "Goose (Block)": 2
+      }
+    },
+    {
+      "id": 16,
+      "domain": "Screen",
+      "what": "Video / temporal context",
+      "DanteClicky": 8.7,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 3,
+        "Raycast AI": 2,
+        "Wispr Flow": 2,
+        "Clicky macOS": 2
+      },
+      "open_source": {
+        "Screenpipe": 9,
+        "Pluely": 2,
+        "UI-TARS Desktop": 4,
+        "Open Interpreter": 2,
+        "Goose (Block)": 2
+      }
+    },
+    {
+      "id": 17,
+      "domain": "Screen",
+      "what": "UI tree / accessibility",
+      "DanteClicky": 8.8,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 3,
+        "Raycast AI": 5,
+        "Wispr Flow": 2,
+        "Clicky macOS": 4
+      },
+      "open_source": {
+        "Screenpipe": 4,
+        "Pluely": 3,
+        "UI-TARS Desktop": 8,
+        "Open Interpreter": 2,
+        "Goose (Block)": 5
+      }
+    },
+    {
+      "id": 18,
+      "domain": "Screen",
+      "what": "Capture speed",
+      "DanteClicky": 7,
+      "bar": "#######---",
+      "closed_source": {
+        "Cluely": 7,
+        "Raycast AI": 6,
+        "Wispr Flow": 3,
+        "Clicky macOS": 6
+      },
+      "open_source": {
+        "Screenpipe": 8,
+        "Pluely": 6,
+        "UI-TARS Desktop": 8,
+        "Open Interpreter": 3,
+        "Goose (Block)": 3
+      }
+    },
+    {
+      "id": 19,
+      "domain": "Screen",
+      "what": "Privacy controls",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 2,
+        "Raycast AI": 5,
+        "Wispr Flow": 5,
+        "Clicky macOS": 6
+      },
+      "open_source": {
+        "Screenpipe": 7,
+        "Pluely": 8,
+        "UI-TARS Desktop": 8,
+        "Open Interpreter": 8,
+        "Goose (Block)": 8
+      }
+    },
+    {
+      "id": 20,
+      "domain": "Screen",
+      "what": "Tool use / MCP",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 3,
+        "Raycast AI": 6,
+        "Wispr Flow": 2,
+        "Clicky macOS": 3
+      },
+      "open_source": {
+        "Screenpipe": 7,
+        "Pluely": 4,
+        "UI-TARS Desktop": 5,
+        "Open Interpreter": 7,
+        "Goose (Block)": 8
+      }
+    },
+    {
+      "id": 21,
+      "domain": "CU",
+      "what": "Coordinate accuracy",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 3,
+        "Raycast AI": 2,
+        "Wispr Flow": 1,
+        "Clicky macOS": 4
+      },
+      "open_source": {
+        "Screenpipe": 2,
+        "Pluely": 2,
+        "UI-TARS Desktop": 9,
+        "Open Interpreter": 5,
+        "Goose (Block)": 5
+      }
+    },
+    {
+      "id": 22,
+      "domain": "CU",
+      "what": "System prompt quality",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 6,
+        "Raycast AI": 7,
+        "Wispr Flow": 5,
+        "Clicky macOS": 9
+      },
+      "open_source": {
+        "Screenpipe": 3,
+        "Pluely": 6,
+        "UI-TARS Desktop": 8,
+        "Open Interpreter": 7,
+        "Goose (Block)": 7
+      }
+    },
+    {
+      "id": 23,
+      "domain": "CU",
+      "what": "Context compression",
+      "DanteClicky": 8,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 5,
+        "Raycast AI": 6,
+        "Wispr Flow": 3,
+        "Clicky macOS": 6
+      },
+      "open_source": {
+        "Screenpipe": 5,
+        "Pluely": 5,
+        "UI-TARS Desktop": 6,
+        "Open Interpreter": 6,
+        "Goose (Block)": 6
+      }
+    },
+    {
+      "id": 24,
+      "domain": "CU",
+      "what": "Multi-model support",
+      "DanteClicky": 8,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 5,
+        "Raycast AI": 6,
+        "Wispr Flow": 3,
+        "Clicky macOS": 7
+      },
+      "open_source": {
+        "Screenpipe": 5,
+        "Pluely": 6,
+        "UI-TARS Desktop": 4,
+        "Open Interpreter": 9,
+        "Goose (Block)": 8
+      }
+    },
+    {
+      "id": 25,
+      "domain": "CU",
+      "what": "Click / type actions",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 3,
+        "Raycast AI": 2,
+        "Wispr Flow": 1,
+        "Clicky macOS": 5
+      },
+      "open_source": {
+        "Screenpipe": 2,
+        "Pluely": 2,
+        "UI-TARS Desktop": 9,
+        "Open Interpreter": 6,
+        "Goose (Block)": 5
+      }
+    },
+    {
+      "id": 26,
+      "domain": "CU",
+      "what": "GUI grounding / Set-of-Mark",
+      "DanteClicky": 8.5,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 3,
+        "Raycast AI": 2,
+        "Wispr Flow": 1,
+        "Clicky macOS": 4
+      },
+      "open_source": {
+        "Screenpipe": 2,
+        "Pluely": 2,
+        "UI-TARS Desktop": 10,
+        "Open Interpreter": 4,
+        "Goose (Block)": 4
+      }
+    },
+    {
+      "id": 27,
+      "domain": "CU",
+      "what": "Multi-step agentic loops",
+      "DanteClicky": 8,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 4,
+        "Raycast AI": 4,
+        "Wispr Flow": 1,
+        "Clicky macOS": 5
+      },
+      "open_source": {
+        "Screenpipe": 3,
+        "Pluely": 3,
+        "UI-TARS Desktop": 9,
+        "Open Interpreter": 7,
+        "Goose (Block)": 8
+      }
+    },
+    {
+      "id": 28,
+      "domain": "CU",
+      "what": "Computer use safety",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 3,
+        "Raycast AI": 4,
+        "Wispr Flow": 2,
+        "Clicky macOS": 5
+      },
+      "open_source": {
+        "Screenpipe": 2,
+        "Pluely": 2,
+        "UI-TARS Desktop": 7,
+        "Open Interpreter": 5,
+        "Goose (Block)": 6
+      }
+    },
+    {
+      "id": 29,
+      "domain": "CU",
+      "what": "Local vision model",
+      "DanteClicky": 8,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 0,
+        "Raycast AI": 0,
+        "Wispr Flow": 0,
+        "Clicky macOS": 0
+      },
+      "open_source": {
+        "Screenpipe": 5,
+        "Pluely": 2,
+        "UI-TARS Desktop": 9,
+        "Open Interpreter": 5,
+        "Goose (Block)": 4
+      }
+    },
+    {
+      "id": 30,
+      "domain": "CU",
+      "what": "Agent error recovery",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 4,
+        "Raycast AI": 4,
+        "Wispr Flow": 2,
+        "Clicky macOS": 4
+      },
+      "open_source": {
+        "Screenpipe": 3,
+        "Pluely": 3,
+        "UI-TARS Desktop": 7,
+        "Open Interpreter": 6,
+        "Goose (Block)": 7
+      }
+    },
+    {
+      "id": 31,
+      "domain": "Memory",
+      "what": "Session memory",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 6,
+        "Raycast AI": 6,
+        "Wispr Flow": 3,
+        "Clicky macOS": 6
+      },
+      "open_source": {
+        "Screenpipe": 9,
+        "Pluely": 6,
+        "UI-TARS Desktop": 5,
+        "Open Interpreter": 5,
+        "Goose (Block)": 6
+      }
+    },
+    {
+      "id": 32,
+      "domain": "Memory",
+      "what": "Cross-session memory",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 5,
+        "Raycast AI": 5,
+        "Wispr Flow": 3,
+        "Clicky macOS": 5
+      },
+      "open_source": {
+        "Screenpipe": 9,
+        "Pluely": 6,
+        "UI-TARS Desktop": 4,
+        "Open Interpreter": 4,
+        "Goose (Block)": 5
+      }
+    },
+    {
+      "id": 33,
+      "domain": "Memory",
+      "what": "Preference learning",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 5,
+        "Raycast AI": 4,
+        "Wispr Flow": 3,
+        "Clicky macOS": 3
+      },
+      "open_source": {
+        "Screenpipe": 6,
+        "Pluely": 3,
+        "UI-TARS Desktop": 2,
+        "Open Interpreter": 3,
+        "Goose (Block)": 4
+      }
+    },
+    {
+      "id": 34,
+      "domain": "Memory",
+      "what": "Semantic search",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 3,
+        "Raycast AI": 5,
+        "Wispr Flow": 2,
+        "Clicky macOS": 3
+      },
+      "open_source": {
+        "Screenpipe": 8,
+        "Pluely": 4,
+        "UI-TARS Desktop": 3,
+        "Open Interpreter": 3,
+        "Goose (Block)": 5
+      }
+    },
+    {
+      "id": 35,
+      "domain": "Memory",
+      "what": "Memory consolidation",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 4,
+        "Raycast AI": 4,
+        "Wispr Flow": 2,
+        "Clicky macOS": 3
+      },
+      "open_source": {
+        "Screenpipe": 8,
+        "Pluely": 3,
+        "UI-TARS Desktop": 2,
+        "Open Interpreter": 3,
+        "Goose (Block)": 4
+      }
+    },
+    {
+      "id": 36,
+      "domain": "Memory",
+      "what": "Memory privacy",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 2,
+        "Raycast AI": 4,
+        "Wispr Flow": 4,
+        "Clicky macOS": 5
+      },
+      "open_source": {
+        "Screenpipe": 6,
+        "Pluely": 7,
+        "UI-TARS Desktop": 7,
+        "Open Interpreter": 7,
+        "Goose (Block)": 7
+      }
+    },
+    {
+      "id": 37,
+      "domain": "UX",
+      "what": "First-run onboarding",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 7,
+        "Raycast AI": 8,
+        "Wispr Flow": 7,
+        "Clicky macOS": 8
+      },
+      "open_source": {
+        "Screenpipe": 6,
+        "Pluely": 5,
+        "UI-TARS Desktop": 4,
+        "Open Interpreter": 4,
+        "Goose (Block)": 5
+      }
+    },
+    {
+      "id": 38,
+      "domain": "UX",
+      "what": "Ambient / always-on UX",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 8,
+        "Raycast AI": 6,
+        "Wispr Flow": 7,
+        "Clicky macOS": 5
+      },
+      "open_source": {
+        "Screenpipe": 9,
+        "Pluely": 3,
+        "UI-TARS Desktop": 5,
+        "Open Interpreter": 3,
+        "Goose (Block)": 4
+      }
+    },
+    {
+      "id": 39,
+      "domain": "UX",
+      "what": "Visual design polish",
+      "DanteClicky": 8.5,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 7,
+        "Raycast AI": 10,
+        "Wispr Flow": 7,
+        "Clicky macOS": 8
+      },
+      "open_source": {
+        "Screenpipe": 5,
+        "Pluely": 5,
+        "UI-TARS Desktop": 4,
+        "Open Interpreter": 3,
+        "Goose (Block)": 4
+      }
+    },
+    {
+      "id": 40,
+      "domain": "UX",
+      "what": "Stealth / overlay UI",
+      "DanteClicky": 8,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 10,
+        "Raycast AI": 6,
+        "Wispr Flow": 7,
+        "Clicky macOS": 6
+      },
+      "open_source": {
+        "Screenpipe": 5,
+        "Pluely": 7,
+        "UI-TARS Desktop": 5,
+        "Open Interpreter": 8,
+        "Goose (Block)": 7
+      }
+    },
+    {
+      "id": 41,
+      "domain": "UX",
+      "what": "Settings configurability",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 5,
+        "Raycast AI": 8,
+        "Wispr Flow": 6,
+        "Clicky macOS": 7
+      },
+      "open_source": {
+        "Screenpipe": 6,
+        "Pluely": 6,
+        "UI-TARS Desktop": 5,
+        "Open Interpreter": 6,
+        "Goose (Block)": 7
+      }
+    },
+    {
+      "id": 42,
+      "domain": "UX",
+      "what": "Error handling",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 5,
+        "Raycast AI": 7,
+        "Wispr Flow": 6,
+        "Clicky macOS": 6
+      },
+      "open_source": {
+        "Screenpipe": 6,
+        "Pluely": 5,
+        "UI-TARS Desktop": 5,
+        "Open Interpreter": 6,
+        "Goose (Block)": 6
+      }
+    },
+    {
+      "id": 43,
+      "domain": "UX",
+      "what": "Hotkey ergonomics",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 7,
+        "Raycast AI": 9,
+        "Wispr Flow": 8,
+        "Clicky macOS": 8
+      },
+      "open_source": {
+        "Screenpipe": 4,
+        "Pluely": 6,
+        "UI-TARS Desktop": 4,
+        "Open Interpreter": 3,
+        "Goose (Block)": 4
+      }
+    },
+    {
+      "id": 44,
+      "domain": "UX",
+      "what": "Windows native quality",
+      "DanteClicky": 8,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 7,
+        "Raycast AI": 0,
+        "Wispr Flow": 7,
+        "Clicky macOS": 0
+      },
+      "open_source": {
+        "Screenpipe": 7,
+        "Pluely": 6,
+        "UI-TARS Desktop": 7,
+        "Open Interpreter": 5,
+        "Goose (Block)": 6
+      }
+    },
+    {
+      "id": 45,
+      "domain": "Platform",
+      "what": "Installer / distribution",
+      "DanteClicky": 8,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 8,
+        "Raycast AI": 9,
+        "Wispr Flow": 8,
+        "Clicky macOS": 6
+      },
+      "open_source": {
+        "Screenpipe": 7,
+        "Pluely": 6,
+        "UI-TARS Desktop": 5,
+        "Open Interpreter": 6,
+        "Goose (Block)": 7
+      }
+    },
+    {
+      "id": 46,
+      "domain": "Platform",
+      "what": "Startup time",
+      "DanteClicky": 9,
+      "bar": "#########-",
+      "closed_source": {
+        "Cluely": 7,
+        "Raycast AI": 9,
+        "Wispr Flow": 7,
+        "Clicky macOS": 7
+      },
+      "open_source": {
+        "Screenpipe": 5,
+        "Pluely": 7,
+        "UI-TARS Desktop": 5,
+        "Open Interpreter": 4,
+        "Goose (Block)": 6
+      }
+    },
+    {
+      "id": 47,
+      "domain": "Platform",
+      "what": "Cross-platform (macOS/Linux)",
+      "DanteClicky": 8.2,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 6,
+        "Raycast AI": 2,
+        "Wispr Flow": 6,
+        "Clicky macOS": 1
+      },
+      "open_source": {
+        "Screenpipe": 8,
+        "Pluely": 7,
+        "UI-TARS Desktop": 6,
+        "Open Interpreter": 9,
+        "Goose (Block)": 9
+      }
+    },
+    {
+      "id": 48,
+      "domain": "Platform",
+      "what": "Auto-update",
+      "DanteClicky": 8,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 8,
+        "Raycast AI": 9,
+        "Wispr Flow": 8,
+        "Clicky macOS": 7
+      },
+      "open_source": {
+        "Screenpipe": 7,
+        "Pluely": 6,
+        "UI-TARS Desktop": 5,
+        "Open Interpreter": 5,
+        "Goose (Block)": 6
+      }
+    },
+    {
+      "id": 49,
+      "domain": "Platform",
+      "what": "Auto-start",
+      "DanteClicky": 8,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 8,
+        "Raycast AI": 9,
+        "Wispr Flow": 8,
+        "Clicky macOS": 6
+      },
+      "open_source": {
+        "Screenpipe": 7,
+        "Pluely": 5,
+        "UI-TARS Desktop": 5,
+        "Open Interpreter": 2,
+        "Goose (Block)": 4
+      }
+    },
+    {
+      "id": 50,
+      "domain": "Platform",
+      "what": "OSS / licensing clarity",
+      "DanteClicky": 8,
+      "bar": "########--",
+      "closed_source": {
+        "Cluely": 2,
+        "Raycast AI": 3,
+        "Wispr Flow": 2,
+        "Clicky macOS": 2
+      },
+      "open_source": {
+        "Screenpipe": 8,
+        "Pluely": 9,
+        "UI-TARS Desktop": 8,
+        "Open Interpreter": 9,
+        "Goose (Block)": 9
+      }
+    }
+  ],
+  "sourcesChecked": [
+    {
+      "competitor": "Screenpipe",
+      "status": "open_source",
+      "source": "https://screenpi.pe/blog/open-source-ai-screen-recorder",
+      "note": "MIT/open-source, local screen+audio capture, cross-platform, developer API."
+    },
+    {
+      "competitor": "Cluely",
+      "status": "closed_source",
+      "source": "https://docs.cluely.com/feature/undectability",
+      "note": "Closed-source meeting assistant; invisibility/undetectability remains key competitive pressure."
+    },
+    {
+      "competitor": "Raycast AI",
+      "status": "closed_source",
+      "source": "https://manual.raycast.com/extensions",
+      "note": "AI Extensions let Raycast choose installed-extension tools from chat/Quick AI."
+    },
+    {
+      "competitor": "Wispr Flow",
+      "status": "closed_source",
+      "source": "https://wisprflow.ai/",
+      "note": "Pure dictation benchmark; 100+ languages and desktop/mobile surfaces."
+    },
+    {
+      "competitor": "Pluely",
+      "status": "open_source",
+      "source": "https://github.com/iamsrikanthnani/pluely",
+      "note": "Open-source Cluely alternative; GitHub currently shows GPL-3.0 license, Tauri, stealth overlay claims."
+    },
+    {
+      "competitor": "UI-TARS Desktop",
+      "status": "open_source",
+      "source": "https://github.com/bytedance/UI-TARS-desktop",
+      "note": "Apache-2.0 multimodal GUI/computer-use stack; strongest pressure on Dim 26 and Dim 29."
+    },
+    {
+      "competitor": "Open Interpreter",
+      "status": "open_source",
+      "source": "https://www.openinterpreter.com/about",
+      "note": "Desktop document/computer agent with BYOK/local model path and experimental control surfaces."
+    },
+    {
+      "competitor": "Goose (Block/AAIF)",
+      "status": "open_source",
+      "source": "https://goose-docs.ai/blog/2026/04/07/goose-moves-to-aaif/",
+      "note": "Open-source agent moved from Block to AAIF; still active and relevant for platform/extensibility pressure."
+    }
+  ],
+  "legend": {
+    "DC": "DanteClicky",
+    "closed_source": [
+      "Cluely",
+      "Raycast AI",
+      "Wispr Flow",
+      "Clicky macOS"
+    ],
+    "open_source": [
+      "Screenpipe",
+      "Pluely",
+      "UI-TARS Desktop",
+      "Open Interpreter",
+      "Goose (Block)"
+    ]
+  },
+  "note": "Harsh score is 8.49/10 after adversarial correction. Dim 47 is 8.2, not 8.6: the repo has strong release gates, but no pushed tagged signed release, verified release assets/latest.json/SHA256SUMS/trust evidence/attestations, or installed-artifact OS smoke logs yet."
+}

@@ -1,6 +1,6 @@
 ﻿---
 name: DanteClicky 50-Dimension Competitive Matrix
-description: Full 50-dimension harsh competitive matrix; DanteClicky composite 8.46/10 as of 2026-05-09.
+description: Full 50-dimension harsh competitive matrix; DanteClicky composite 8.49/10 as of 2026-05-10.
 type: danteforge-canonical
 source: C:\Users\richa\.claude\projects\c--Projects-DanteClicky\memory\project_competitive_matrix.md
 importedAt: 2026-05-06
@@ -10,15 +10,98 @@ importedAt: 2026-05-06
 
 This is the canonical repo-visible matrix for `/score`, `/compete`, `/competitive-leapfrog`, `/ascend`, `/party`, and agent handoffs.
 
-Current harsh composite: **8.46/10** (**84.6/100**)
+Current harsh composite: **8.49/10** (**84.9/100**)
 
 Baseline at session start: **4.2/10**
 
-Next targets: **Dim 47 signed release/manual smoke**, **Dim 13**, **Dim 29**, **Dim 16** (Dim 9 and Dim 46 closed 2026-05-09; Dim 47 is improved to 8.6 but not 9+ yet)
+Next targets: **Dim 47 signed release/manual smoke**, **Dim 29**, **Dim 16**, **Dim 26** (Dim 9, Dim 13, and Dim 46 closed 2026-05-09; Dim 47 is adversarially corrected to 8.2 and not 9+ yet)
+
+## Harsh Current Review - 2026-05-10 (Session 39)
+
+Current harsh score is **8.49/10**. The matrix math was rechecked at **424.7 / 500** across all 50 dimensions, with **26 dims at 9+**, **20 dims from 8 to <9**, **4 dims from 7 to <8**, and **0 dims under 7**.
+
+Adversarial correction: Dim 47 moves **8.6 -> 8.2**. The release gates are strong, including deterministic `latest.json` generation, release-attached trust-evidence upload, trust-evidence content validation, artifact attestations, SHA-pinned release actions, per-tag release concurrency, release-attached `SHA256SUMS`, draft/prerelease rejection, checksum validation, and an installed-app updater manifest smoke path that can prove same-version platform signatures. But the current evidence is still pre-release readiness, not a real signed/notarized release: no v* tag, no GitHub release, no downloadable verified assets, and no installed-artifact smoke logs. Dim 29 still needs local-vision grounding parity evidence; Dim 16 still needs live/semantic temporal-context proof; Dim 26 still needs robust non-UIA/object-region grounding and live replay evidence.
+
+Canonical JSON: `.danteforge/50_DIMENSION_COMPETITIVE_MATRIX.json`. Full chat render JSON: `.danteforge/latest-matrix-chat-render.json`.
+
+### Session 39 Dim 47 Adversarial Score Correction - 2026-05-10
+
+Score is **8.2/10**, not 8.6 and not 9+. The adversarial party lane correctly separated strong release gates from completed release proof.
+
+Blockers:
+
+- local release-gate proof is committed on this branch, but no pushed `v*` tag or release proof exists yet;
+- no local `v*` tag and no GitHub release;
+- missing Apple Developer/notarization secrets and Windows signing certificate secrets;
+- no downloadable signed/notarized release assets, `latest.json`, `SHA256SUMS`, trust-evidence logs, or release attestations from a real release;
+- no strict installed-artifact manual smoke logs for Windows, macOS, and Linux.
+
+### Session 38 Dim 47 Release-Publication Gate - 2026-05-10
+
+Superseded by Session 39: this pass originally held Dim 47 at **8.6/10**, but the adversarial correction now scores it **8.2/10** because no real signed/notarized release evidence exists.
+
+New repo evidence:
+
+- `.github/workflows/release.yml` now serializes release publishing per tag with `concurrency: release-${{ inputs.releaseTag || github.ref_name }}`.
+- The release workflow now generates `SHA256SUMS` for release artifacts plus `latest.json`, uploads it to the release, and includes it in manifest/trust-evidence attestations.
+- `scripts/check-dim47-release-readiness.ps1` now rejects draft/prerelease releases and validates `SHA256SUMS` content for `latest.json`, Windows installer, macOS updater bundle, and Linux AppImage checksum lines.
+- `check_for_update` now probes the release `latest.json` platform entry directly so an installed `v0.1.0` app can prove a non-empty signature even when no newer update is available.
+
+Verification:
+
+- `npx vitest run src/__tests__/crossPlatformArchitecture.test.ts --reporter=dot` - **8/8 passed**.
+- `cargo check --manifest-path src-tauri/Cargo.toml --locked` - passed, warnings only.
+- `npm run check:dim47-release -- -ReleaseTag v0.1.0 -FailOnBlocked` - correctly **blocked**, writing `docs/cross-platform-smoke/dim47-release-readiness.json` with **8 passed / 11 failed**.
+- `npm run test:ci` - **472 frontend tests passed**, TypeScript passed, production build passed, cargo check passed, and Rust lib tests **135 passed / 2 ignored**.
+
+Remaining blockers: `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`, `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `WINDOWS_CERTIFICATE`, `WINDOWS_CERTIFICATE_PASSWORD`, strict Windows/macOS/Linux installed-artifact smoke logs, and the real `v0.1.0` GitHub release.
+
+## Harsh Evidence Audit - 2026-05-09 (Dim 13 Context Depth / Multi-Screenshot)
+
+Dimension 13, Context depth / multi-screenshot, is now scored **9.0/10**. Pre-sprint score was **7/10** because Dante already captured multiple current monitors and had Screenpipe/temporal/ambient text, but the deeper context layers were primary-screen-biased and lacked a benchmark.
+
+Verification used:
+
+- `npx vitest run src/__tests__/contextDepth.test.ts src/__tests__/screenCapture.test.ts src/__tests__/temporalContext.test.ts src/lib/__tests__/videoSchemas.test.ts --reporter=dot` - **35/35 focused context-depth tests passing**.
+- `npm run bench:context-depth` - strict fixture benchmark passed.
+- `npx tsc --noEmit --pretty false` - clean.
+- `npm test -- --reporter=dot` - **472 passed across 41 files**.
+- `npm run build` - TypeScript + Vite production build passed.
+- `cargo check --manifest-path src-tauri/Cargo.toml --locked` - passed, warnings only.
+- `cargo test --manifest-path src-tauri/Cargo.toml --lib --quiet` - **135 passed, 0 failed, 2 ignored**.
+
+Benchmark evidence in `bench/context-depth/results.json`:
+
+- `fixture_count`: **25**
+- `multi_monitor_fixture_count`: **12**
+- `top1_window_accuracy`: **1.0**
+- `top3_ocr_recall`: **1.0**
+- `private_leak_count`: **0**
+- `base64_leak_count`: **0**
+- `p95_render_ms`: **0.078**
+- `max_context_chars`: **680**
+
+Repo evidence:
+
+- `src-tauri/src/capture.rs` now detects the cursor monitor on Windows, sorts cursor/primary screens before secondary screens, and relabels captures after sorting so `screen1`, `screen2`, etc. match provider image order.
+- `src/hooks/useScreenCapture.ts` mirrors that ordering in the frontend and relabels sorted captures deterministically.
+- `src/lib/contextDepth.ts` adds a bounded context-depth packet: current screen inventory, geometry, cursor/primary/secondary role, per-screen OCR formatting, image-payload redaction, temporal-image relevance gating, and keyframe attachment labels.
+- `src/hooks/useVoice.ts` now OCRs all current screens, injects the context-depth screen inventory, attaches up to three recent keyframe thumbnails only for temporal/contextual utterances, and disables OpenAI native computer-use mode on multi-monitor turns so the multi-image/tag path is preserved.
+- `readUiTreeWithSom` now partitions UIAutomation elements by monitor bounds, localizes coordinates per screen, annotates every matching screenshot, and emits `screenN` point tags instead of primary-only SoM.
+- `src/lib/temporalContext.ts` now renders monitor labels and keyframe IDs, avoids coalescing identical windows across different monitors, and exposes `getTemporalSnapshotContext` for bounded temporal image packs.
+- `bench/context-depth/run.ts`, `manifest.json`, `results.json`, and `results.summary.txt` provide a repeatable proof gate for multi-monitor context packing, OCR recall, privacy leaks, base64 leaks, latency, and packet size.
+
+Why **9.0**, not higher:
+
+- Live dual-monitor manual smoke is still needed to prove real cursor-monitor ordering, multi-screen OCR, and multi-screen SoM against an actual desktop session.
+- Ambient background memory still samples primarily through the existing ambient path; it is not yet a fully multi-monitor persistent screen-memory store.
+- Temporal retrieval is newest/relevance-gated by utterance heuristics, but not yet semantic vector retrieval over keyframe OCR/captions.
+
+Path to 9.4+: add dated live dual-monitor smoke logs, make ambient snapshots persist per-monitor screen labels/monitor indexes, and add semantic keyframe retrieval/benchmark proof against recent history questions.
 
 ## Harsh Evidence Audit - 2026-05-09 (Dim 47 Cross-Platform)
 
-Dimension 47, Cross-platform, is now scored **8.6/10**. Pre-sprint score was **3/10** because the app was framed and wired as Windows-first, with root Windows crates, Windows-only native paths, Windows-only packaging assumptions, and no macOS/Linux CI release surface.
+Dimension 47, Cross-platform, was scored **8.6/10** in this historical audit. The current adversarial score is **8.2/10** because the release gates are committed locally but still have not produced a tagged real signed/notarized release.
 
 Verification used:
 
@@ -51,13 +134,37 @@ Repo evidence:
 - `src-tauri/src/session.rs` now asks Tauri for the managed `Arc<SessionDb>` state that `lib.rs` actually registers, removing a real command-invocation mismatch.
 - `package.json`, `src-tauri/Cargo.toml`, `buildSystemPrompt.ts`, `memoryConsolidation.ts`, and `OnboardingWindow.tsx` no longer frame the product as Windows-only in user-facing/product metadata.
 
-Why **8.6**, not 9+:
+Why the historical **8.6** cap was still not 9+:
 
 - No tagged release has produced signed/notarized macOS app, Windows installer, Linux AppImage/deb/rpm, or updater metadata with real signing credentials.
 - Non-Windows capability parity is intentionally degraded today: accessibility tree and OCR return safe fallbacks, overlay capture exclusion is Windows-only, and native permission flows need real macOS/Linux implementation and smoke testing.
 - CI launch/tray/hotkey/native readiness is proven across target OSes, but manual acceptance is still missing for onboarding, screenshot capture, cursor/input, provider chat, close-to-tray, and update check.
 
 Path to 9.0+: produce signed/notarized tagged release artifacts with real updater signatures, add macOS Accessibility and Screen Recording permission flows, add Linux portal/AT-SPI-backed capability paths where feasible, and attach dated manual smoke evidence for each OS.
+
+### Session 34 Dim 47 Proof Gate - 2026-05-10
+
+Historical score stayed **8.6/10**, not 9+. Session 39 later corrected the current score to **8.2/10** because the proof is still pre-release and not backed by a real signed/notarized release.
+
+New repo evidence:
+
+- `.github/workflows/release.yml` now logs the literal Windows `signtool verify /pa /all /tw /v` command and macOS `codesign`, `spctl`, and `stapler` commands into platform trust-evidence text files.
+- The release workflow downloads platform trust-evidence artifacts and uploads them beside `latest.json` on the GitHub release before publishing the release.
+- `scripts/generate-latest-manifest.mjs` replaces inline shell `find -print -quit` manifest generation with a deterministic one-artifact-per-platform mapper for `windows-x86_64`, `darwin-aarch64`, `darwin-x86_64`, and `linux-x86_64`.
+- `scripts/check-dim47-release-readiness.ps1` now validates trust-evidence file contents, not just release asset filenames.
+- `src-tauri/src/lib.rs` and `src/windows/CompanionPanel.tsx` expose a Settings > Platform updater manifest check so manual smoke logs can prove the installed app reaches the signed update manifest.
+- `docs/cross-platform-smoke/manual-smoke-template.md` and `README.md` now require that updater manifest result and release-attached trust evidence.
+
+Verification:
+
+- `npx vitest run src/__tests__/crossPlatformArchitecture.test.ts --reporter=dot` - **8/8 passed**.
+- `npx tsc --noEmit --pretty false` - clean.
+- `cargo check --manifest-path src-tauri/Cargo.toml --locked` - passed, warnings only.
+- Synthetic `scripts/generate-latest-manifest.mjs` fixture generated all four updater platforms.
+- `npm run check:dim47-release` - correctly **blocked**, writing `docs/cross-platform-smoke/dim47-release-readiness.json` with **5 passed / 11 failed**.
+- `npm run test:ci` - **472 frontend tests passed**, TypeScript passed, production build passed, cargo check passed, and Rust lib tests **135 passed / 2 ignored**.
+
+Remaining blockers are external and manual: Apple notarization credentials/certificate, Windows signing certificate secrets, a `v*` tagged signed/notarized release with downloadable assets and `latest.json`, and strict dated Windows/macOS/Linux installed-artifact smoke logs.
 
 ## Harsh Evidence Audit - 2026-05-09 (Dim 9 Wake Word / Always-On Voice)
 
@@ -379,23 +486,23 @@ CLI parity notes:
 
 ## Competitor Composite Scores
 
-Current harsh composite: **8.46/10**. Updated 2026-05-09T19:50:27.000Z from canonical JSON.
+Current harsh composite: **8.49/10**. Updated 2026-05-10T06:28:19.097Z from canonical JSON.
 
 Closed/source-available competitors: Screenpipe, Cluely, Raycast AI, Wispr Flow, Clicky macOS
 Open-source competitors: Pluely, UI-TARS Desktop, Open Interpreter, Goose (Block)
 
 | Rank | Product | Type | Composite | DC Lead |
 |-----:|---------|------|----------:|--------:|
-| 1 | DanteClicky | Desktop Tauri | 8.46 | - |
-| 2 | Screenpipe | Closed/source-available | 5.64 | +2.82 |
-| 3 | UI-TARS Desktop | Open source | 5.32 | +3.14 |
-| 4 | Clicky macOS | Closed/source-available | 5.24 | +3.22 |
-| 5 | Cluely | Closed/source-available | 5.12 | +3.34 |
-| 6 | Raycast AI | Closed/source-available | 4.96 | +3.50 |
-| 7 | Goose (Block) | Open source | 4.80 | +3.66 |
-| 8 | Pluely | Open source | 4.62 | +3.84 |
-| 9 | Open Interpreter | Open source | 4.52 | +3.94 |
-| 10 | Wispr Flow | Closed/source-available | 4.20 | +4.25 |
+| 1 | DanteClicky | Desktop Tauri | 8.49 | - |
+| 2 | Screenpipe | Closed/source-available | 5.64 | +2.85 |
+| 3 | UI-TARS Desktop | Open source | 5.32 | +3.17 |
+| 4 | Clicky macOS | Closed/source-available | 5.24 | +3.25 |
+| 5 | Cluely | Closed/source-available | 5.12 | +3.37 |
+| 6 | Raycast AI | Closed/source-available | 4.96 | +3.53 |
+| 7 | Goose (Block) | Open source | 4.80 | +3.69 |
+| 8 | Pluely | Open source | 4.62 | +3.87 |
+| 9 | Open Interpreter | Open source | 4.52 | +3.97 |
+| 10 | Wispr Flow | Closed/source-available | 4.20 | +4.29 |
 
 ## Full 50-Dimension Harsh Scores
 
@@ -413,7 +520,7 @@ Open-source competitors: Pluely, UI-TARS Desktop, Open Interpreter, Goose (Block
 | 10 | Voice | Audio privacy | 8 | 6 | 3 | 5 | 5 | 6 | 7 | 7 | 7 | 7 |
 | 11 | Screen | Screenshot quality | 8 | 9 | 7 | 5 | 2 | 7 | 6 | 9 | 3 | 3 |
 | 12 | Screen | OCR accuracy | 8 | 8 | 7 | 3 | 1 | 6 | 5 | 7 | 3 | 2 |
-| 13 | Screen | Context depth / multi-screenshot | 7 | 9 | 7 | 4 | 2 | 6 | 5 | 8 | 3 | 4 |
+| 13 | Screen | Context depth / multi-screenshot | 9 | 9 | 7 | 4 | 2 | 6 | 5 | 8 | 3 | 4 |
 | 14 | Screen | Screen-share stealth | 9 | 5 | 9 | 4 | 7 | 7 | 7 | 5 | 8 | 8 |
 | 15 | Screen | Multi-monitor support | 7 | 8 | 5 | 6 | 3 | 5 | 5 | 7 | 2 | 2 |
 | 16 | Screen | Video / temporal context | 8.7 | 9 | 3 | 2 | 2 | 2 | 2 | 4 | 2 | 2 |
@@ -447,7 +554,7 @@ Open-source competitors: Pluely, UI-TARS Desktop, Open Interpreter, Goose (Block
 | 44 | UX | Windows native quality | 8 | 7 | 7 | 0 | 7 | 0 | 6 | 7 | 5 | 6 |
 | 45 | Platform | Installer / distribution | 8 | 7 | 8 | 9 | 8 | 6 | 6 | 5 | 6 | 7 |
 | 46 | Platform | Startup time | 9 | 5 | 7 | 9 | 7 | 7 | 7 | 5 | 4 | 6 |
-| 47 | Platform | Cross-platform (macOS/Linux) | 8.6 | 8 | 6 | 2 | 6 | 1 | 7 | 6 | 9 | 9 |
+| 47 | Platform | Cross-platform (macOS/Linux) | 8.2 | 8 | 6 | 2 | 6 | 1 | 7 | 6 | 9 | 9 |
 | 48 | Platform | Auto-update | 8 | 7 | 8 | 9 | 8 | 7 | 6 | 5 | 5 | 6 |
 | 49 | Platform | Auto-start | 8 | 7 | 8 | 9 | 8 | 6 | 5 | 5 | 2 | 4 |
 | 50 | Platform | OSS / licensing clarity | 8 | 8 | 2 | 3 | 2 | 2 | 9 | 8 | 9 | 9 |
@@ -457,20 +564,20 @@ Open-source competitors: Pluely, UI-TARS Desktop, Open Interpreter, Goose (Block
 | Domain | DC | Nearest Competitor | Gap |
 |--------|---:|--------------------|----:|
 | Voice 1-10 | 8.30 | Clicky macOS 5.90 | +2.40 DC LEADS |
-| Screen 11-20 | 8.15 | Screenpipe 7.40 | +0.75 DC LEADS |
+| Screen 11-20 | 8.35 | Screenpipe 7.40 | +0.95 DC LEADS |
 | Computer Use 21-30 | 8.55 | UI-TARS Desktop 7.80 | +0.75 DC LEADS |
 | Memory 31-36 | 9.00 | Screenpipe 7.67 | +1.33 DC LEADS |
 | UX 37-44 | 8.69 | Cluely 7.00 | +1.69 DC LEADS |
-| Platform 45-50 | 8.27 | Screenpipe 7.00 | +1.27 DC LEADS |
+| Platform 45-50 | 8.20 | Screenpipe 7.00 | +1.20 DC LEADS |
 
 ## Next 4 Priority Sprints
 
 | Priority | Dim | What | Current | Target | Why |
 |---------:|----:|------|--------:|-------:|-----|
-| 1 | 47 | Cross-platform signed release and manual smoke | 8.6 | 9 | CI and no-bundle runtime smoke are green on Windows/macOS/Linux; 9+ now requires signed/notarized tagged release artifacts, real updater signatures, dated manual smoke logs for capture/input/updater, and platform-specific accessibility/capture/input parity. |
-| 2 | 13 | Context depth / multi-screenshot | 7 | 9 | Now unlocked by Dim 16 temporal buffer. Add multi-window stitching, recent-state retrieval, and history snapshots to close Screenpipe/UI-TARS context gap. |
-| 3 | 29 | Local vision model to UI-TARS parity | 8 | 9 | Strategic local-vision hardening: fix multi-fixture crash, complete grounding benchmark, or integrate UI-TARS-2B/newer Moondream coord decoder. |
-| 4 | 16 | Video / temporal context proof-hardening | 8.7 | 9+ | Near-closed dimension. Add live-screen/manual smoke, ignored real-display test evidence, and per-keyframe semantic embedding proof to remove the 8.7 cap. |
+| 1 | 47 | Cross-platform signed release and manual smoke | 8.2 | 9 | Release gates are strong and now committed locally, but the gate is still blocked by Apple notarization credentials/certificate, Windows signing certificate, tagged signed/notarized release artifacts, latest.json/SHA256SUMS/trust evidence/attestation proof, and dated installed-artifact smoke logs for Windows, macOS, and Linux. |
+| 2 | 29 | Local vision model to UI-TARS parity | 8 | 9 | Real local Moondream inference exists, but the harsh cap stays until grounding benchmark stability, coordinate accuracy, and/or a stronger UI-TARS-class local coordinate decoder are proven across multi-fixture desktop tasks. |
+| 3 | 16 | Video / temporal context proof-hardening | 8.7 | 9+ | Implementation is close, but needs live-screen/manual smoke, ignored real-display test evidence, perf evidence, and semantic keyframe retrieval over OCR/captions to remove the 8.7 cap. |
+| 4 | 26 | GUI grounding / Set-of-Mark hardening | 8.5 | 9 | Multi-screen SoM is in place, but 9 needs robust non-UIA labels, object-region fallback, and live desktop replay evidence that closes the gap with UI-TARS-style visual grounding. |
 
 ## Key Discoveries From Claude Sweep
 

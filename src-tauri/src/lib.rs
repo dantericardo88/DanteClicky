@@ -1,7 +1,7 @@
-﻿mod audio;
+mod accessibility;
+mod audio;
 mod capture;
 mod chat_proxy;
-mod accessibility;
 mod computer_use;
 mod cursor;
 mod embedding;
@@ -9,10 +9,10 @@ mod hotkey;
 mod input;
 mod keystore;
 mod mcp_server;
-mod moondream;
 mod monitors;
-mod ocr;
+mod moondream;
 mod observability;
+mod ocr;
 mod overlay;
 mod platform;
 mod session;
@@ -24,6 +24,7 @@ mod video;
 mod whisper_candle;
 mod ws_server;
 
+use std::collections::HashMap;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -31,8 +32,12 @@ use tauri::{
     AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
     WindowEvent,
 };
+use tauri_plugin_updater::UpdaterExt;
 
 // ── Tauri commands ────────────────────────────────────────────────────────────
+
+const LATEST_MANIFEST_URL: &str =
+    "https://github.com/dantericardo88/DanteClicky/releases/latest/download/latest.json";
 
 #[tauri::command]
 fn get_monitors(app: tauri::AppHandle) -> Vec<serde_json::Value> {
@@ -45,6 +50,122 @@ fn get_monitors(app: tauri::AppHandle) -> Vec<serde_json::Value> {
 #[tauri::command]
 fn capture_screens() -> Result<Vec<serde_json::Value>, String> {
     capture::capture_all()
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateCheckResult {
+    pub reached_manifest: bool,
+    pub available: bool,
+    pub current_version: String,
+    pub version: Option<String>,
+    pub target: Option<String>,
+    pub date: Option<String>,
+    pub body: Option<String>,
+    pub download_url: Option<String>,
+    pub manifest_url: Option<String>,
+    pub signature_present: bool,
+}
+
+#[derive(serde::Deserialize)]
+struct LatestUpdaterManifest {
+    platforms: HashMap<String, LatestUpdaterPlatform>,
+}
+
+#[derive(serde::Deserialize)]
+struct LatestUpdaterPlatform {
+    signature: Option<String>,
+    url: Option<String>,
+}
+
+fn current_updater_platform_key() -> String {
+    let os = if cfg!(target_os = "macos") {
+        "darwin"
+    } else if cfg!(target_os = "windows") {
+        "windows"
+    } else if cfg!(target_os = "linux") {
+        "linux"
+    } else {
+        std::env::consts::OS
+    };
+
+    format!("{os}-{}", std::env::consts::ARCH)
+}
+
+async fn latest_manifest_platform_probe() -> Option<(String, Option<String>, bool)> {
+    let platform_key = current_updater_platform_key();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .ok()?;
+    let manifest = client
+        .get(LATEST_MANIFEST_URL)
+        .send()
+        .await
+        .ok()?
+        .error_for_status()
+        .ok()?
+        .json::<LatestUpdaterManifest>()
+        .await
+        .ok()?;
+    let platform = manifest.platforms.get(&platform_key)?;
+    let signature_present = platform
+        .signature
+        .as_deref()
+        .map(|signature| !signature.trim().is_empty())
+        .unwrap_or(false);
+
+    Some((platform_key, platform.url.clone(), signature_present))
+}
+
+#[tauri::command]
+async fn check_for_update(app: tauri::AppHandle) -> Result<UpdateCheckResult, String> {
+    let current_version = app.package_info().version.to_string();
+    let updater = app
+        .updater()
+        .map_err(|e| format!("updater init failed: {e}"))?;
+    match updater.check().await {
+        Ok(Some(update)) => {
+            let manifest_probe = latest_manifest_platform_probe().await;
+            let manifest_signature_present = manifest_probe
+                .as_ref()
+                .map(|(_, _, signature_present)| *signature_present)
+                .unwrap_or(false);
+
+            Ok(UpdateCheckResult {
+                reached_manifest: true,
+                available: true,
+                current_version: update.current_version,
+                version: Some(update.version),
+                target: Some(update.target),
+                date: update.date.map(|d| d.to_string()),
+                body: update.body,
+                download_url: Some(update.download_url.to_string()),
+                manifest_url: Some(LATEST_MANIFEST_URL.to_string()),
+                signature_present: !update.signature.trim().is_empty()
+                    || manifest_signature_present,
+            })
+        }
+        Ok(None) => {
+            let manifest_probe = latest_manifest_platform_probe().await;
+            let (target, download_url, signature_present) =
+                manifest_probe.unwrap_or_else(|| (current_updater_platform_key(), None, false));
+
+            Ok(UpdateCheckResult {
+                reached_manifest: true,
+                available: false,
+                current_version,
+                version: None,
+                target: Some(target),
+                date: None,
+                body: None,
+                download_url,
+                manifest_url: Some(LATEST_MANIFEST_URL.to_string()),
+                signature_present,
+            })
+        }
+        Err(e) => Err(format!("updater check failed: {e}")),
+    }
 }
 
 // ── Dim 16: Video / temporal context — control surface ───────────────────────
@@ -259,14 +380,16 @@ fn video_seek(
     let hit = db
         .find_video_keyframe_near(&target_ts, monitor_idx)
         .map_err(|e| e.to_string())?;
-    Ok(hit.map(|(id, seg, pts, ocr, win, ambient)| VideoSeekResult {
-        keyframe_id: id,
-        segment_id: seg,
-        pts_ms: pts,
-        ocr_text: ocr,
-        active_window: win,
-        ambient_snapshot_id: ambient,
-    }))
+    Ok(
+        hit.map(|(id, seg, pts, ocr, win, ambient)| VideoSeekResult {
+            keyframe_id: id,
+            segment_id: seg,
+            pts_ms: pts,
+            ocr_text: ocr,
+            active_window: win,
+            ambient_snapshot_id: ambient,
+        }),
+    )
 }
 
 #[derive(serde::Serialize)]
@@ -392,7 +515,16 @@ fn video_recent_keyframes(
     Ok(rows
         .into_iter()
         .map(
-            |(keyframe_id, segment_id, monitor_idx, start_ts, pts_ms, active_window, privacy_flag, has_thumb)| {
+            |(
+                keyframe_id,
+                segment_id,
+                monitor_idx,
+                start_ts,
+                pts_ms,
+                active_window,
+                privacy_flag,
+                has_thumb,
+            )| {
                 RecentKeyframe {
                     keyframe_id,
                     segment_id,
@@ -522,7 +654,10 @@ async fn download_whisper_model(
             .send()
             .await
             .map_err(|e| format!("download melfilters.bytes: {e}"))?;
-        let data = res.bytes().await.map_err(|e| format!("read melfilters.bytes: {e}"))?;
+        let data = res
+            .bytes()
+            .await
+            .map_err(|e| format!("read melfilters.bytes: {e}"))?;
         std::fs::write(&melfilters_dest, &data)
             .map_err(|e| format!("write melfilters.bytes: {e}"))?;
     }
@@ -587,10 +722,11 @@ async fn transcribe_local(
     }
     // block_in_place: yield the async worker thread for blocking CPU work
     tokio::task::block_in_place(|| {
-        stt_state
-            .lock()
-            .map_err(|e| e.to_string())?
-            .transcribe(&samples, sample_rate, language_code.as_deref())
+        stt_state.lock().map_err(|e| e.to_string())?.transcribe(
+            &samples,
+            sample_rate,
+            language_code.as_deref(),
+        )
     })
 }
 
@@ -601,7 +737,9 @@ fn save_turn(
     screenshot_b64: Option<String>,
     state: tauri::State<'_, Arc<session::SessionDb>>,
 ) -> Result<i64, String> {
-    state.save_turn(&user, &assistant, screenshot_b64).map_err(|e| e.to_string())
+    state
+        .save_turn(&user, &assistant, screenshot_b64)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -610,7 +748,9 @@ fn search_history(
     limit: i32,
     state: tauri::State<'_, Arc<session::SessionDb>>,
 ) -> Result<Vec<session::TurnRow>, String> {
-    state.search_history(&query, limit as i64).map_err(|e| e.to_string())
+    state
+        .search_history(&query, limit as i64)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -618,7 +758,9 @@ fn get_recent_turns(
     limit: i32,
     state: tauri::State<'_, Arc<session::SessionDb>>,
 ) -> Result<Vec<session::TurnRow>, String> {
-    state.get_recent_turns(limit as i64).map_err(|e| e.to_string())
+    state
+        .get_recent_turns(limit as i64)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -641,7 +783,9 @@ fn get_top_rated_turns(
     limit: i32,
     state: tauri::State<'_, Arc<session::SessionDb>>,
 ) -> Result<Vec<session::TurnRow>, String> {
-    state.get_top_rated_turns(limit as i64).map_err(|e| e.to_string())
+    state
+        .get_top_rated_turns(limit as i64)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -678,12 +822,12 @@ fn ensure_overlay_window(app: &tauri::AppHandle) -> Result<WebviewWindow, String
     let overlay_builder = overlay_builder.transparent(true);
 
     let overlay = overlay_builder
-    .always_on_top(true)
-    .visible(false)
-    .skip_taskbar(true)
-    .inner_size(1920.0, 1080.0)
-    .build()
-    .map_err(|e| e.to_string())?;
+        .always_on_top(true)
+        .visible(false)
+        .skip_taskbar(true)
+        .inner_size(1920.0, 1080.0)
+        .build()
+        .map_err(|e| e.to_string())?;
 
     if let Ok(Some(monitor)) = overlay.primary_monitor() {
         let size = monitor.size();
@@ -722,24 +866,21 @@ pub(crate) fn ensure_companion_panel<R: Runtime>(
         return Ok(window);
     }
 
-    let panel_builder = WebviewWindowBuilder::new(
-        app,
-        "companion-panel",
-        WebviewUrl::App("index.html".into()),
-    )
-    .title("DanteClicky")
-    .inner_size(360.0, 580.0)
-    .min_inner_size(320.0, 400.0)
-    .decorations(false);
+    let panel_builder =
+        WebviewWindowBuilder::new(app, "companion-panel", WebviewUrl::App("index.html".into()))
+            .title("DanteClicky")
+            .inner_size(360.0, 580.0)
+            .min_inner_size(320.0, 400.0)
+            .decorations(false);
     #[cfg(not(target_os = "macos"))]
     let panel_builder = panel_builder.transparent(true);
 
     let panel = panel_builder
-    .resizable(false)
-    .visible(false)
-    .skip_taskbar(true)
-    .build()
-    .map_err(|e| e.to_string())?;
+        .resizable(false)
+        .visible(false)
+        .skip_taskbar(true)
+        .build()
+        .map_err(|e| e.to_string())?;
 
     position_companion_panel(&panel, "right");
 
@@ -761,7 +902,11 @@ fn position_companion_panel<R: Runtime>(panel: &WebviewWindow<R>, position: &str
         let scale = monitor.scale_factor();
         let lw = size.width as f64 / scale;
         let lh = size.height as f64 / scale;
-        let x = if position == "left" { 12.0 } else { lw - 360.0 - 12.0 };
+        let x = if position == "left" {
+            12.0
+        } else {
+            lw - 360.0 - 12.0
+        };
         let y = lh - 580.0 - 48.0 - 12.0;
         let _ = panel.set_position(tauri::LogicalPosition::new(x, y));
     }
@@ -785,12 +930,12 @@ fn ensure_onboarding_window<R: Runtime>(app: &AppHandle<R>) -> Result<WebviewWin
     let onboarding_builder = onboarding_builder.transparent(true);
 
     let onboarding = onboarding_builder
-    .resizable(false)
-    .visible(false)
-    .skip_taskbar(false)
-    .center()
-    .build()
-    .map_err(|e| e.to_string())?;
+        .resizable(false)
+        .visible(false)
+        .skip_taskbar(false)
+        .center()
+        .build()
+        .map_err(|e| e.to_string())?;
 
     let onb_clone = onboarding.clone();
     onboarding.on_window_event(move |event| {
@@ -889,7 +1034,11 @@ fn set_companion_opacity(app: tauri::AppHandle, opacity: f64) -> Result<(), Stri
                     dw_flags: u32,
                 ) -> i32;
                 fn GetWindowLongPtrW(hwnd: *mut std::ffi::c_void, n_index: i32) -> isize;
-                fn SetWindowLongPtrW(hwnd: *mut std::ffi::c_void, n_index: i32, dw_new_long: isize) -> isize;
+                fn SetWindowLongPtrW(
+                    hwnd: *mut std::ffi::c_void,
+                    n_index: i32,
+                    dw_new_long: isize,
+                ) -> isize;
             }
             const GWL_EXSTYLE: i32 = -20;
             const WS_EX_LAYERED: isize = 0x0008_0000;
@@ -920,14 +1069,18 @@ fn get_turns_to_consolidate(
     limit: usize,
     state: tauri::State<'_, Arc<session::SessionDb>>,
 ) -> Result<Vec<session::TurnRow>, String> {
-    state.get_turns_to_consolidate(since_turn_id, limit).map_err(|e| e.to_string())
+    state
+        .get_turns_to_consolidate(since_turn_id, limit)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 fn get_last_consolidated_turn_id(
     state: tauri::State<'_, Arc<session::SessionDb>>,
 ) -> Result<i64, String> {
-    state.get_last_consolidated_turn_id().map_err(|e| e.to_string())
+    state
+        .get_last_consolidated_turn_id()
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -935,7 +1088,9 @@ fn update_consolidation_state(
     last_turn_id: i64,
     state: tauri::State<'_, Arc<session::SessionDb>>,
 ) -> Result<(), String> {
-    state.update_consolidation_state(last_turn_id).map_err(|e| e.to_string())
+    state
+        .update_consolidation_state(last_turn_id)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -963,9 +1118,7 @@ fn delete_digest_fact(
 }
 
 #[tauri::command]
-fn clear_digest(
-    state: tauri::State<'_, Arc<session::SessionDb>>,
-) -> Result<(), String> {
+fn clear_digest(state: tauri::State<'_, Arc<session::SessionDb>>) -> Result<(), String> {
     state.clear_digest().map_err(|e| e.to_string())
 }
 
@@ -973,7 +1126,9 @@ fn clear_digest(
 fn get_last_consolidation_time(
     state: tauri::State<'_, Arc<session::SessionDb>>,
 ) -> Result<Option<String>, String> {
-    state.get_last_consolidation_time().map_err(|e| e.to_string())
+    state
+        .get_last_consolidation_time()
+        .map_err(|e| e.to_string())
 }
 
 /// Return the title of the current foreground window (Win32).
@@ -1096,6 +1251,7 @@ pub fn run() {
             get_recent_turns,
             get_monitors,
             capture_screens,
+            check_for_update,
             capture::capture_primary,
             start_audio,
             stop_audio,

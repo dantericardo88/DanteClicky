@@ -19,6 +19,8 @@
     "test:frontend": "vitest run",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml --lib --quiet",
     "test:cross-platform": "vitest run src/__tests__/crossPlatformArchitecture.test.ts",
+    "check:dim47-release": "node scripts/run-dim47-release-check.mjs",
+    "bench:context-depth": "npx tsx bench/context-depth/run.ts",
     "test:ci": "npm run test:frontend -- --reporter=dot && npx tsc --noEmit --pretty false && npm run build && cargo check --manifest-path src-tauri/Cargo.toml --locked && npm run test:rust",
     "test:ui": "vitest --ui",
     "tauri:release": "tauri build -- --features sqlcipher"

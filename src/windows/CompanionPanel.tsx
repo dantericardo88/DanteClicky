@@ -91,6 +91,19 @@ interface PlatformCapabilities {
   notes: string[];
 }
 
+interface UpdateCheckResult {
+  reachedManifest: boolean;
+  available: boolean;
+  currentVersion: string;
+  version?: string | null;
+  target?: string | null;
+  date?: string | null;
+  body?: string | null;
+  downloadUrl?: string | null;
+  manifestUrl?: string | null;
+  signaturePresent: boolean;
+}
+
 // Classify error for actionable messaging
 interface ClassifiedError {
   headline: string;
@@ -3029,6 +3042,10 @@ function LocalVisionCard() {
 }
 
 function PlatformStatusCard({ capabilities }: { capabilities: PlatformCapabilities | null }) {
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateCheckResult, setUpdateCheckResult] = useState<UpdateCheckResult | null>(null);
+  const [updateCheckError, setUpdateCheckError] = useState<string | null>(null);
+
   if (!capabilities) {
     return (
       <div style={{ ...typography.small, color: colors.textTertiary }}>
@@ -3053,6 +3070,20 @@ function PlatformStatusCard({ capabilities }: { capabilities: PlatformCapabiliti
 
   const statusColor = (status: CapabilityStatus) =>
     status.supported && !status.degraded ? colors.success : status.supported ? colors.warning : "#FF453A";
+
+  async function checkUpdaterManifest() {
+    setCheckingUpdate(true);
+    setUpdateCheckError(null);
+    try {
+      const result = await invoke<UpdateCheckResult>("check_for_update");
+      setUpdateCheckResult(result);
+    } catch (error) {
+      setUpdateCheckResult(null);
+      setUpdateCheckError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCheckingUpdate(false);
+    }
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -3098,6 +3129,62 @@ function PlatformStatusCard({ capabilities }: { capabilities: PlatformCapabiliti
           {capabilities.notes[0]}
         </div>
       )}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "6px",
+          padding: "8px",
+          background: colors.surface,
+          border: `1px solid ${colors.border}`,
+          borderRadius: radii.sm,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+          <div>
+            <div style={{ ...typography.small, color: colors.textSecondary }}>Updater manifest</div>
+            <div style={{ ...typography.small, color: colors.textTertiary, marginTop: "1px" }}>
+              {updateCheckResult
+                ? updateCheckResult.available
+                  ? `v${updateCheckResult.version} available`
+                  : `Checked from v${updateCheckResult.currentVersion}`
+                : updateCheckError
+                  ? "Check failed"
+                  : "Not checked"}
+            </div>
+          </div>
+          <button
+            onClick={checkUpdaterManifest}
+            disabled={checkingUpdate}
+            style={{
+              padding: "5px 9px",
+              borderRadius: radii.xs,
+              border: `1px solid ${colors.border}`,
+              background: checkingUpdate ? "rgba(255,255,255,0.04)" : colors.backgroundSecondary,
+              color: checkingUpdate ? colors.textTertiary : colors.textSecondary,
+              cursor: checkingUpdate ? "wait" : "pointer",
+              fontSize: 11,
+              flexShrink: 0,
+            }}
+          >
+            {checkingUpdate ? "Checking..." : "Check"}
+          </button>
+        </div>
+        {updateCheckResult && (
+          <div style={{ ...typography.small, color: updateCheckResult.reachedManifest ? colors.success : colors.warning }}>
+            Manifest reached{updateCheckResult.target ? ` for ${updateCheckResult.target}` : ""}
+            {updateCheckResult.downloadUrl || updateCheckResult.manifestUrl
+              ? ` - ${new URL(updateCheckResult.downloadUrl ?? updateCheckResult.manifestUrl ?? "").hostname}`
+              : ""}
+            {updateCheckResult.signaturePresent ? " - signature present" : ""}
+          </div>
+        )}
+        {updateCheckError && (
+          <div style={{ ...typography.small, color: "#FF453A" }}>
+            {updateCheckError.slice(0, 160)}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

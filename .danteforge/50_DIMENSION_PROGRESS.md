@@ -1,6 +1,6 @@
 ﻿---
 name: DanteClicky Dimension Progress
-description: Tracks which 50-dimension scores have improved and which remain open. Composite 8.46/10 as of 2026-05-09.
+description: Tracks which 50-dimension scores have improved and which remain open. Composite 8.49/10 as of 2026-05-10.
 type: danteforge-canonical
 source: C:\Users\richa\.claude\projects\c--Projects-DanteClicky\memory\project_dimension_progress.md
 importedAt: 2026-05-06
@@ -10,16 +10,16 @@ importedAt: 2026-05-06
 
 Reference this before starting score, compete, leapfrog, ascend, or sprint work. Its job is to prevent duplicated effort and keep the 50-dimension matrix honest.
 
-Current composite: **8.46/10**
+Current composite: **8.49/10**
 
 Session-start composite: **4.2/10**
-## Reconciled 2026-05-09
+## Reconciled 2026-05-10
 
-Canonical score is now **8.46/10** after merging the latest evidenced updates: Dim 9 = 9.0, Dim 16 = 8.7, Dim 29 = 8.0, Dim 46 = 9.0, Dim 47 = 8.6. Authoritative JSON mirror: .danteforge/50_DIMENSION_COMPETITIVE_MATRIX.json.
+Canonical score is **8.49/10** after Session 39 adversarial Dim 47 recheck: 424.7 / 500 points, with Dim 47 held at 8.2 because no signed/notarized release/manual smoke evidence exists yet. The release-gate bundle is now committed locally, but no pushed `v*` tag or GitHub release proof exists. Latest evidenced updates remain Dim 9 = 9.0, Dim 13 = 9.0, Dim 16 = 8.7, Dim 29 = 8.0, Dim 46 = 9.0, Dim 47 = 8.2. Authoritative JSON mirror: .danteforge/50_DIMENSION_COMPETITIVE_MATRIX.json.
 
-Next four priority dimensions: **47 Cross-platform signed release/manual smoke**, **13 Context depth / multi-screenshot**, **29 Local vision to UI-TARS parity**, **16 Video / temporal proof-hardening**.
+Next four priority dimensions: **47 Cross-platform signed release/manual smoke**, **29 Local vision to UI-TARS parity**, **16 Video / temporal proof-hardening**, **26 GUI grounding / Set-of-Mark hardening**.
 
-Dims meaningfully improved so far: **38 of 50**
+Dims meaningfully improved so far: **39 of 50**
 
 ## Closed 2026-05-05
 
@@ -84,22 +84,22 @@ Dims meaningfully improved so far: **38 of 50**
 |-----|------|--------------|-----|
 | 9 | Wake word / always-on voice | 2 -> 9.0 | Opt-in wake mode now uses native VAD to segment idle mic audio, local Whisper to transcribe wake segments, local phrase matching before opening a normal voice turn, and a hard guard so AssemblyAI/cloud STT only receives audio while `voiceState === "listening"`. Companion settings expose wake enable/phrase/sensitivity/status; onboarding says wake word is off by default; wake telemetry is allowlisted with safe metadata only. Verified by 10 focused wake tests, full Vitest 453/453, TypeScript, production build, cargo check, and Rust lib tests. Capped at 9.0 until live mic false-accept/false-reject benchmark, dedicated ONNX keyword spotter, and long-run CPU/battery trace exist. |
 | 46 | Startup time | 6 -> 9.0 | Release executable benchmark passed strict startup gates: `bench/startup/results.json` records 30/30 ok, 0 timeouts, app-ready p50 18ms, app-ready p95 37ms, launch-observed p50 55ms, launch-observed p95 155ms. Startup is now tray/hotkey native-first with no eager companion/onboarding webview, lazy companion/onboarding helpers, queued/drained first-hotkey events, native monitor enumeration before webview creation, markerized startup probe, and SessionDb warmup deferred behind native readiness. Verified by startup architecture tests, full Vitest, TypeScript, production build, Rust check/tests, release build, and 30-run benchmark. |
-| 47 | Cross-platform | 3 -> 8.6 | Windows-only native crates are target-gated; Windows hardware capture is behind `all(feature = "video-hw-capture", target_os = "windows")`; accessibility, OCR, cursor, and overlay commands expose safe non-Windows fallbacks; `get_platform_capabilities` reports per-OS support and now appears in Settings; build and release workflows matrix Windows/macOS/Linux with official Tauri Linux deps; release splits macOS ARM and Intel; Tauri v2 updater artifacts are enabled; release artifact verification scripts and smoke scaffolding exist; and the SessionDb Tauri state mismatch is fixed. Verified locally by focused cross-platform architecture tests, full Vitest 461/461, TypeScript, production build, cargo check, Rust lib tests 135 passed/2 ignored, and release verifier dry runs. Verified externally by GitHub Actions run 25610105987: Windows/macOS/Ubuntu test jobs all passed, no-bundle Tauri package-smoke passed and uploaded artifacts for all three OSes, and runtime smoke proved `tray_ready`, `hotkey_registered`, and `native_ready` markers on all three OSes. Runtime reports: Windows nativeReadyMs 18 / elapsedMs 394, macOS nativeReadyMs 497 / elapsedMs 786, Ubuntu nativeReadyMs 495 / elapsedMs 870. Capped at 8.6 until signed/notarized tagged releases, real updater signatures, and dated manual smoke evidence exist. |
+| 47 | Cross-platform | 3 -> 8.2 | Windows-only native crates are target-gated; Windows hardware capture is behind `all(feature = "video-hw-capture", target_os = "windows")`; accessibility, OCR, cursor, and overlay commands expose safe non-Windows fallbacks; `get_platform_capabilities` reports per-OS support and now appears in Settings; build and release workflows matrix Windows/macOS/Linux with official Tauri Linux deps; release splits macOS ARM and Intel; Tauri v2 updater artifacts are enabled; release artifact verification scripts and smoke scaffolding exist; and the SessionDb Tauri state mismatch is fixed. Sessions 34-39 added deterministic `latest.json` generation, mandatory latest.json verification, release version/tag parity, release-attached trust-evidence upload, trust-evidence content validation, artifact attestations, SHA-pinned release actions, per-tag release concurrency, release-attached `SHA256SUMS`, draft/prerelease rejection, checksum validation, and a Settings > Platform updater manifest smoke path that can prove same-version platform signatures. Verified locally by focused cross-platform architecture tests, full Vitest 472/472, TypeScript, production build, cargo check, Rust lib tests 135 passed/2 ignored, synthetic latest manifest/verifier fixtures, and `npm run check:dim47-release -- -ReleaseTag v0.1.0 -FailOnBlocked` correctly blocked at 8 passed / 11 failed. Verified externally by GitHub Actions run 25610105987: Windows/macOS/Ubuntu test jobs all passed, no-bundle Tauri package-smoke passed and uploaded artifacts for all three OSes, and runtime smoke proved `tray_ready`, `hotkey_registered`, and `native_ready` markers on all three OSes. Runtime reports: Windows nativeReadyMs 18 / elapsedMs 394, macOS nativeReadyMs 497 / elapsedMs 786, Ubuntu nativeReadyMs 495 / elapsedMs 870. Adversarial score is 8.2, not 8.6, because no v* tag or GitHub release exists, and no signed/notarized downloadable assets, release attestations, or installed-artifact smoke logs exist. |
+| 13 | Context depth / multi-screenshot | 7 -> 9.0 | Cursor-aware multi-monitor capture ordering now relabels `screenN` after sorting; context-depth prompt inventory lists screen role, geometry, and image order; OCR runs for all current monitors; Set-of-Mark now partitions UIAutomation elements by monitor bounds and annotates every matching screenshot; temporal context includes screen labels and keyframe IDs; temporal/contextual utterances attach up to three recent keyframe thumbnails; OpenAI native computer-use is disabled on multi-monitor turns to preserve the multi-image prompt path. Verified by focused context-depth tests 35/35, `bench/context-depth/results.json` passing 25 fixtures/12 multi-monitor/top1 1.0/top3 OCR 1.0/zero private leaks/zero base64 leaks/p95 0.078ms/max 680 chars, full Vitest 472/472, TypeScript, production build, cargo check, and Rust lib tests 135 passed/2 ignored. Capped at 9.0 until live dual-monitor manual smoke, ambient multi-monitor persistence, and semantic keyframe retrieval proof exist. |
 
 ## Dims Closed - Full List
 
-Dims improved: **3, 6, 7, 8, 9, 12, 14, 16, 17, 20, 21, 22, 23, 25, 26, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47, 48, 49**
+Dims improved: **3, 6, 7, 8, 9, 12, 13, 14, 16, 17, 20, 21, 22, 23, 25, 26, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47, 48, 49**
 
 ## Still Open
 
 | Priority | Dim | What | Current | Target | Blocker |
 |----------|-----|------|--------:|-------:|---------|
-| 1 | 47 | Cross-platform signed release/manual smoke | 8.6 | 9 | Produce signed/notarized tagged release artifacts, real updater signatures, platform permission flows, and dated manual smoke logs for screenshot, input, onboarding, chat, close-to-tray, and updater checks on all three OSes |
-| 2 | 13 | Context depth / multi-screenshot | 7 | 9 | Multi-window stitching, recent-state retrieval, and history snapshots from Dim 16 ring buffer |
-| 3 | 29 | Local vision model | 8 | 9 | Reliable full grounding benchmark or UI-TARS/new Moondream coordinate decoder integration |
-| 4 | 16 | Video / temporal context | 8.7 | 9+ | Ignored live-screen test observed passing, manual app smoke run, per-keyframe semantic embedding, and perf benchmark evidence |
+| 1 | 47 | Cross-platform signed release/manual smoke | 8.2 | 9 | Commit the release gates, produce signed/notarized tagged release artifacts, real updater signatures, platform permission flows, verified release attestations, and dated manual smoke logs for screenshot, input, onboarding, chat, close-to-tray, and updater checks on all three OSes |
+| 2 | 29 | Local vision model | 8 | 9 | Reliable full grounding benchmark or UI-TARS/new Moondream coordinate decoder integration |
+| 3 | 16 | Video / temporal context | 8.7 | 9+ | Ignored live-screen test observed passing, manual app smoke run, per-keyframe semantic embedding, and perf benchmark evidence |
+| 4 | 26 | GUI grounding / Set-of-Mark hardening | 8.5 | 9 | More robust non-UIA labels, object-region fallback beyond UIAutomation, and live desktop grounding replay evidence |
 | 5 | 50 | OSS / licensing clarity | 8 | 9 | Public repo posture, dependency audit, and release-readiness polish |
-| 6 | 26 | GUI grounding / Set-of-Mark hardening | 8.5 | 9 | Multi-monitor SoM, more robust labels, object-region fallback beyond UIAutomation |
 | 7 | 7 | TTS voice cloning / preview | 9 | 9.3 | Production clone flow and live preview hardening |
 | 8 | 35 | Memory consolidation hardening | 9 | 9.3 | Digest browser, compaction audit trail, bounded retention policy |
 

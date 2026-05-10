@@ -1,0 +1,121 @@
+{
+    "dimension":  47,
+    "generatedAt":  "2026-05-10T07:20:11.198Z",
+    "releaseTag":  "",
+    "status":  "blocked",
+    "passedChecks":  8,
+    "failedChecks":  11,
+    "checks":  [
+                   {
+                       "name":  "updater-pubkey-not-placeholder",
+                       "passed":  true,
+                       "detail":  "src-tauri/tauri.conf.json must contain the real Tauri updater public key."
+                   },
+                   {
+                       "name":  "updater-artifacts-enabled",
+                       "passed":  true,
+                       "detail":  "Tauri must emit updater bundles and .sig files."
+                   },
+                   {
+                       "name":  "release-workflow-actions-sha-pinned",
+                       "passed":  true,
+                       "detail":  "Release workflow must pin actions used for signing/publishing to full commit SHAs, not moving tags."
+                   },
+                   {
+                       "name":  "release-workflow-attestations-configured",
+                       "passed":  true,
+                       "detail":  "Release workflow must generate GitHub artifact attestations for release artifacts and latest.json."
+                   },
+                   {
+                       "name":  "release-workflow-developer-id-only",
+                       "passed":  true,
+                       "detail":  "macOS direct GitHub distribution must require Developer ID Application signing, not Apple Distribution."
+                   },
+                   {
+                       "name":  "secret-TAURI_SIGNING_PRIVATE_KEY",
+                       "passed":  true,
+                       "detail":  "Required by .github/workflows/release.yml release preflight."
+                   },
+                   {
+                       "name":  "secret-TAURI_SIGNING_PRIVATE_KEY_PASSWORD",
+                       "passed":  true,
+                       "detail":  "Required by .github/workflows/release.yml release preflight."
+                   },
+                   {
+                       "name":  "secret-APPLE_ID",
+                       "passed":  false,
+                       "detail":  "Required by .github/workflows/release.yml release preflight."
+                   },
+                   {
+                       "name":  "secret-APPLE_PASSWORD",
+                       "passed":  false,
+                       "detail":  "Required by .github/workflows/release.yml release preflight."
+                   },
+                   {
+                       "name":  "secret-APPLE_TEAM_ID",
+                       "passed":  false,
+                       "detail":  "Required by .github/workflows/release.yml release preflight."
+                   },
+                   {
+                       "name":  "secret-APPLE_CERTIFICATE",
+                       "passed":  false,
+                       "detail":  "Required by .github/workflows/release.yml release preflight."
+                   },
+                   {
+                       "name":  "secret-APPLE_CERTIFICATE_PASSWORD",
+                       "passed":  false,
+                       "detail":  "Required by .github/workflows/release.yml release preflight."
+                   },
+                   {
+                       "name":  "secret-KEYCHAIN_PASSWORD",
+                       "passed":  true,
+                       "detail":  "Required by .github/workflows/release.yml release preflight."
+                   },
+                   {
+                       "name":  "secret-WINDOWS_CERTIFICATE",
+                       "passed":  false,
+                       "detail":  "Required by .github/workflows/release.yml release preflight."
+                   },
+                   {
+                       "name":  "secret-WINDOWS_CERTIFICATE_PASSWORD",
+                       "passed":  false,
+                       "detail":  "Required by .github/workflows/release.yml release preflight."
+                   },
+                   {
+                       "name":  "manual-smoke-windows",
+                       "passed":  false,
+                       "detail":  "No strict dated windows smoke log matching \u0027^\\d{4}-\\d{2}-\\d{2}-windows-v\\d+\\.\\d+\\.\\d+[^.]*\\.md$\u0027 found under docs/cross-platform-smoke."
+                   },
+                   {
+                       "name":  "manual-smoke-macos",
+                       "passed":  false,
+                       "detail":  "No strict dated macos smoke log matching \u0027^\\d{4}-\\d{2}-\\d{2}-macos-v\\d+\\.\\d+\\.\\d+[^.]*\\.md$\u0027 found under docs/cross-platform-smoke."
+                   },
+                   {
+                       "name":  "manual-smoke-linux",
+                       "passed":  false,
+                       "detail":  "No strict dated linux smoke log matching \u0027^\\d{4}-\\d{2}-\\d{2}-linux-v\\d+\\.\\d+\\.\\d+[^.]*\\.md$\u0027 found under docs/cross-platform-smoke."
+                   },
+                   {
+                       "name":  "release-tag-provided",
+                       "passed":  false,
+                       "detail":  "Pass -ReleaseTag vX.Y.Z so this gate can inspect signed release assets and latest.json."
+                   }
+               ],
+    "release":  null,
+    "scoreGate":  {
+                      "currentCap":  8.2,
+                      "ninePlusRequires":  [
+                                               "Real updater public key and private key secret",
+                                               "Windows code signing certificate secret and signed installer verification",
+                                               "macOS Developer ID certificate, notarization credentials, and notarization/staple verification",
+                                               "Linux updater signature verification for AppImage",
+                                               "latest.json with non-empty signatures and release URLs for every platform",
+                                               "SHA256SUMS covering release artifacts and latest.json",
+                                               "Release-attached trust evidence logs for Windows signing, macOS signing/notarization/stapling, and Linux AppImage updater signatures",
+                                               "GitHub artifact attestations for release artifacts, latest.json, SHA256SUMS, and trust evidence verified with gh attestation verify",
+                                               "A green -ReleaseTag readiness run against downloadable release assets",
+                                               "Strict dated manual smoke logs for Windows, macOS, and Linux using release artifacts"
+                                           ]
+                  }
+}

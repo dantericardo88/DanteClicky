@@ -404,7 +404,7 @@
       "manual-smoke-linux",
       "release-tag-provided"
     ],
-    "nextAction": "Push the committed Dim 47 release-gate branch, provide Apple Developer/notarization secrets and Windows code signing certificate secrets, create/push a matching v* tag, run the SHA-pinned Release workflow, verify downloadable release assets/latest.json/trust-evidence/attestations, then complete strict installed-artifact manual smoke logs on Windows, macOS, and Linux."
+    "nextAction": "Provide Apple Developer/notarization secrets and Windows code signing certificate secrets, create/push a matching v* tag from the pushed release-gate branch head, run the SHA-pinned Release workflow, verify downloadable release assets/latest.json/trust-evidence/attestations, then complete strict installed-artifact manual smoke logs on Windows, macOS, and Linux."
   },
   "session38LivePartyRecheck": {
     "dim": 47,
@@ -435,7 +435,7 @@
       "manual-smoke-linux",
       "release-v0.1.0"
     ],
-    "nextAction": "Push the committed Dim 47 release-gate branch, add the missing Apple Developer/notarization and Windows signing certificate secrets, create/push a matching v* tag from that commit lineage, run the SHA-pinned Release workflow, verify release assets/latest.json/trust-evidence/attestations with npm run check:dim47-release -- --release-tag vX.Y.Z, then complete strict installed-artifact manual smoke logs on Windows, macOS, and Linux."
+    "nextAction": "Add the missing Apple Developer/notarization and Windows signing certificate secrets, create/push a matching v* tag from the pushed release-gate branch head, run the SHA-pinned Release workflow, verify release assets/latest.json/trust-evidence/attestations with npm run check:dim47-release -- --release-tag vX.Y.Z, then complete strict installed-artifact manual smoke logs on Windows, macOS, and Linux."
   },
   "session38ReleasePublicationGate": {
     "dim": 47,
@@ -469,7 +469,7 @@
       "manual-smoke-linux",
       "release-v0.1.0"
     ],
-    "nextAction": "Provide Apple Developer/notarization secrets and Windows code signing certificate secrets, commit these Dim 47 release gates, create/push v0.1.0 from that commit, run the SHA-pinned Release workflow, verify downloadable release assets/latest.json/SHA256SUMS/trust-evidence/attestations, then complete strict installed-artifact manual smoke logs on Windows, macOS, and Linux."
+    "nextAction": "Provide Apple Developer/notarization secrets and Windows code signing certificate secrets, create/push v0.1.0 from the pushed release-gate branch head, run the SHA-pinned Release workflow, verify downloadable release assets/latest.json/SHA256SUMS/trust-evidence/attestations, then complete strict installed-artifact manual smoke logs on Windows, macOS, and Linux."
   },
   "session39AdversarialScoreCorrection": {
     "dim": 47,
@@ -482,7 +482,7 @@
       "No local v* tags and no GitHub releases were found, so release assets, latest.json, SHA256SUMS, trust-evidence logs, and artifact attestations cannot be verified from a real release.",
       "Apple Developer/notarization secrets and Windows signing certificate secrets are absent from gh secret list.",
       "Strict installed-artifact manual smoke logs for Windows, macOS, and Linux are absent.",
-      "This commit makes the Dim 47 release-gate work tag-addressable locally; a remote release tag still must be cut from a pushed commit after secrets exist."
+      "The Dim 47 release-gate branch is pushed; a remote release tag still must be cut from that branch lineage after secrets exist."
     ],
     "readinessReport": "docs/cross-platform-smoke/dim47-release-readiness.json",
     "readinessStatus": "blocked",
@@ -502,6 +502,6 @@
       "manual-smoke-linux",
       "release-tag-provided"
     ],
-    "nextAction": "Add missing Apple Developer/notarization and Windows signing certificate secrets, create and push a matching v* tag from this release-gate commit, run the SHA-pinned Release workflow, verify release assets/latest.json/SHA256SUMS/trust evidence/attestations with the readiness checker, then complete strict installed-artifact smoke logs on Windows, macOS, and Linux."
+    "nextAction": "Add missing Apple Developer/notarization and Windows signing certificate secrets, create and push a matching v* tag from the pushed release-gate branch head, run the SHA-pinned Release workflow, verify release assets/latest.json/SHA256SUMS/trust evidence/attestations with the readiness checker, then complete strict installed-artifact smoke logs on Windows, macOS, and Linux."
   }
 }

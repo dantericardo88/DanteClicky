@@ -127,7 +127,7 @@ function Test-TrustEvidenceContent {
   $requiredTokens = switch ($Kind) {
     "windows" { @("signtool verify /pa /all /tw /v", "Successfully verified", "timestamp") }
     "macos" { @("codesign --verify --deep --strict --verbose=2", "spctl --assess --type execute", "xcrun stapler validate") }
-    "linux" { @("===== AppImage =====", "===== Tauri updater signature =====") }
+    "linux" { @("===== AppImage =====", "===== Tauri updater signature =====", "===== Tauri updater public key =====", "signature-bytes=", "pubkey-sha256=") }
     "attestation" { @("GitHub artifact attestation evidence", "attestation-url=", "subject-path=") }
     default { @() }
   }
@@ -143,6 +143,39 @@ function Test-TrustEvidenceContent {
   }
 
   return @($issues)
+}
+
+function Resolve-DownloadedReleaseAssetPath {
+  param(
+    [string]$DownloadDir,
+    [string]$ChecksumPath
+  )
+
+  $normalized = $ChecksumPath.Trim() -replace "^[* ]+", ""
+  $normalized = $normalized -replace "^[.][\\/]+", ""
+  if (-not $normalized) {
+    return $null
+  }
+  if ([System.IO.Path]::IsPathRooted($normalized) -or $normalized -match "(^|[\\/])\.\.([\\/]|$)") {
+    return $null
+  }
+
+  $directPath = Join-Path $DownloadDir $normalized
+  if (Test-Path -LiteralPath $directPath) {
+    return (Resolve-Path -LiteralPath $directPath).Path
+  }
+
+  $leafName = [System.IO.Path]::GetFileName($normalized)
+  if (-not $leafName) {
+    return $null
+  }
+
+  $matches = @(Get-ChildItem -Path $DownloadDir -File -Filter $leafName -ErrorAction SilentlyContinue)
+  if ($matches.Count -eq 1) {
+    return $matches[0].FullName
+  }
+
+  return $null
 }
 
 function Get-ManualSmokeStatus {
@@ -290,21 +323,50 @@ if ($ReleaseTag) {
         } else {
           $checksumsContent = Get-Content -LiteralPath $checksumsPath -Raw
           $checksumIssues = New-Object System.Collections.Generic.List[string]
-          if ($checksumsContent -notmatch "(?m)^[a-fA-F0-9]{64}\s+.+latest\.json\s*$") {
-            $checksumIssues.Add("missing latest.json checksum")
+          $checksumEntries = New-Object System.Collections.Generic.List[object]
+          $verifiedChecksumNames = New-Object System.Collections.Generic.List[string]
+          foreach ($line in @($checksumsContent -split "`r?`n")) {
+            $trimmedLine = $line.Trim()
+            if (-not $trimmedLine) {
+              continue
+            }
+            if ($trimmedLine -notmatch "^([a-fA-F0-9]{64})\s+(.+)$") {
+              $checksumIssues.Add("malformed checksum line '$trimmedLine'")
+              continue
+            }
+
+            $expectedHash = $Matches[1].ToLowerInvariant()
+            $relativePath = $Matches[2].Trim()
+            $assetPath = Resolve-DownloadedReleaseAssetPath -DownloadDir $downloadDir -ChecksumPath $relativePath
+            if (-not $assetPath) {
+              $checksumIssues.Add("checksum target not downloaded: $relativePath")
+              continue
+            }
+
+            $actualHash = (Get-FileHash -LiteralPath $assetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualHash -ne $expectedHash) {
+              $checksumIssues.Add("hash mismatch for $relativePath")
+              continue
+            }
+
+            $leafName = [System.IO.Path]::GetFileName($assetPath)
+            $verifiedChecksumNames.Add($leafName)
+            $checksumEntries.Add([PSCustomObject]@{
+              Name = $leafName
+              Path = $assetPath
+              Sha256 = $actualHash
+            })
           }
-          foreach ($checksumPattern in @("\.(exe|msi)\s*$", "\.app\.tar\.gz\s*$", "\.AppImage\s*$")) {
-            if ($checksumsContent -notmatch "(?m)^[a-fA-F0-9]{64}\s+.+$checksumPattern") {
-              $checksumIssues.Add("missing checksum line matching $checksumPattern")
+
+          if (($verifiedChecksumNames | Where-Object { $_ -eq "latest.json" }).Count -eq 0) {
+            $checksumIssues.Add("missing verified latest.json checksum")
+          }
+          foreach ($checksumPattern in @("\.(exe|msi)$", "\.app\.tar\.gz$", "\.AppImage$")) {
+            if (($verifiedChecksumNames | Where-Object { $_ -match $checksumPattern }).Count -eq 0) {
+              $checksumIssues.Add("missing verified checksum target matching $checksumPattern")
             }
           }
-          $badChecksumLines = @($checksumsContent -split "`r?`n" | Where-Object {
-            $_.Trim() -and $_ -notmatch "^[a-fA-F0-9]{64}\s+.+$"
-          })
-          if ($badChecksumLines.Count -gt 0) {
-            $checksumIssues.Add("contains malformed checksum lines")
-          }
-          $checks.Add((New-Check "release-checksums-content" ($checksumIssues.Count -eq 0) "SHA256SUMS: $($checksumIssues -join '; ')"))
+          $checks.Add((New-Check "release-checksums-content" ($checksumIssues.Count -eq 0) "SHA256SUMS verified $($checksumEntries.Count) downloaded asset hashes: $($checksumIssues -join '; ')"))
         }
 
         $trustEvidenceFiles = @(
@@ -345,14 +407,17 @@ if ($ReleaseTag) {
 
         try {
           $attestationTargets = @(Get-ChildItem -Path $downloadDir -File -ErrorAction SilentlyContinue |
-            Where-Object { $_.Name -match '(\.exe|\.msi|\.AppImage|\.app\.tar\.gz|^latest\.json)$' })
+            Where-Object {
+              $_.Name -match '(\.exe|\.msi|\.AppImage|\.app\.tar\.gz|^latest\.json$|^SHA256SUMS$)' -or
+              $_.Name -match '^danteclicky-(windows|macos|linux).+\.txt$'
+            })
           if ($attestationTargets.Count -eq 0) {
             $checks.Add((New-Check "release-artifact-attestations" $false "No release artifacts were available for gh attestation verification."))
           } else {
             foreach ($target in $attestationTargets) {
               gh attestation verify $target.FullName --repo "dantericardo88/DanteClicky" | Out-Host
             }
-            $checks.Add((New-Check "release-artifact-attestations" $true "gh attestation verify passed for $($attestationTargets.Count) downloaded release artifacts including latest.json."))
+            $checks.Add((New-Check "release-artifact-attestations" $true "gh attestation verify passed for $($attestationTargets.Count) downloaded release artifacts including latest.json, SHA256SUMS, and platform trust evidence."))
           }
         } catch {
           $checks.Add((New-Check "release-artifact-attestations" $false "gh attestation verify failed for downloaded release artifacts: $($_.Exception.Message)"))

@@ -169,6 +169,8 @@ describe("cross-platform architecture", () => {
     expect(releaseWorkflow).toContain("apps_file=\"$(mktemp)\"");
     expect(releaseWorkflow).not.toContain("mapfile -t apps");
     expect(releaseWorkflow).toContain("Verify Linux AppImage updater artifacts");
+    expect(releaseWorkflow).toContain("pubkey-sha256=");
+    expect(releaseWorkflow).toContain("signature-bytes=");
     expect(releaseWorkflow).toContain("danteclicky-${{ matrix.platformName }}-trust-evidence");
     expect(releaseWorkflow).toContain("danteclicky-${{ matrix.platformName }}-windows-signing.txt");
     expect(releaseWorkflow).toContain("danteclicky-${{ matrix.platformName }}-macos-signing-notarization.txt");
@@ -256,6 +258,9 @@ describe("cross-platform architecture", () => {
     expect(releaseReadiness).toContain("release-tag-provided");
     expect(releaseReadiness).toContain("release-artifact-manifest-verification");
     expect(releaseReadiness).toContain("release-checksums-content");
+    expect(releaseReadiness).toContain("Get-FileHash");
+    expect(releaseReadiness).toContain("^SHA256SUMS$");
+    expect(releaseReadiness).toContain("platform trust evidence");
     expect(releaseReadiness).toContain("SHA256SUMS");
     expect(releaseReadiness).toContain("Test-TrustEvidenceContent");
     expect(releaseReadiness).toContain("release-trust-evidence-content-$evidenceName");
@@ -269,17 +274,21 @@ describe("cross-platform architecture", () => {
     expect(releaseReadiness).toContain("-ExpectedRepository \"dantericardo88/DanteClicky\"");
     expect(releaseReadiness).toContain("signtool verify");
     expect(releaseReadiness).toContain("xcrun stapler validate");
+    expect(releaseReadiness).toContain("pubkey-sha256=");
+    expect(releaseReadiness).toContain("signature-bytes=");
     expect(releaseReadiness).toContain("Artifact SHA256 must be a 64-character hex digest");
     expect(releaseReadiness).toContain("gh attestation verify");
     expect(releaseReadiness).toContain("non-empty evidence");
     expect(verifyPs1).toContain("ExpectedRepository");
     expect(verifyPs1).toContain("Assert-ManifestSignature");
+    expect(verifyPs1).toContain("signature matches '$sigName'");
     expect(verifyPs1).toContain("Manifest '$ManifestPath' does not exist");
     expect(verifyPs1).toContain("valid SemVer-like version");
     expect(verifyPs1).toContain("unexpected platform key");
     expect(verifySh).toContain("expected_repository");
     expect(verifySh).toContain("manifest '$manifest_path' does not exist");
     expect(verifySh).toContain("signature does not match");
+    expect(verifySh).toContain("signature matches");
     expect(verifySh).toContain("RFC3339 UTC timestamp");
   });
 

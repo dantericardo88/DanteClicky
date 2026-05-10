@@ -85,6 +85,8 @@ function Assert-ManifestSignature {
   if ($ManifestSignature.Trim() -ne $sigContent) {
     throw "latest.json platform '$Platform' signature does not match '$sigName' content."
   }
+
+  Write-Host "ok: latest.json platform '$Platform' signature matches '$sigName'"
 }
 
 if (-not (Test-Path $ArtifactDir)) {

@@ -110,6 +110,7 @@ for platform in required:
         raise SystemExit(f"updater signature file '{sig_name}' is empty")
     if entry["signature"].strip() != sig_content:
         raise SystemExit(f"latest.json platform '{platform}' signature does not match '{sig_name}' content")
+    print(f"ok: latest.json platform '{platform}' signature matches '{sig_name}'")
 print("ok: latest.json contains all expected updater platforms")
 PY
 

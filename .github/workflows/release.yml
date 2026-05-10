@@ -365,6 +365,14 @@ jobs:
             echo "No non-empty AppImage updater .sig artifact found under src-tauri/target/release/bundle" >&2
             exit 1
           fi
+          pubkey="$(node -e 'const fs=require("fs"); const conf=JSON.parse(fs.readFileSync("src-tauri/tauri.conf.json","utf8")); const key=conf.plugins?.updater?.pubkey || ""; if (!key || /PLACEHOLDER|YOUR_/i.test(key)) process.exit(1); process.stdout.write(key);')"
+          sig_compact="$(tr -d '\r\n' < "$sig")"
+          sig_bytes="$(printf "%s" "$sig_compact" | wc -c | tr -d ' ')"
+          if [ "$sig_bytes" -lt 32 ]; then
+            echo "AppImage updater signature is too small to be a valid Tauri updater signature" >&2
+            exit 1
+          fi
+          pubkey_sha="$(printf "%s" "$pubkey" | sha256sum | awk '{print $1}')"
 
           {
             echo "===== AppImage ====="
@@ -372,8 +380,12 @@ jobs:
             sha256sum "$appimage"
             echo "===== Tauri updater signature ====="
             wc -c "$sig"
+            echo "signature-bytes=$sig_bytes"
             head -c 120 "$sig"
             echo
+            echo "===== Tauri updater public key ====="
+            echo "pubkey-sha256=$pubkey_sha"
+            echo "pubkey-bytes=$(printf "%s" "$pubkey" | wc -c | tr -d ' ')"
           } 2>&1 | tee -a "$log_path"
 
       - name: Generate release artifact attestations

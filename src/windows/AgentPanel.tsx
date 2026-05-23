@@ -19,6 +19,7 @@ export function AgentPanel() {
   const moondream = useMoondream();
 
   useEffect(() => {
+    if (!(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__) return;
     const poll = () => {
       invoke<number>("get_ws_connection_count")
         .then((n) => {
@@ -36,6 +37,9 @@ export function AgentPanel() {
   }, []);
 
   useEffect(() => {
+    // Only probe the MCP server when running inside the Tauri WebView — a browser
+    // context would be blocked by CORS because localhost:1420 ≠ 127.0.0.1:9002.
+    if (!(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__) return;
     const check = () => {
       const ctrl = new AbortController();
       fetch("http://127.0.0.1:9002/sse", { signal: ctrl.signal })
@@ -58,9 +62,9 @@ export function AgentPanel() {
         },
         ...prev.slice(0, 4),
       ]);
-    });
+    }).catch(() => {});
     return () => {
-      unlisten.then((fn) => fn());
+      unlisten.then((fn) => fn?.());
     };
   }, []);
 

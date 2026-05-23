@@ -305,6 +305,7 @@ export function MemoryPanel() {
       setPreferenceEvents([]);
       return;
     }
+    if (!(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__) return;
     setPreferenceLoading(true);
     setPreferenceError(null);
     try {

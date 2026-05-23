@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "lastUpdated": "2026-05-05",
+  "lastUpdated": "2026-05-08",
   "repos": [
     {
       "name": "screenpipe",
@@ -126,6 +126,72 @@
         "capturable-target-query",
         "permission-check-pattern"
       ]
+    },
+    {
+      "name": "cline",
+      "url": "https://github.com/cline/cline",
+      "license": "Apache-2.0",
+      "status": "allowed",
+      "stars": "not recorded",
+      "description": "Agent context-window management, auto-compact documentation, summary prompt structure, token reserve budgeting, summarization telemetry, and computer-use safety policy",
+      "patterns": [
+        "auto-compact-threshold",
+        "context-window-reserves",
+        "task-summary-prompt",
+        "context-history-updates",
+        "summarization-telemetry",
+        "deny-before-allow-policy",
+        "action-specific-approval-matrix",
+        "high-risk-side-effect-taxonomy"
+      ]
+    },
+    {
+      "name": "OSWorld",
+      "url": "https://github.com/xlang-ai/OSWorld",
+      "license": "Apache-2.0",
+      "status": "allowed",
+      "stars": "not recorded",
+      "description": "Desktop-agent evaluation framework with AutoGen message token limiting, text compression utilities, and OpenAI CUA safety-check handling",
+      "patterns": [
+        "message-token-limiter",
+        "minimum-compression-threshold",
+        "text-message-compressor",
+        "token-savings-reporting",
+        "compression-cache",
+        "openai-pending-safety-checks",
+        "acknowledged-safety-checks",
+        "action-trajectory-audit"
+      ]
+    },
+    {
+      "name": "cua",
+      "url": "https://github.com/trycua/cua",
+      "license": "MIT",
+      "status": "harvest-in-progress",
+      "stars": "15.8k",
+      "description": "Most architecturally sophisticated open computer-use framework: 21 vendor-specific agent loops, AsyncCallbackHandler 16-hook lifecycle protocol, composed-grounded two-stage thinking+grounding loop, MCP SessionManager+ComputerPool, human-in-the-loop websocket, set-of-mark grounder, @register_agent decorator-based model registry, and cross-cutting callbacks for PII anonymization, budget management, image retention, trajectory audit, and operator normalization",
+      "patterns": [
+        "async-callback-handler-protocol",
+        "agent-callback-chain",
+        "operator-normalizer",
+        "pii-anonymization-symmetric",
+        "budget-manager-cost-tracking",
+        "image-retention-orphan-pair",
+        "trajectory-saver-sanitized",
+        "otel-callback-bridge",
+        "register-agent-decorator",
+        "async-agent-config-protocol",
+        "composed-grounded-two-stage",
+        "grounded-computer-tool-schema",
+        "mcp-session-manager",
+        "mcp-computer-pool",
+        "human-in-the-loop-websocket",
+        "set-of-mark-grounder",
+        "cuabotd-typescript-daemon"
+      ],
+      "harvestPlan": ".claude/plans/foamy-foraging-lynx.md",
+      "harvestWave": 6,
+      "harvestStarted": "2026-05-08"
     }
   ]
 }

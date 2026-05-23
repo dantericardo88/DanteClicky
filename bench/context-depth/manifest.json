@@ -1,0 +1,14 @@
+{
+  "dimension": 13,
+  "name": "Context depth / multi-screenshot",
+  "gates": {
+    "fixture_count_min": 25,
+    "multi_monitor_fixture_count_min": 10,
+    "top1_window_accuracy_min": 0.9,
+    "top3_ocr_recall_min": 0.85,
+    "private_leak_count": 0,
+    "base64_leak_count": 0,
+    "p95_render_ms_max": 50,
+    "max_context_chars_max": 1200
+  }
+}

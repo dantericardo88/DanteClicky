@@ -32,10 +32,16 @@ import {
 } from "../lib/contextCompression";
 import { parseUiTree, type UiElement } from "../lib/uiTreeParser";
 import { buildSystemPrompt } from "../lib/buildSystemPrompt";
-import { getTemporalContext } from "../lib/temporalContext";
+import { isLocalProvider } from "../lib/providerRegistry";
+import { getTemporalSnapshotContext } from "../lib/temporalContext";
 import { annotateSom, buildSomSystemPromptSection } from "../lib/somAnnotator";
 import { matchClickIntent } from "../lib/clickIntent";
 import { getAmbientContext } from "./useAmbient";
+import {
+  buildContextDepthBlock,
+  renderMultiScreenOcrContext,
+  shouldAttachTemporalVisualHistory,
+} from "../lib/contextDepth";
 import {
   buildLoopContinuationPrompt,
   classifyAgentActionSafety,
@@ -150,6 +156,29 @@ export function selectTtsModel(
   return "eleven_multilingual_v2";
 }
 
+function keyForProvider(
+  provider: ProviderType,
+  keys: {
+    anthropicKey: string;
+    openaiKey: string;
+    grokKey: string;
+    openrouterKey: string;
+  },
+): string {
+  if (provider === "claude") return keys.anthropicKey;
+  if (provider === "grok") return keys.grokKey;
+  if (provider === "openrouter") return keys.openrouterKey;
+  if (provider === "openai") return keys.openaiKey;
+  return "";
+}
+
+function keyPresenceProvider(provider: ProviderType): "anthropic" | "openai" | "grok" | "openrouter" {
+  if (provider === "claude") return "anthropic";
+  if (provider === "grok") return "grok";
+  if (provider === "openrouter") return "openrouter";
+  return "openai";
+}
+
 export function useVoice() {
   const {
     voiceState,
@@ -157,6 +186,8 @@ export function useVoice() {
     anthropicKey,
     openaiKey,
     grokKey,
+    openrouterKey,
+    apiKeyPresence,
     elevenLabsKey,
     elevenLabsVoiceId,
     elevenLabsCustomVoiceId,
@@ -317,7 +348,7 @@ export function useVoice() {
       if (sttMode === "Cloud" && voiceState === "listening") {
         assemblyAI.sendChunk(base64);
       }
-    });
+    }).catch(() => () => {});
     return () => {
       unlisten.then((fn) => fn());
     };
@@ -400,6 +431,7 @@ export function useVoice() {
   }, [clearWakeRestartTimer, setWakeStatus]);
 
   const handleHotkeyDown = useCallback(async () => {
+    if (useCompanionStore.getState().voiceState !== "idle") return;
     elevenLabs.warmUp(); // pre-warm AudioContext before mic starts
     const span = startTelemetrySpan("voice.hotkey_down", {
       provider: selectedModel.provider,
@@ -411,21 +443,47 @@ export function useVoice() {
     // Clear any previous error at the start of each new session
     clearError();
 
-    const apiKey =
-      selectedModel.provider === "claude"
-        ? anthropicKey
-        : selectedModel.provider === "grok"
-        ? grokKey
-        : openaiKey;
-    if (!apiKey) {
+    // Read API key state from the live store at call time rather than from the
+    // stale closure — useCallback deps include objects that change every render
+    // (assemblyAI, elevenLabs), so the closure can lag behind store updates.
+    const liveState = useCompanionStore.getState();
+    const apiKey = keyForProvider(selectedModel.provider, {
+      anthropicKey: liveState.anthropicKey,
+      openaiKey: liveState.openaiKey,
+      grokKey: liveState.grokKey,
+      openrouterKey: liveState.openrouterKey,
+    });
+    const providerKeyPresenceKey = keyPresenceProvider(selectedModel.provider);
+    const livePresence = liveState.apiKeyPresence;
+    const providerKeyReady =
+      isLocalProvider(selectedModel.provider) ||
+      Boolean(apiKey) ||
+      Boolean(livePresence[providerKeyPresenceKey]);
+    console.log("[voice] hotkey-down: provider=%s model=%s isLocal=%s apiKey(len)=%d presenceKey=%s presence=%s → ready=%s",
+      selectedModel.provider, selectedModel.modelId,
+      isLocalProvider(selectedModel.provider),
+      apiKey?.length ?? 0,
+      providerKeyPresenceKey,
+      livePresence[providerKeyPresenceKey],
+      providerKeyReady,
+    );
+    if (!providerKeyReady) {
       recordTelemetryEvent("voice.start.blocked", {
         reason: "missing_api_key",
         provider: selectedModel.provider,
       });
       span.end({ blocked: "missing_api_key" });
-      setError(`No API key for ${selectedModel.provider} — open Settings ⚙`);
+      setError(`No API key for ${selectedModel.provider} — add one in Settings ⚙ to start talking`);
       return;
     }
+    // Block early if Cloud STT is selected but no AssemblyAI key is configured.
+    // Failing here avoids a confusing "Listening" flash followed by a buried error.
+    if (sttMode === "Cloud" && !assemblyAiKey.trim()) {
+      setError('Speech recognition needs a key. Go to Settings → Voice and either add an AssemblyAI key for Cloud STT, or download the local Whisper model to use offline.');
+      span.end({ blocked: "no_assemblyai_key" });
+      return;
+    }
+
     setVoiceState("listening");
     setTranscript("");
     setResponse("");
@@ -478,6 +536,8 @@ export function useVoice() {
     anthropicKey,
     openaiKey,
     grokKey,
+    openrouterKey,
+    apiKeyPresence,
     selectedModel,
     assemblyAI,
     elevenLabs,
@@ -491,6 +551,10 @@ export function useVoice() {
   ]);
 
   const handleHotkeyUp = useCallback(async () => {
+    if (useCompanionStore.getState().voiceState === "idle") {
+      await invoke("stop_audio").catch(() => {});
+      return;
+    }
     const turnSpan = startTelemetrySpan("voice.turn", {
       provider: selectedModel.provider,
       modelId: selectedModel.modelId,
@@ -598,7 +662,9 @@ export function useVoice() {
       transcriptLengthBucket: transcript.length < 80 ? "<80" : transcript.length < 500 ? "80-500" : "500+",
     }, turnContext);
 
+    console.log("[voice] transcript result: len=%d, value=%s", transcript.length, JSON.stringify(transcript.slice(0, 80)));
     if (!transcript.trim()) {
+      console.warn("[voice] transcript is empty — aborting (nothing to send to LLM)");
       setVoiceState("idle");
       return;
     }
@@ -659,7 +725,7 @@ export function useVoice() {
           // Resume the agent loop from fresh screen state after the confirmed action.
           // This preserves multi-step agentic tasks across safety gates — the AI
           // re-observes the screen and decides whether further steps are needed.
-          if (verification.success && selectedModel.provider === "claude" && anthropicKey) {
+          if (verification.success && selectedModel.provider === "claude" && apiKeyPresence["anthropic"]) {
             const freshScreens = sortScreens(await captureAllScreens(turnContext));
             if (freshScreens.length > 0) {
               await runComputerUseAgentLoop({
@@ -782,15 +848,9 @@ export function useVoice() {
         // Screenpipe unavailable — continue without memory context
       }
 
-      // OCR the primary screenshot — gives the AI exact text from screen
-      let ocrText = "";
-      if (primaryScreen) {
-        try {
-          ocrText = await invoke<string>("ocr_screenshot", { jpegB64: primaryScreen.data });
-        } catch {
-          // OCR unavailable — continue without text layer
-        }
-      }
+      // OCR every current monitor so secondary-screen text does not disappear
+      // from the prompt when the user is working across displays.
+      let ocrText = await readOcrTextForScreens(sorted);
 
       // UIAutomation tree + Set-of-Mark image annotation
       // Draws numbered bounding boxes on the screenshot before sending to the AI so
@@ -805,7 +865,7 @@ export function useVoice() {
           expanded: string | null; focused: boolean;
           selected: boolean | null; automation_id: string | null; scroll_pct: number | null;
         }>>("get_ui_tree");
-        if (rawElements.length > 0 && primaryScreen) {
+        if (rawElements.length >= 3 && primaryScreen) {
           // Annotate screenshot with numbered bounding boxes
           const somResult = await annotateSom(
             primaryScreen.data,
@@ -955,12 +1015,48 @@ export function useVoice() {
 
       sqliteMemoryRef.current = sqliteMemory;
 
+      let ambientContext = "";
+      if (useCompanionStore.getState().ambientMode) {
+        const rawAmbient = await getAmbientContext(10);
+        ambientContext = isAmbientContextRelevant(transcript, rawAmbient) ? rawAmbient : "";
+      }
+
+      // Dim 13/16: attach a bounded recent visual-history pack only for
+      // temporal/contextual utterances. Text-only providers still get the
+      // keyframe timeline, while multimodal providers also see up to 3 thumbs.
+      let temporalContext = "";
+      let temporalImageKeyframes: number[] = [];
+      try {
+        const temporalPacket = await getTemporalSnapshotContext({
+          maxKeyframes: 24,
+          maxChars: 1200,
+          maxImages:
+            selectedModel.supportsVision && shouldAttachTemporalVisualHistory(transcript)
+              ? 3
+              : 0,
+        });
+        temporalContext = temporalPacket.text;
+        temporalImageKeyframes = temporalPacket.imageKeyframes;
+        if (selectedModel.supportsVision && temporalPacket.images.length > 0) {
+          images = [...images, ...temporalPacket.images];
+        }
+      } catch {
+        temporalContext = "";
+        temporalImageKeyframes = [];
+      }
+
+      const contextDepth = buildContextDepthBlock({
+        screens: sorted,
+        temporalImageKeyframes,
+      });
+
       const compressedContext = await prepareCompressedContext({
         provider: selectedModel.provider,
         modelId: selectedModel.modelId,
         anthropicKey,
         openaiKey,
         grokKey,
+        openrouterKey,
         conversationSummary,
         turns: conversationHistory,
         currentUserPrompt: transcript,
@@ -990,27 +1086,15 @@ export function useVoice() {
       ocrText = compressedContext.blocks.ocrText;
       uiTreeText = compressedContext.blocks.uiTreeText;
 
-      let ambientContext = "";
-      if (useCompanionStore.getState().ambientMode) {
-        const rawAmbient = await getAmbientContext(10);
-        ambientContext = isAmbientContextRelevant(transcript, rawAmbient) ? rawAmbient : "";
-      }
-
-      // Dim 16 — temporal context from rolling video keyframe index. Best-effort:
-      // empty string if video subsystem isn't running. Privacy-flagged keyframes
-      // are filtered server-side by `video_recent_keyframes`.
-      let temporalContext = "";
-      try {
-        temporalContext = await getTemporalContext({ maxKeyframes: 24, maxChars: 1200 });
-      } catch {
-        temporalContext = "";
-      }
-
       let fullResponse = "";
       // Sentence-pipelining: flush TTS as each sentence arrives rather than waiting
       // for the full response. Sentence boundaries: [.!?] followed by whitespace.
       let sentenceBuffer = "";
       const SENTENCE_END = /[.!?]\s/;
+      // Action log: collects every successfully executed computer-use action this
+      // turn (from native Claude/OpenAI loops). Summarised into the saved assistant
+      // text so the next turn sees what was actually done, not just final narration.
+      const executedActionLog: string[] = [];
       const speechLanguagePrompt = buildSpeechLanguagePrompt(speechLanguage);
 
       function flushSentence(text: string) {
@@ -1030,6 +1114,7 @@ export function useVoice() {
         conversationSummary: compressedContext.conversationSummary,
         sessionNotes,
         systemPromptOverride,
+        contextDepth,
         ambientContext,
         temporalContext,
         speechLanguagePrompt,
@@ -1084,9 +1169,12 @@ export function useVoice() {
       const useOpenAINativeComputerLoop =
         selectedModel.provider === "openai" &&
         !!primaryScreen &&
+        sorted.length === 1 &&
         supportsOpenAIComputerUse(selectedModel.modelId);
 
       // Retry once on rate-limit (429) or transient server error (5xx)
+      console.log("[voice] calling LLM: provider=%s model=%s useOpenAINativeLoop=%s",
+        selectedModel.provider, selectedModel.modelId, useOpenAINativeComputerLoop);
       try {
         if (useOpenAINativeComputerLoop && primaryScreen) {
           const initialOpenAIResponse = await sendOpenAIResponse(
@@ -1147,6 +1235,9 @@ export function useVoice() {
               const verification = moondreamSessionLoaded
                 ? await verifyActionLocal(beforeShot, afterShot, describeAgentAction(action))
                 : await verifyAction(beforeShot, afterShot, describeAgentAction(action));
+              if (verification.success) {
+                executedActionLog.push(describeAgentAction(action));
+              }
               await emit("action-verify-result", {
                 success: verification.success,
                 label: action.label,
@@ -1229,10 +1320,16 @@ export function useVoice() {
       void nativeStopReason;
 
       const cleanResponse = stripPoints(fullResponse);
+      // If computer-use executed actions this turn, prepend a hidden-style summary
+      // so subsequent turns see what was actually done (not just final narration).
+      // Without this, the model's "Done!" reply loses all tool context across turns.
+      const persistedAssistant = executedActionLog.length > 0
+        ? `[Actions taken: ${executedActionLog.join("; ")}]\n\n${cleanResponse}`
+        : cleanResponse;
       const completedTurn = {
         clientTurnId: createClientTurnId(),
         userPrompt: transcript,
-        assistantResponse: cleanResponse,
+        assistantResponse: persistedAssistant,
         detectedLang: effectiveSpeechLanguage !== "auto" ? effectiveSpeechLanguage : undefined,
       };
 
@@ -1247,7 +1344,7 @@ export function useVoice() {
       if (!incognitoMode) {
         invoke<number>("save_turn", {
           user: transcript,
-          assistant: cleanResponse,
+          assistant: persistedAssistant,
           screenshotB64: null,
         })
           .then((turnId) => {
@@ -1255,13 +1352,13 @@ export function useVoice() {
             preferenceFeedbackQueue
               .flushTurnId(completedTurn.clientTurnId!, turnId, useCompanionStore.getState())
               .catch(() => {});
-            const combinedText = `${transcript} ${cleanResponse}`;
+            const combinedText = `${transcript} ${persistedAssistant}`;
             if (openaiKey) {
               invoke<number[]>("generate_embedding", { text: combinedText, apiKey: openaiKey })
                 .then((embedding) => invoke("save_embedding", { turnId, embedding }))
-                .catch(() => embedAndSave(turnId, transcript, cleanResponse));
+                .catch(() => embedAndSave(turnId, transcript, persistedAssistant));
             } else {
-              embedAndSave(turnId, transcript, cleanResponse);
+              embedAndSave(turnId, transcript, persistedAssistant);
             }
           })
           .catch(() => {});
@@ -1294,6 +1391,7 @@ export function useVoice() {
         anthropicKey,
         openaiKey,
         grokKey,
+        openrouterKey,
         conversationSummary: compressedContext.conversationSummary,
         turns: completedHistory,
         currentUserPrompt: "",
@@ -1318,7 +1416,7 @@ export function useVoice() {
         );
       });
 
-      if (primaryScreen && selectedModel.provider === "claude" && anthropicKey) {
+      if (primaryScreen && selectedModel.provider === "claude" && apiKeyPresence["anthropic"]) {
         await runComputerUseAgentLoop({
           initialResponse: fullResponse,
           initialNativeToolUses: nativeToolUses,
@@ -1341,6 +1439,7 @@ export function useVoice() {
           setError,
           setPendingComputerAction,
           telemetryContext: turnContext,
+          actionLog: executedActionLog,
         });
       }
 
@@ -1360,10 +1459,12 @@ export function useVoice() {
         speechLanguage: effectiveSpeechLanguage,
       });
     } catch (err) {
-      console.error("[useVoice] AI pipeline error:", err);
+      const rawMsg = err instanceof Error ? err.message : String(err);
+      console.error("[voice] AI pipeline FAILED. provider=%s model=%s error=%s",
+        selectedModel.provider, selectedModel.modelId, rawMsg);
       captureTelemetryError(err, { route: "voice.ai_pipeline", provider: selectedModel.provider, modelId: selectedModel.modelId }, turnContext);
       turnSpan.fail(err, { stage: "ai_pipeline" });
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = rawMsg;
       setError(msg || "AI request failed");
       setVoiceState("idle");
       return;
@@ -1377,6 +1478,8 @@ export function useVoice() {
     anthropicKey,
     openaiKey,
     grokKey,
+    openrouterKey,
+    apiKeyPresence,
     sttMode,
     speechLanguage,
     conversationHistory,
@@ -1466,8 +1569,8 @@ export function useVoice() {
 
   useEffect(() => {
     let cancelled = false;
-    const unlistenDown = listen("hotkey-pressed", handleHotkeyDown);
-    const unlistenUp = listen("hotkey-released", handleHotkeyUp);
+    const unlistenDown = listen("hotkey-pressed", handleHotkeyDown).catch(() => () => {});
+    const unlistenUp = listen("hotkey-released", handleHotkeyUp).catch(() => () => {});
     Promise.all([unlistenDown, unlistenUp])
       .then(async () => {
         if (cancelled) return;
@@ -1491,14 +1594,25 @@ export function useVoice() {
       } else if (voiceState === "idle" && wakeModeEnabledRef.current) {
         handleWakeSegmentComplete();
       }
-    });
+    }).catch(() => () => {});
+    // cpal stream errors (USB mic unplugged, WASAPI exclusive-mode loss) emit
+    // mic-stream-error from audio.rs. Without recovery the UI stays in "listening"
+    // forever — reset state and surface a clear error.
+    const unlistenMicErr = listen<string>("mic-stream-error", (e) => {
+      const { voiceState } = useCompanionStore.getState();
+      invoke("stop_audio").catch(() => {});
+      setVoiceState("idle");
+      setError(`Microphone disconnected: ${String(e.payload).slice(0, 100)}. Check your mic and try again.`);
+      void voiceState;
+    }).catch(() => () => {});
     return () => {
       cancelled = true;
       unlistenDown.then((fn) => fn());
       unlistenUp.then((fn) => fn());
       unlistenVad.then((fn) => fn());
+      unlistenMicErr.then((fn) => fn());
     };
-  }, [handleHotkeyDown, handleHotkeyUp, handleWakeSegmentComplete]);
+  }, [handleHotkeyDown, handleHotkeyUp, handleWakeSegmentComplete, setVoiceState, setError]);
 
   useEffect(() => {
     if (wakeModeEnabled) return;
@@ -1520,7 +1634,7 @@ export function useVoice() {
       if (text?.trim()) {
         elevenLabs.queueSentence(text.trim());
       }
-    });
+    }).catch(() => () => {});
     return () => {
       unlisten.then((fn) => fn());
     };
@@ -1547,7 +1661,7 @@ export function useVoice() {
       state.setResponse(msg);
       elevenLabs.queueSentence(msg);
 
-      if (verification.success && state.selectedModel.provider === "claude" && state.anthropicKey) {
+      if (verification.success && state.selectedModel.provider === "claude" && state.apiKeyPresence?.["anthropic"]) {
         const freshScreens = sortScreens(await captureAllScreens());
         if (freshScreens.length > 0) {
           await runComputerUseAgentLoop({
@@ -1756,6 +1870,7 @@ interface PrepareCompressedContextInput {
   anthropicKey: string;
   openaiKey: string;
   grokKey: string;
+  openrouterKey: string;
   conversationSummary: string;
   turns: ConversationTurn[];
   currentUserPrompt: string;
@@ -1783,6 +1898,7 @@ async function prepareCompressedContext(
     anthropicKey: input.anthropicKey,
     openaiKey: input.openaiKey,
     grokKey: input.grokKey,
+    openrouterKey: input.openrouterKey,
   });
   let nextSummary = mergeRunningSummary(input.conversationSummary, summaryUpdate);
   if (estimateTokens(nextSummary) > SUMMARY_RECOMPRESS_TOKENS) {
@@ -1793,6 +1909,7 @@ async function prepareCompressedContext(
         anthropicKey: input.anthropicKey,
         openaiKey: input.openaiKey,
         grokKey: input.grokKey,
+        openrouterKey: input.openrouterKey,
       })) ?? nextSummary;
   }
 
@@ -1855,6 +1972,14 @@ interface RunComputerUseAgentLoopOptions {
   setError: (msg: string) => void;
   setPendingComputerAction: (pending: ReturnType<typeof createPendingComputerAction>) => void;
   telemetryContext?: TelemetryContext;
+  /**
+   * Optional mutable sink. Each successfully executed action's human-readable
+   * description (`describeAgentAction`) is pushed here. The caller summarises
+   * the array into the persisted assistant turn so the next turn sees what
+   * was actually done — without this, the model only sees its own final
+   * narration and loses tool-use context across turns.
+   */
+  actionLog?: string[];
 }
 
 async function runComputerUseAgentLoop(
@@ -2005,6 +2130,7 @@ async function runComputerUseAgentLoop(
       }, loopSpan.context);
 
       if (verification.success) {
+        opts.actionLog?.push(describeAgentAction(nextAction));
         consecutiveFailures = 0;
         const cuState = useCompanionStore.getState();
         if (shouldUsePreferenceLearning(cuState)) {
@@ -2031,7 +2157,7 @@ async function runComputerUseAgentLoop(
       currentScreens = await recaptureScreens(currentScreens);
       const freshPrimaryScreen = currentScreens[0];
       const [freshOcrText, { uiTreeText: freshUiTreeText, annotatedScreens: loopAnnotatedScreens }] = await Promise.all([
-        readOcrText(freshPrimaryScreen),
+        readOcrTextForScreens(currentScreens),
         readUiTreeWithSom(currentScreens),
       ]);
       currentScreens = loopAnnotatedScreens;
@@ -2052,6 +2178,7 @@ async function runComputerUseAgentLoop(
           sessionNotes: opts.sessionNotes,
           systemPromptOverride: opts.systemPromptOverride,
           speechLanguagePrompt: opts.speechLanguagePrompt,
+          contextDepth: buildContextDepthBlock({ screens: currentScreens }),
           ambientContext: opts.ambientContext,
           ocrText: freshOcrText,
           uiTreeText: freshUiTreeText,
@@ -2323,11 +2450,21 @@ async function readOcrText(screen: CapturedScreen | undefined): Promise<string> 
   }
 }
 
+async function readOcrTextForScreens(screens: CapturedScreen[]): Promise<string> {
+  if (screens.length === 0) return "";
+  const entries = await Promise.all(
+    screens.map(async (screen) => ({
+      screen,
+      text: await readOcrText(screen),
+    }))
+  );
+  return renderMultiScreenOcrContext(entries);
+}
+
 async function readUiTreeWithSom(
   screens: CapturedScreen[]
 ): Promise<{ uiTreeText: string; annotatedScreens: CapturedScreen[] }> {
-  const primary = screens[0];
-  if (!primary) return { uiTreeText: "", annotatedScreens: screens };
+  if (screens.length === 0) return { uiTreeText: "", annotatedScreens: screens };
   try {
     const rawElements = await invoke<
       Array<{
@@ -2335,25 +2472,58 @@ async function readUiTreeWithSom(
         x: number; y: number; width: number; height: number;
         enabled: boolean; checked: string | null; value: string | null;
         expanded: string | null; focused: boolean;
-        selected: boolean | null; automation_id: string | null;
+        selected: boolean | null; automation_id: string | null; scroll_pct?: number | null;
       }>
     >("get_ui_tree");
     if (rawElements.length === 0) return { uiTreeText: "", annotatedScreens: screens };
-    const somResult = await annotateSom(
-      primary.data,
-      rawElements,
-      primary.width,
-      primary.height,
-      primary.label ?? "screen1"
-    );
-    const uiTreeText = buildSomSystemPromptSection(somResult.elements);
-    const annotatedScreens = screens.map((s, i) =>
-      i === 0 ? { ...s, data: somResult.annotatedBase64 } : s
-    );
+    const annotatedScreens = [...screens];
+    const allElements: Awaited<ReturnType<typeof annotateSom>>["elements"] = [];
+    let indexOffset = 0;
+    for (let i = 0; i < screens.length; i++) {
+      const screen = screens[i];
+      const localElements = rawElements
+        .filter((el) => elementCenterIsOnScreen(el, screen))
+        .map((el) => ({
+          ...el,
+          x: el.x - screen.x,
+          y: el.y - screen.y,
+        }));
+      if (localElements.length === 0) continue;
+      const somResult = await annotateSom(
+        screen.data,
+        localElements,
+        screen.width,
+        screen.height,
+        screen.label ?? `screen${i + 1}`
+      );
+      annotatedScreens[i] = { ...screen, data: somResult.annotatedBase64 };
+      allElements.push(
+        ...somResult.elements.map((element) => ({
+          ...element,
+          index: element.index + indexOffset,
+        }))
+      );
+      indexOffset = allElements.length;
+    }
+    const uiTreeText = buildSomSystemPromptSection(allElements);
     return { uiTreeText, annotatedScreens };
   } catch {
     return { uiTreeText: "", annotatedScreens: screens };
   }
+}
+
+function elementCenterIsOnScreen(
+  element: { x: number; y: number; width: number; height: number },
+  screen: CapturedScreen
+): boolean {
+  const cx = element.x + element.width / 2;
+  const cy = element.y + element.height / 2;
+  return (
+    cx >= screen.x &&
+    cx <= screen.x + screen.width &&
+    cy >= screen.y &&
+    cy <= screen.y + screen.height
+  );
 }
 
 function fingerprintAction(action: ResolvedAgentAction): string {
@@ -2375,6 +2545,7 @@ function delay(ms: number): Promise<void> {
 function supportsOpenAIComputerUse(modelId: string): boolean {
   const normalized = modelId.toLowerCase();
   return (
+    normalized.startsWith("gpt-4o") ||
     normalized.startsWith("gpt-5") ||
     normalized.startsWith("o3") ||
     normalized.startsWith("o4") ||

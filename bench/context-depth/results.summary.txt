@@ -1,0 +1,9 @@
+passed=true
+fixtures=25
+multi_monitor_fixtures=12
+top1_window_accuracy=1
+top3_ocr_recall=1
+private_leak_count=0
+base64_leak_count=0
+p95_render_ms=0.078
+max_context_chars=680

@@ -15,15 +15,20 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "tauri:dev": "tauri dev -- --features sqlcipher",
+    "tauri:dev:plain": "tauri dev",
     "test": "vitest run",
     "test:frontend": "vitest run",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml --lib --quiet",
     "test:cross-platform": "vitest run src/__tests__/crossPlatformArchitecture.test.ts",
     "check:dim47-release": "node scripts/run-dim47-release-check.mjs",
+    "bench:dim29-grounding": "node scripts/run-dim29-grounding-benchmark.mjs",
+    "check:dim29-local-vision": "node scripts/check-dim29-local-vision-readiness.mjs",
     "bench:context-depth": "npx tsx bench/context-depth/run.ts",
     "test:ci": "npm run test:frontend -- --reporter=dot && npx tsc --noEmit --pretty false && npm run build && cargo check --manifest-path src-tauri/Cargo.toml --locked && npm run test:rust",
     "test:ui": "vitest --ui",
-    "tauri:release": "tauri build -- --features sqlcipher"
+    "tauri:release": "tauri build -- --features sqlcipher",
+    "installer:local": "powershell -ExecutionPolicy Bypass -File scripts/build-local-installer.ps1"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.74",

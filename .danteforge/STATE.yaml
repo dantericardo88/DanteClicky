@@ -4,6 +4,69 @@ workflowStage: initialized
 currentPhase: 0
 tasks: {}
 auditLog:
+  - "2026-05-10 | codex: Session 40 Dim 29 local vision grounding gate hardened
+    without score inflation. Added 50-fixture grounding manifest, Moondream/
+    UI-TARS/Dante POINT parser-evaluator coverage, strict benchmark and readiness
+    scripts, generated blocked artifacts in docs/local-vision-grounding, refreshed
+    local-vision verification docs, and fixed useVoice.ts so fewer than 3
+    UIAutomation elements trigger the local vision fallback. Current generated
+    gate: grounding report blocked with 50 fixtures, 0 measured predictions,
+    50 missing predictions, scoreCap 8.0; readiness report blocked at 4/10
+    checks passed. Dim 29 remains 8.0 until real local model predictions reach
+    >=70% within 50px with p95 latency/model identity and production [POINT:x,y]
+    telemetry."
+  - "2026-05-10 | codex: Session 38 Dim 47 release-publication gate completed
+    without score inflation. Added per-tag Release workflow concurrency,
+    release-attached SHA256SUMS generation/upload/attestation coverage,
+    draft/prerelease rejection, checksum-content readiness validation, and
+    same-version updater signature probing in the installed-app Platform
+    updater check. Verification: crossPlatformArchitecture 8/8, cargo check
+    --locked, npm run check:dim47-release -- -ReleaseTag v0.1.0 -FailOnBlocked
+    correctly blocked at 8 passed / 11 failed, and npm run test:ci passed with
+    472 frontend tests, TypeScript, Vite build, cargo check, and Rust lib tests
+    135 passed/2 ignored. Session 39 adversarial correction now scores Dim 47
+    at 8.2 and composite at 8.49 because Apple notarization/certificate secrets, Windows signing certificate
+    secrets, the real v0.1.0 signed/notarized release, downloadable release
+    assets/latest.json/SHA256SUMS/trust evidence/attestations, and strict
+    installed-artifact smoke logs are still missing."
+  - "2026-05-10 | codex: Session 35 Dim 47 version/manifest gate completed
+    without score inflation. Added release version/tag parity across
+    package.json, src-tauri/tauri.conf.json, and src-tauri/Cargo.toml, plus
+    mandatory latest.json verification and positive/negative verifier probes.
+    Verification: crossPlatformArchitecture 8/8, npm run check:dim47-release
+    blocked at 5 passed / 11 failed, and npm run test:ci passed with 472
+    frontend tests, production build, cargo check, and Rust lib tests 135
+    passed/2 ignored. Score remains Dim 47 = 8.6 and composite = 8.50 until
+    real signing/notarization credentials, a v* signed release, downloadable
+    release assets/latest.json/trust evidence, and strict installed-artifact
+    smoke logs exist."
+  - "2026-05-10 | codex: Session 34 Dim 47 proof-gate hardening completed
+    without score inflation. Added deterministic latest.json generation,
+    release-attached trust-evidence upload, trust-evidence content validation,
+    and Settings > Platform updater manifest smoke path. Verification:
+    crossPlatformArchitecture 8/8, npx tsc --noEmit, cargo check --locked,
+    synthetic latest manifest fixture, npm run check:dim47-release blocked
+    at 5 passed / 11 failed, and npm run test:ci passed with 472 frontend
+    tests, production build, cargo check, and Rust lib tests 135 passed/2
+    ignored. Score remains Dim 47 = 8.6 and composite = 8.50 because Apple
+    notarization/certificate secrets, Windows signing certificate secrets, a
+    v* signed release, downloadable release assets/latest.json, and strict
+    installed-artifact smoke logs are still missing."
+  - "2026-05-09 | codex: Session 28 Dim 13 Context depth / multi-screenshot
+    promoted 7 -> 9.0. Implemented cursor-aware multi-monitor capture ordering
+    and relabeling, per-screen OCR blocks, context-depth screen inventory,
+    multi-screen Set-of-Mark annotation by monitor bounds, temporal keyframe
+    screen labels and keyframe anchors, bounded recent keyframe image packets
+    for temporal/contextual utterances, and multi-monitor fallback away from
+    OpenAI native computer-use mode. Verification: focused context tests 35/35,
+    bench/context-depth/results.json passed 25 fixtures, 12 multi-monitor,
+    top1 window accuracy 1.0, top3 OCR recall 1.0, private leaks 0, base64 leaks
+    0, p95 render 0.078ms, max context 680 chars; full Vitest 472/472, npx tsc
+    --noEmit, npm run build, cargo check --locked, and cargo test --lib 135
+    passed/2 ignored. Canonical composite 8.46 -> 8.50. Held at 9.0, not
+    higher, until live dual-monitor manual smoke, ambient multi-monitor
+    persistence, and semantic keyframe retrieval proof exist. Next four: Dim 47
+    signed release/manual smoke, Dim 29, Dim 16, Dim 26."
   - "2026-05-09 | codex: Session 27 Dim 47 Cross-platform promoted 8.0 -> 8.6.
     Added portable DANTE_STARTUP_PROBE_PATH support, scripts/ci-runtime-smoke.ps1,
     CI runtime-smoke jobs for Windows/macOS/Linux, release preflight gates for

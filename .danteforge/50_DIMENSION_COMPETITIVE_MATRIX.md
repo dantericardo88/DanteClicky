@@ -20,7 +20,7 @@ Next targets: **Dim 47 signed release/manual smoke**, **Dim 29**, **Dim 16**, **
 
 Current harsh score is **8.49/10**. The matrix math was rechecked at **424.7 / 500** across all 50 dimensions, with **26 dims at 9+**, **20 dims from 8 to <9**, **4 dims from 7 to <8**, and **0 dims under 7**.
 
-Adversarial correction: Dim 47 moves **8.6 -> 8.2**. The release gates are strong, including deterministic `latest.json` generation, release-attached trust-evidence upload, trust-evidence content validation, artifact attestations, SHA-pinned release actions, per-tag release concurrency, release-attached `SHA256SUMS`, draft/prerelease rejection, checksum validation, and an installed-app updater manifest smoke path that can prove same-version platform signatures. But the current evidence is still pre-release readiness, not a real signed/notarized release: no v* tag, no GitHub release, no downloadable verified assets, and no installed-artifact smoke logs. Dim 29 still needs local-vision grounding parity evidence; Dim 16 still needs live/semantic temporal-context proof; Dim 26 still needs robust non-UIA/object-region grounding and live replay evidence.
+Adversarial correction: Dim 47 moves **8.6 -> 8.2**. The release gates are strong, including deterministic `latest.json` generation, release-attached trust-evidence upload, trust-evidence content validation, artifact attestations, SHA-pinned release actions, per-tag release concurrency, release-attached `SHA256SUMS`, draft/prerelease rejection, checksum validation, and an installed-app updater manifest smoke path that can prove same-version platform signatures. But the current evidence is still pre-release readiness, not a real signed/notarized release: no v* tag, no GitHub release, no downloadable verified assets, and no installed-artifact smoke logs. Dim 29 now has a strict 50-fixture local-vision grounding gate, but still needs real local predictions and production `[POINT:x,y]` telemetry; Dim 16 still needs live/semantic temporal-context proof; Dim 26 still needs robust non-UIA/object-region grounding and live replay evidence.
 
 Canonical JSON: `.danteforge/50_DIMENSION_COMPETITIVE_MATRIX.json`. Full chat render JSON: `.danteforge/latest-matrix-chat-render.json`.
 
@@ -35,6 +35,27 @@ Blockers:
 - missing Apple Developer/notarization secrets and Windows signing certificate secrets;
 - no downloadable signed/notarized release assets, `latest.json`, `SHA256SUMS`, trust-evidence logs, or release attestations from a real release;
 - no strict installed-artifact manual smoke logs for Windows, macOS, and Linux.
+
+### Session 40 Dim 29 Local Vision Grounding Gate - 2026-05-10
+
+Score remains **8.0/10**, not 9+. This pass improved the proof machinery, not the model-performance evidence.
+
+New repo evidence:
+
+- `bench/local-vision/dim29-grounding-fixtures.json` defines 50 canonical GUI grounding fixtures at a strict 50px tolerance.
+- `src/lib/localVisionGrounding.ts` parses Moondream XML, bare x/y, normalized CSV, DanteClicky `[POINT:x,y]`, pixel coordinates, and UI-TARS `start_box` action outputs.
+- `scripts/run-dim29-grounding-benchmark.mjs` writes `docs/local-vision-grounding/dim29-grounding-results.json`.
+- `scripts/check-dim29-local-vision-readiness.mjs` writes `docs/local-vision-grounding/dim29-readiness.json` and blocks 9+ until benchmark, latency, model identity, and production point-hint telemetry are present.
+- `useVoice.ts` now routes fewer than 3 UIAutomation elements through local vision, matching the documented "no/few elements" fallback.
+
+Current generated gate:
+
+- Grounding report: **blocked**, 50 fixtures, 0 measured predictions, 50 missing predictions, score cap 8.0.
+- Readiness report: **blocked**, 4/10 checks passed, 6 failed.
+- Passing checks: benchmark report exists, 50 fixtures exist, max tolerance is 50px, and no parse errors exist.
+- Failing checks: 50 measured predictions, >=70% pass rate, no missing predictions, p95 latency evidence, local model identity, and production point-hint telemetry.
+
+Why still **8.0**: the repo proves real local Moondream2 caption inference, but this pass did not produce real local coordinate predictions or a passing 50-fixture grounding benchmark. UI-TARS parity remains unproven until `npm run check:dim29-local-vision -- --failOnBlocked` is green against real local model outputs.
 
 ### Session 38 Dim 47 Release-Publication Gate - 2026-05-10
 
@@ -486,15 +507,15 @@ CLI parity notes:
 
 ## Competitor Composite Scores
 
-Current harsh composite: **8.49/10**. Updated 2026-05-10T06:28:19.097Z from canonical JSON.
+Current harsh composite: **8.49/10**. Updated 2026-05-10T10:40:33.269Z from canonical JSON.
 
-Closed/source-available competitors: Screenpipe, Cluely, Raycast AI, Wispr Flow, Clicky macOS
-Open-source competitors: Pluely, UI-TARS Desktop, Open Interpreter, Goose (Block)
+Closed/source-available competitors: Cluely, Raycast AI, Wispr Flow, Clicky macOS
+Open-source competitors: Screenpipe, Pluely, UI-TARS Desktop, Open Interpreter, Goose (Block)
 
 | Rank | Product | Type | Composite | DC Lead |
 |-----:|---------|------|----------:|--------:|
 | 1 | DanteClicky | Desktop Tauri | 8.49 | - |
-| 2 | Screenpipe | Closed/source-available | 5.64 | +2.85 |
+| 2 | Screenpipe | Open source | 5.64 | +2.85 |
 | 3 | UI-TARS Desktop | Open source | 5.32 | +3.17 |
 | 4 | Clicky macOS | Closed/source-available | 5.24 | +3.25 |
 | 5 | Cluely | Closed/source-available | 5.12 | +3.37 |
@@ -575,7 +596,7 @@ Open-source competitors: Pluely, UI-TARS Desktop, Open Interpreter, Goose (Block
 | Priority | Dim | What | Current | Target | Why |
 |---------:|----:|------|--------:|-------:|-----|
 | 1 | 47 | Cross-platform signed release and manual smoke | 8.2 | 9 | Release gates are strong and now committed locally, but the gate is still blocked by Apple notarization credentials/certificate, Windows signing certificate, tagged signed/notarized release artifacts, latest.json/SHA256SUMS/trust evidence/attestation proof, and dated installed-artifact smoke logs for Windows, macOS, and Linux. |
-| 2 | 29 | Local vision model to UI-TARS parity | 8 | 9 | Real local Moondream inference exists, but the harsh cap stays until grounding benchmark stability, coordinate accuracy, and/or a stronger UI-TARS-class local coordinate decoder are proven across multi-fixture desktop tasks. |
+| 2 | 29 | Local vision model to UI-TARS parity | 8 | 9 | Strict 50-fixture grounding/readiness gate now exists, but it is blocked until real local model predictions reach >=70% within 50px and production point-hint telemetry proves the app path. |
 | 3 | 16 | Video / temporal context proof-hardening | 8.7 | 9+ | Implementation is close, but needs live-screen/manual smoke, ignored real-display test evidence, perf evidence, and semantic keyframe retrieval over OCR/captions to remove the 8.7 cap. |
 | 4 | 26 | GUI grounding / Set-of-Mark hardening | 8.5 | 9 | Multi-screen SoM is in place, but 9 needs robust non-UIA labels, object-region fallback, and live desktop replay evidence that closes the gap with UI-TARS-style visual grounding. |
 

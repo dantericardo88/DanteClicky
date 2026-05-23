@@ -1,7 +1,62 @@
 # DanteClicky OSS Intelligence Report
-> Generated: 2026-05-05 | 9 repos catalogued | Wave 1 OSS Harvest
+> Generated: 2026-05-05 | Updated: 2026-05-08 | 12 repos catalogued | Wave 6 Computer-Use Architecture Harvest (cua)
 
 ---
+
+## Wave 6 Computer-Use Architecture Harvest (trycua/cua) - 2026-05-08
+
+| Source | Pattern | Adopted for Dim |
+|--------|---------|-----------------|
+| `cua_agent/callbacks/base.py` | `AsyncCallbackHandler` 16-hook lifecycle protocol (on_run_start/end, on_llm_start/end, on_computer_call_start/end, on_screenshot, on_usage, on_api_start/end, etc.) | New `AgentCallbackHandler` TS interface + `AgentCallbackChain` dispatcher — Dim 50 Extensibility (~6 → 9.0), Dim 27 Agentic loops (9.0 → 9.6) |
+| `cua_agent/callbacks/operator_validator.py` | Action-shape normalization (`left_click`→`click`+button, hotkey aliases, coordinate flatten, required-key whitelist) | `OperatorNormalizerCallback` — avoids LLM correction round-trips on malformed computer calls — Dim 28 Computer-Use Safety (9.0 → 9.5) |
+| `cua_agent/callbacks/pii_anonymization.py` | Symmetric anonymize-on-send / deanonymize-on-tool-call pattern (text + image redaction with reversible mapping) | `PIIAnonymizationCallback` — wraps existing `redactText` (telemetry.ts:855); image redaction via Canvas overlay reusing somAnnotator pipeline — Dim 36 Privacy (9.3 → 9.6) |
+| `cua_agent/callbacks/budget_manager.py` | Per-run dollar-cost tracking with `BudgetExceededError`, configurable reset_after_each_run | `BudgetManagerCallback` consuming `on_usage` — feeds existing telemetry as `agent.budget.tick`/`exceeded` events |
+| `cua_agent/callbacks/image_retention.py` | Orphan-pair removal: `call_id`-matched `computer_call`+`computer_call_output`+preceding `reasoning` trio trimming, not just turn-counting | `ImageRetentionCallback` — coexists with existing `contextCompression.ts` 6-turn window; sharper per-image trim — Dim 23 Context Compression (9.0 → 9.3) |
+| `cua_agent/callbacks/trajectory_saver.py` | `sanitize_image_urls` recursive helper + full step-by-step audit log to disk | `TrajectorySaverCallback` + new SQLite `agent_trajectories` table — Dim 28 Safety (9.0 → 9.4), Dim 45 Observability (9.2 → 9.7) |
+| `cua_agent/decorators.py` | `@register_agent(models=regex, priority=N, tool_type)` decorator-based model registry with regex matching and priority ordering | TS `registerAgent({modelRegex, priority, toolType, adapter})` — replaces hardcoded provider branching in `chat.ts` — Dim 49 Model Coverage (~7 → 8.5), Dim 50 Extensibility |
+| `cua_agent/loops/base.py` | `AsyncAgentConfig` protocol: `predict_step`, `predict_click`, `get_capabilities` | TS `AsyncAgentConfig` interface as the plugin API for adding new vendor support |
+| `cua_agent/loops/composed_grounded.py` | Two-stage loop: thinking model emits `element_description` strings → grounding model resolves to (x,y); `GROUNDED_COMPUTER_TOOL_SCHEMA` as element-description-based tool schema | `composedGroundedLoop.ts` using existing `somAnnotator.ts` (UIAutomation+SoM) → Moondream2 fallback for Chromium/games — Dim 27 Agentic loops accuracy lift |
+| `mcp-server/mcp_server/session_manager.py` | `SessionManager` + `ComputerPool` — per-session computer instances with idle cleanup and max-concurrent limits | Rust refactor of `mcp_server.rs` from `Arc<Mutex<HashMap<String, broadcast::Sender>>>` to explicit pool + session lifecycle — multi-tenant readiness |
+| `cua_agent/human_tool/server.py` | Local websocket server for human-in-the-loop approvals (decoupled from console input) | `human_tool.rs` + `HumanApprovalSurface.tsx` ambient overlay — replaces synchronous text confirmation in `agentLoop.ts:386` — Dim 38 Ambient UX (7 → 8.5) |
+
+**License:** MIT (Cua AI, Inc., 2025) — verified at `/tmp/oss-research-cua/LICENSE.md`. 15.8k★. Third-party components (Kasm: MIT, OmniParser: CC-BY-4.0, optional ultralytics: AGPL-3.0) are NOT being adopted.
+
+**Plan reference:** `C:/Users/richa/.claude/plans/foamy-foraging-lynx.md` — full execution map with phases, worktrees, verification gates.
+
+**Outcome target:** composite **7.81 → 8.5/10**. Phase 0a metadata landed 2026-05-08. Phase 0b foundation (`agentCallbacks.ts` + `OperatorNormalizerCallback`) follows. Phases 1+2 dispatched via `/party` across worktrees `wt-cua-pii / wt-cua-budget / wt-cua-retention / wt-cua-trajectory / wt-cua-grounded / wt-cua-registry / wt-cua-mcp / wt-cua-human`. Final gates: `npx tsc --noEmit`, `npm test` (≥358 tests), `npm run build`, `cargo test --lib`, `cargo build`, `/score` ≥ 8.3, `/adversarial-score` clean on Dim 27/28/36/45.
+
+**Explicit non-goals** (documented to prevent scope creep):
+- NOT porting Lume/Lumier (macOS Apple Silicon VM management)
+- NOT porting Swift `cua-driver` (macOS-native AX surfaces; we use UIAutomation)
+- NOT adopting OmniParser (CC-BY-4.0 attribution overhead; somAnnotator is sufficient)
+- NOT adopting Presidio for PII (not Windows-friendly; regex+OCR coverage suffices)
+- NOT porting all 21 vendor agent loops — only 3 prioritized (Gemini direct, Qwen3-VL, UI-TARS-2)
+- NOT replacing `contextCompression.ts` — image retention coexists, doesn't replace
+- NOT porting cuabotd.ts as a separate daemon — multi-agent ideas absorbed into ambient mode
+
+---
+
+## Wave 4 Preference Learning Harvest - 2026-05-07
+
+| Source | Pattern | Adopted for Dim 33 |
+|--------|---------|--------------------|
+| mem0 | Multi-level user/session/agent memory that continuously learns preferences and adapts future responses | Added a persistent preference profile injected into future prompts, not just raw liked examples |
+| Letta | Stateful agents with advanced memory that learn and self-improve over time | Added local feedback events as durable learning signals across sessions |
+| OpenAkita | Distinguishes memory types including Preference, Rule, Persona trait, and Experience | Added derived `preference_traits` rather than storing only untyped ratings |
+| RayClaw | Structured memory rows, explicit remember fast path, confidence/lifecycle controls | Added confidence/support/conflict/decay/status fields, editable lifecycle controls, and evidence review |
+
+Outcome: Dimension 33 was harshly corrected from the previous matrix's over-generous 9 to an honest 8.0 pre-sprint, then moved to **9.1** after implementation and verification. Final gates: `npx tsc --noEmit --pretty false`, `npm test -- --reporter=dot` (17 files, 157 tests), `npm run build`, and `cargo test --manifest-path src-tauri\Cargo.toml --lib --quiet` (27 Rust tests). The remaining 10/10 gaps are live desktop preference replay, longitudinal confidence/decay calibration on real usage, and production-scale DB migration replay.
+
+## Wave 5 Multilingual Speech Harvest - 2026-05-07
+
+| Source | Pattern | Adopted for Dim 8 |
+|--------|---------|-------------------|
+| OpenAI Whisper README | Keep `.en` models for explicit English but use multilingual checkpoints for non-English and language-specified transcription | Local model downloader now selects `openai/whisper-tiny.en` for English and `openai/whisper-tiny` for auto/non-English selections |
+| OpenAI Whisper decode flow | Language can be specified; low-level flow exposes language detection and decode control | Candle Whisper path now resolves selected language tokens and auto-detects a language token from decoder logits when language is Auto |
+| AssemblyAI U3 Pro Streaming docs | `speech_model=u3-rt-pro`, language detection, and custom prompt hints are first-class streaming parameters | AssemblyAI WebSocket URL now includes U3 Pro, language detection, and selected-language prompt hints |
+| AssemblyAI U3 Pro migration guide | U3 Pro natively code-switches across six major languages and uses prompt guidance rather than old language switching | Cloud STT now uses one streaming model with prompt-based language steering instead of separate provider modes |
+
+Outcome: Dimension 8 moved from **3** to **9.1** after implementation and verification. Final gates: `npx tsc --noEmit --pretty false`, `npm test -- --reporter=dot` (19 files, 170 tests), `npm run build`, and `cargo test --manifest-path src-tauri\Cargo.toml --lib --quiet` (36 Rust tests). Remaining 10/10 gaps are live multilingual microphone E2E, transcript-language confidence UI, and app-wide UI localization.
 
 ## Repos Catalogued
 
@@ -16,6 +71,36 @@
 | [whisper-cpp-plus-rs](https://github.com/operator-kit/whisper-cpp-plus-rs) | 200+ | MIT | Whisper + VAD + streaming |
 | [whisper-rs](https://github.com/tazz4843/whisper-rs) | 1k+ | MIT | whisper.cpp Rust bindings |
 | [CapSoftware/scap](https://github.com/CapSoftware/scap) | 500+ | MIT | Cross-platform capture |
+| [cline/cline](https://github.com/cline/cline) | not recorded | Apache-2.0 | Context-window auto-compact + agent safety policy |
+| [xlang-ai/OSWorld](https://github.com/xlang-ai/OSWorld) | not recorded | Apache-2.0 | Desktop-agent token limiting + pending safety checks |
+| [trycua/cua](https://github.com/trycua/cua) | 15.8k | MIT | Computer-use agent framework: callback lifecycle, composed-grounded loop, MCP session manager, agent registry, 21 vendor loops |
+
+---
+
+## Wave 3 Computer-Use Safety Harvest - 2026-05-07
+
+| Source | Pattern | Adopted for Dim 28 |
+|--------|---------|--------------------|
+| Cline `autoApprove.ts` / command permissions | Deny-before-allow policy and explicit risk categories for irreversible side effects | Added non-confirmable tier-4 block path for screen prompt injection, credential exfiltration, and system compromise |
+| Cline auto-approve docs | Warn about unrestricted approvals for deletion, system settings, network requests, package install/uninstall, and pushes | Expanded safety taxonomy beyond the previous narrow regex set |
+| OSWorld OpenAI CUA adapters | Preserve `pending_safety_checks` and echo them as `acknowledged_safety_checks` in computer-call outputs | DanteClicky now carries OpenAI pending safety checks through `computer_call_output` |
+| OSWorld trajectory logging pattern | Treat each action as an auditable safety step with provider call identity | Safety events now distinguish blocked actions from confirmable pending actions, with provider call identity preserved |
+
+Outcome: Dimension 28 moved from 7 to 9 in the canonical matrix after implementation and verification. The remaining 10/10 gaps are live desktop E2E safety replay, a configurable app/window/resource boundary policy, and a screenshot-backed safety audit UI.
+
+---
+
+## Wave 2 Context Compression Harvest - 2026-05-07
+
+| Source | Pattern | Adopted for Dim 23 |
+|--------|---------|--------------------|
+| Cline `docs/features/auto-compact.mdx` | Compact as the context window approaches pressure, preserve technical task state, and fall back to rule-based truncation when needed | Reconfirmed token/turn trigger plus fallback summarizer as table stakes, not enough for 9+ alone |
+| Cline `context-window-utils.ts` | Reserve output and tool headroom before deciding usable input budget | Added conservative response, prompt-scaffold, and image/screenshot reserves before context block allocation |
+| Cline `contextManagement.ts` | Summary prompts preserve requests, files, technical concepts, pending work, and next step | Kept summary merging structured and added duplicate paragraph suppression |
+| OSWorld `MessageTokenLimiter` | Apply explicit token caps, minimum thresholds, and measurable savings | Added hard-limit planning, per-block original/deduped/final token stats, pressure ratio, and saved-token audit |
+| OSWorld `TextMessageCompressor` | Compress text blocks only when needed and report compression behavior | Added priority-aware UI/OCR/memory block budgets with truncation and line-dedup audit flags |
+
+Outcome: Dimension 23 moved from 7 to 9 in the canonical matrix after implementation and verification. The remaining 10/10 gaps are exact tokenizer parity and live long-session desktop E2E.
 
 ---
 
@@ -150,4 +235,4 @@ Comparing against all 9 repos:
 
 ---
 
-*Registry: `.danteforge/oss-registry.json` | 9 repos catalogued, all MIT/Apache-2.0*
+*Registry: `.danteforge/oss-registry.json` | 11 repos catalogued, all MIT/Apache-2.0*

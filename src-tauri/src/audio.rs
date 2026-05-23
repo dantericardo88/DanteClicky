@@ -221,6 +221,7 @@ fn build_stream_f32<R: Runtime>(
     agc: Arc<Mutex<AutoGain>>,
     vad_enabled: Arc<AtomicBool>,
 ) -> Result<cpal::Stream, String> {
+    let app_err = app.clone();
     device
         .build_input_stream(
             config,
@@ -242,7 +243,11 @@ fn build_stream_f32<R: Runtime>(
                 push_f32_to_acc(&acc, &mono_f32);
                 emit_audio_level(&app, &mono_f32);
             },
-            |e| eprintln!("[audio] F32 stream error: {e}"),
+            move |e| {
+                let msg = e.to_string();
+                log::error!("[audio] F32 stream error: {msg}");
+                app_err.emit("mic-stream-error", msg).ok();
+            },
             None,
         )
         .map_err(|e| e.to_string())
@@ -259,6 +264,7 @@ fn build_stream_i16<R: Runtime>(
     agc: Arc<Mutex<AutoGain>>,
     vad_enabled: Arc<AtomicBool>,
 ) -> Result<cpal::Stream, String> {
+    let app_err = app.clone();
     device
         .build_input_stream(
             config,
@@ -286,7 +292,11 @@ fn build_stream_i16<R: Runtime>(
                 push_f32_to_acc(&acc, &mono_f32);
                 emit_audio_level(&app, &mono_f32);
             },
-            |e| eprintln!("[audio] I16 stream error: {e}"),
+            move |e| {
+                let msg = e.to_string();
+                log::error!("[audio] I16 stream error: {msg}");
+                app_err.emit("mic-stream-error", msg).ok();
+            },
             None,
         )
         .map_err(|e| e.to_string())
@@ -303,6 +313,7 @@ fn build_stream_u16<R: Runtime>(
     agc: Arc<Mutex<AutoGain>>,
     vad_enabled: Arc<AtomicBool>,
 ) -> Result<cpal::Stream, String> {
+    let app_err = app.clone();
     device
         .build_input_stream(
             config,
@@ -330,7 +341,11 @@ fn build_stream_u16<R: Runtime>(
                 push_f32_to_acc(&acc, &mono_f32);
                 emit_audio_level(&app, &mono_f32);
             },
-            |e| eprintln!("[audio] U16 stream error: {e}"),
+            move |e| {
+                let msg = e.to_string();
+                log::error!("[audio] U16 stream error: {msg}");
+                app_err.emit("mic-stream-error", msg).ok();
+            },
             None,
         )
         .map_err(|e| e.to_string())

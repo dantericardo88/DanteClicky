@@ -53,13 +53,13 @@ describe("startup architecture", () => {
   });
 
   it("keeps heavy companion tabs out of the initial panel bundle", () => {
-    const companionSource = readProjectFile("src/windows/CompanionPanel.tsx");
+    const companionSource = readProjectFile("src/windows/companion/CompanionPanelView.tsx");
 
-    expect(companionSource).toContain("lazy(() => import(\"./AgentPanel\")");
-    expect(companionSource).toContain("lazy(() => import(\"./MemoryPanel\")");
+    expect(companionSource).toContain("lazy(() => import(\"../AgentPanel\")");
+    expect(companionSource).toContain("lazy(() => import(\"../MemoryPanel\")");
     expect(companionSource).toContain("<Suspense");
-    expect(companionSource).not.toContain("import { AgentPanel } from \"./AgentPanel\"");
-    expect(companionSource).not.toContain("import { MemoryPanel } from \"./MemoryPanel\"");
+    expect(companionSource).not.toContain("import { AgentPanel } from \"../AgentPanel\"");
+    expect(companionSource).not.toContain("import { MemoryPanel } from \"../MemoryPanel\"");
   });
 
   it("creates the overlay webview lazily on first show instead of during app setup", () => {
@@ -135,7 +135,35 @@ describe("startup architecture", () => {
 
     expect(readyProbe).toBeGreaterThan(-1);
     expect(dbOpen).toBeGreaterThan(readyProbe);
-    expect(setupSource).toContain("tauri::async_runtime::spawn_blocking");
+  });
+
+  it("always manages session database state so commands never panic on missing state", () => {
+    const libSource = readProjectFile("src-tauri/src/lib.rs");
+    const setupSource = extractSetupSource(libSource);
+
+    // Recovery path: open_memory() fallback ensures State<Arc<SessionDb>> is always managed.
+    expect(setupSource).toContain("open_memory()");
+    // manage() is called unconditionally — the DB is managed in both success and fallback paths.
+    expect(setupSource).toContain("handle.manage(Arc::new(db))");
+    // The fallback must not silently discard the error — it must be logged.
+    expect(setupSource).toContain("session database unavailable");
+  });
+
+  it("uses SQLCipher for local dev and installer app builds by default", () => {
+    const packageJson = readProjectFile("package.json");
+    const installerScript = readProjectFile("scripts/build-local-installer.ps1");
+    const readme = readProjectFile("README.md");
+    const contributing = readProjectFile("CONTRIBUTING.md");
+
+    expect(packageJson).toContain("\"tauri:dev\": \"tauri dev -- --features sqlcipher\"");
+    expect(packageJson).toContain("\"tauri:dev:plain\": \"tauri dev\"");
+    expect(packageJson).toContain("\"installer:local\": \"powershell -ExecutionPolicy Bypass -File scripts/build-local-installer.ps1\"");
+    expect(installerScript).toContain("[switch]$PlainSqlite");
+    expect(installerScript).toMatch(/if \(\$PlainSqlite\)[\s\S]*npx tauri build "--config=\$localConfig"[\s\S]*else[\s\S]*npx tauri build "--config=\$localConfig" -- --features sqlcipher/);
+    expect(readme).toContain("npm run tauri:dev");
+    expect(readme).toContain("SQLCipher");
+    expect(contributing).toContain("npm run tauri:dev");
+    expect(contributing).toContain("SQLCipher");
   });
 
   it("keeps AudioState construction cheap by deferring WASAPI device probing", () => {

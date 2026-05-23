@@ -50,11 +50,14 @@ describe("wake word / always-on architecture", () => {
 
   it("surfaces wake controls and does not promise no wake word absolutely in onboarding", () => {
     const companionSource = readProjectFile("src/windows/CompanionPanel.tsx");
+    const voiceSettingsSource = readProjectFile("src/windows/companion/settings/VoiceAiSettings.tsx");
     const onboardingSource = readProjectFile("src/windows/OnboardingWindow.tsx");
 
-    expect(companionSource).toContain("Wake word");
+    // Wake state flows through CompanionPanel to settings sub-components
     expect(companionSource).toContain("wakeModeEnabled");
     expect(companionSource).toContain("wakeStatus");
+    // "Wake word" label lives in the extracted VoiceAiSettings card
+    expect(voiceSettingsSource).toContain("Wake word");
     expect(onboardingSource).not.toContain("No wake word, no always-on microphone");
     expect(onboardingSource).toContain("wake word is off by default");
   });

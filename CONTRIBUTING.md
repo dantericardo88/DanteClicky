@@ -26,8 +26,10 @@ cd dante-clicky-windows
 npm install
 
 # Start dev server (hot-reload for frontend + Rust)
-npm run tauri dev
+npm run tauri:dev
 ```
+
+`npm run tauri:dev` enables SQLCipher by default so local app runs can open the same encrypted memory database as installed builds. Use `npm run tauri:dev:plain` only for isolated plain-SQLite debugging with a separate test profile.
 
 The app window appears with the overlay companion panel.  Press `Ctrl+Alt+Space` to activate voice input.
 

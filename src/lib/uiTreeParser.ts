@@ -70,7 +70,7 @@ export function parseUiTree(uiTreeText: string): UiElement[] {
 export function buildElementList(elements: UiElement[]): string {
   if (elements.length === 0) return "";
   const lines = elements.map(
-    (e) => `${e.id}. ${e.role} "${e.name}" at center (${e.cx},${e.cy})`
+    (e) => `${e.id}. ${e.role} "${e.name}" at center (${e.cx},${e.cy}) on ${e.screenLabel}`
   );
   return "[clickable elements — reference by number using [ELEM:N]]\n" + lines.join("\n");
 }

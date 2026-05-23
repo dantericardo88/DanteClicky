@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-05-10T07:09:44.597Z",
+  "generatedAt": "2026-05-10T10:40:33.269Z",
   "project": "DanteClicky-Windows",
   "composite": 8.49,
   "previousComposite": 8.5,
   "harshDelta": "-0.01",
-  "verdict": "Harsh score is 8.49/10 after adversarial correction. Dim 47 is 8.2, not 8.6: the repo has strong release gates, but no pushed tagged signed release, verified release assets/latest.json/SHA256SUMS/trust evidence/attestations, or installed-artifact OS smoke logs yet.",
+  "verdict": "Harsh score remains 8.49/10. Dim 29 remains 8.0: a strict 50-fixture local-vision grounding gate now exists, but it is blocked without real predictions and production point-hint telemetry.",
   "competitors": {
     "closed_source": [
       {
@@ -51,58 +51,37 @@
     "dimsAt9Plus": 26,
     "dims8ToLt9": 20,
     "dims7ToLt8": 4,
-    "dimsUnder6": 0,
-    "dims_at_9_plus": 26,
-    "dims_at_8_to_9": 20,
-    "dims_at_7_to_8": 4,
-    "dims_under_7": 0
+    "dimsUnder7": 0,
+    "dimsUnder6": 0
   },
   "nextPriorities": [
     {
-      "rank": 1,
-      "dim": 47,
-      "what": "Cross-platform signed release and manual smoke",
+      "id": 47,
+      "dimension": "Cross-platform signed release and manual smoke",
       "current": 8.2,
       "target": 9,
-      "lift": 0.8,
-      "composite_impact": "+0.02",
-      "effort_days": "1-3 plus credential lead time",
-      "why": "Adversarial recheck lowered Dim 47 to 8.2: release gates are strong, but 9+ requires external Apple/Windows signing credentials, a real signed/notarized v* release, verified release assets/latest.json/SHA256SUMS/trust evidence/attestations, and strict installed-artifact smoke logs.",
-      "reason": "Adversarial recheck lowered Dim 47 to 8.2: release gates are strong, but 9+ requires external Apple/Windows signing credentials, a real signed/notarized v* release, verified release assets/latest.json/SHA256SUMS/trust evidence/attestations, and strict installed-artifact smoke logs.",
-      "why_next": "Highest near-term platform gap, but blocked on external signed release credentials, tag/release execution, and manual OS smoke proof."
+      "why": "Still blocked by real tagged release assets, signing/notarization secrets, attestations, and installed manual smoke proof."
     },
     {
-      "rank": 2,
-      "dim": 29,
-      "what": "Local vision model to UI-TARS parity",
+      "id": 29,
+      "dimension": "Local vision model to UI-TARS parity",
       "current": 8,
       "target": 9,
-      "lift": 1,
-      "composite_impact": "+0.02",
-      "effort_days": "3-5",
-      "why": "Real local Moondream inference exists, but the harsh cap stays until grounding benchmark stability, coordinate accuracy, and/or a stronger UI-TARS-class local coordinate decoder are proven across multi-fixture desktop tasks."
+      "why": "Grounding benchmark and deterministic fallback exist, but live local Moondream inference, richer screenshots, replay evidence, and latency/stability gates remain missing."
     },
     {
-      "rank": 3,
-      "dim": 16,
-      "what": "Video / temporal context proof-hardening",
+      "id": 16,
+      "dimension": "Video / temporal context proof-hardening",
       "current": 8.7,
       "target": 9,
-      "lift": 0.3,
-      "composite_impact": "+0.01",
-      "effort_days": "1-2",
-      "why": "Implementation is close, but needs live-screen/manual smoke, ignored real-display test evidence, perf evidence, and semantic keyframe retrieval over OCR/captions to remove the 8.7 cap."
+      "why": "Needs live/manual smoke on real displays, perf proof, semantic keyframe retrieval, and replayable temporal evidence."
     },
     {
-      "rank": 4,
-      "dim": 26,
-      "what": "GUI grounding / Set-of-Mark hardening",
+      "id": 26,
+      "dimension": "GUI grounding / Set-of-Mark hardening",
       "current": 8.5,
       "target": 9,
-      "lift": 0.5,
-      "composite_impact": "+0.01",
-      "effort_days": "1-2",
-      "why": "Multi-screen SoM is in place, but 9 needs robust non-UIA labels, object-region fallback, and live desktop replay evidence that closes the gap with UI-TARS-style visual grounding."
+      "why": "Needs robust non-UIA labels, object-region fallback, and live replay proof across messy desktop surfaces."
     }
   ],
   "dimensions": [
@@ -307,7 +286,8 @@
       "domain": "CU",
       "what": "Local vision model",
       "score": 8,
-      "bar": "########--"
+      "bar": "########--",
+      "why_harsh": "Session 40: real local Moondream2 caption inference still supports 8.0, and the repo now has a strict 50-fixture Dim 29 grounding/readiness gate with UI-TARS-style output parsing. Held at 8.0 because the generated gate is blocked: 50 fixtures exist but 0 measured local predictions, no >=70% within 50px benchmark, no p95 latency evidence, no model identity in results, and no production [POINT:x,y] telemetry sample. 9+ requires the gate to go green against real local model outputs."
     },
     {
       "id": 30,
@@ -964,7 +944,7 @@
       "domain": "CU",
       "what": "GUI grounding / Set-of-Mark",
       "DanteClicky": 8.5,
-      "bar": "########--",
+      "bar": "#########-",
       "closed_source": {
         "Cluely": 3,
         "Raycast AI": 2,
@@ -1224,7 +1204,7 @@
       "domain": "UX",
       "what": "Visual design polish",
       "DanteClicky": 8.5,
-      "bar": "########--",
+      "bar": "#########-",
       "closed_source": {
         "Cluely": 7,
         "Raycast AI": 10,
@@ -1463,51 +1443,66 @@
   "sourcesChecked": [
     {
       "competitor": "Screenpipe",
-      "status": "open_source",
-      "source": "https://screenpi.pe/blog/open-source-ai-screen-recorder",
-      "note": "MIT/open-source, local screen+audio capture, cross-platform, developer API."
-    },
-    {
-      "competitor": "Cluely",
-      "status": "closed_source",
-      "source": "https://docs.cluely.com/feature/undectability",
-      "note": "Closed-source meeting assistant; invisibility/undetectability remains key competitive pressure."
-    },
-    {
-      "competitor": "Raycast AI",
-      "status": "closed_source",
-      "source": "https://manual.raycast.com/extensions",
-      "note": "AI Extensions let Raycast choose installed-extension tools from chat/Quick AI."
-    },
-    {
-      "competitor": "Wispr Flow",
-      "status": "closed_source",
-      "source": "https://wisprflow.ai/",
-      "note": "Pure dictation benchmark; 100+ languages and desktop/mobile surfaces."
+      "type": "open_source",
+      "source": "https://github.com/screenpipe/screenpipe",
+      "checkedAt": "2026-05-10",
+      "note": "GitHub repo confirms MIT/open source, local screen/audio memory, macOS/Windows/Linux support claims."
     },
     {
       "competitor": "Pluely",
-      "status": "open_source",
-      "source": "https://github.com/iamsrikanthnani/pluely",
-      "note": "Open-source Cluely alternative; GitHub currently shows GPL-3.0 license, Tauri, stealth overlay claims."
+      "type": "open_source",
+      "source": "https://pluely.com/",
+      "checkedAt": "2026-05-10",
+      "note": "Official site claims GPLv3/open source, Tauri/Rust, cross-platform, stealth overlay, local/privacy posture."
     },
     {
       "competitor": "UI-TARS Desktop",
-      "status": "open_source",
+      "type": "open_source",
       "source": "https://github.com/bytedance/UI-TARS-desktop",
-      "note": "Apache-2.0 multimodal GUI/computer-use stack; strongest pressure on Dim 26 and Dim 29."
+      "checkedAt": "2026-05-10",
+      "note": "GitHub repo confirms public Apache-2.0 multimodal GUI agent stack and native GUI agent focus."
     },
     {
       "competitor": "Open Interpreter",
-      "status": "open_source",
-      "source": "https://www.openinterpreter.com/about",
-      "note": "Desktop document/computer agent with BYOK/local model path and experimental control surfaces."
+      "type": "open_source",
+      "source": "https://github.com/OpenInterpreter/open-interpreter",
+      "checkedAt": "2026-05-10",
+      "note": "GitHub repo confirms AGPL natural-language computer interface and local code/browser/control abilities."
     },
     {
       "competitor": "Goose (Block/AAIF)",
-      "status": "open_source",
-      "source": "https://goose-docs.ai/blog/2026/04/07/goose-moves-to-aaif/",
-      "note": "Open-source agent moved from Block to AAIF; still active and relevant for platform/extensibility pressure."
+      "type": "open_source",
+      "source": "https://github.com/aaif-goose/goose",
+      "checkedAt": "2026-05-10",
+      "note": "GitHub repo confirms Apache-2.0 open-source extensible agent, moved from Block to AAIF."
+    },
+    {
+      "competitor": "Cluely",
+      "type": "closed_source",
+      "source": "https://cluely.com/",
+      "checkedAt": "2026-05-10",
+      "note": "Official site confirms live meeting assistant, real-time answers/notes, undetectability claims."
+    },
+    {
+      "competitor": "Raycast AI",
+      "type": "closed_source",
+      "source": "https://manual.raycast.com/extensions",
+      "checkedAt": "2026-05-10",
+      "note": "Official manual confirms AI Extensions/actioning across installed extensions."
+    },
+    {
+      "competitor": "Wispr Flow",
+      "type": "closed_source",
+      "source": "https://wisprflow.ai/",
+      "checkedAt": "2026-05-10",
+      "note": "Official site confirms voice-to-text AI, Mac/Windows/iPhone/Android availability, 100+ language claim."
+    },
+    {
+      "competitor": "Clicky macOS",
+      "type": "closed_source_or_internal_baseline",
+      "source": "local matrix baseline only",
+      "checkedAt": "2026-05-10",
+      "note": "No external source revalidated in this pass; retained from existing matrix baseline."
     }
   ],
   "legend": {
@@ -1526,5 +1521,343 @@
       "Goose (Block)"
     ]
   },
-  "note": "Harsh score is 8.49/10 after adversarial correction. Dim 47 is 8.2, not 8.6: the repo has strong release gates, but no pushed tagged signed release, verified release assets/latest.json/SHA256SUMS/trust evidence/attestations, or installed-artifact OS smoke logs yet."
+  "note": "Harsh score remains 8.49/10. Dim 29 remains 8.0: a strict 50-fixture local-vision grounding gate now exists, but it is blocked without real predictions and production point-hint telemetry.",
+  "session_40_dim29_grounding_gate": {
+    "dim": 29,
+    "before": 8,
+    "after": 8,
+    "verdict": "Harsh score remains 8.0: Dim 29 now has a strict 50-fixture grounding/readiness gate, but no real local model prediction artifact or production point-hint telemetry is attached yet.",
+    "evidence": [
+      "Added bench/local-vision/dim29-grounding-fixtures.json with 50 canonical GUI grounding fixtures at <=50px tolerance.",
+      "Added scripts/run-dim29-grounding-benchmark.mjs to parse Moondream XML, bare x/y, CSV, DanteClicky [POINT:x,y], and UI-TARS start_box outputs into a repeatable JSON result artifact.",
+      "Added scripts/check-dim29-local-vision-readiness.mjs as the final 9+ gate requiring 50 measured predictions, >=70% pass rate, <=50px tolerance, p95 latency, local model identity, and production point-hint telemetry.",
+      "Generated docs/local-vision-grounding/dim29-grounding-results.json: blocked, 50 fixtures, 0 measured predictions, 50 missing predictions, scoreCap 8.0.",
+      "Generated docs/local-vision-grounding/dim29-readiness.json: blocked, 4/10 checks passed, currentCap 8.0.",
+      "Updated useVoice.ts so UIAutomation-poor means fewer than 3 elements, matching the documented local vision fallback path."
+    ],
+    "readinessReport": "docs/local-vision-grounding/dim29-readiness.json",
+    "groundingReport": "docs/local-vision-grounding/dim29-grounding-results.json",
+    "readinessStatus": "blocked",
+    "passedChecks": 4,
+    "failedChecks": 6,
+    "remainingBlockers": [
+      "50 real local model predictions",
+      ">=70% pass rate within 50px",
+      "per-fixture latencyMs/p95 latency evidence",
+      "local model provider and revision identity",
+      "production point-hint telemetry sample",
+      "no missing predictions"
+    ],
+    "nextAction": "Run the local Moondream2 or UI-TARS-class model across bench/local-vision/dim29-grounding-fixtures.json, write bench/local-vision/dim29-grounding-predictions.jsonl with rawOutput/latency/model identity for all 50 fixtures, attach dated production point-hint telemetry, then rerun npm run bench:dim29-grounding and npm run check:dim29-local-vision -- --failOnBlocked.",
+    "score": 8,
+    "status": "blocked",
+    "generatedAt": "2026-05-10T10:27:23.850Z"
+  },
+  "competitorComposites": {
+    "DanteClicky": 8.49,
+    "Screenpipe": 5.64,
+    "Cluely": 5.12,
+    "Raycast AI": 4.96,
+    "Wispr Flow": 4.2,
+    "Clicky macOS": 5.24,
+    "Pluely": 4.62,
+    "UI-TARS Desktop": 5.32,
+    "Open Interpreter": 4.52,
+    "Goose (Block)": 4.8
+  },
+  "domainScores": {
+    "Voice": {
+      "DanteClicky": 8.3,
+      "Screenpipe": 4,
+      "Cluely": 4.7,
+      "Raycast AI": 4.2,
+      "Wispr Flow": 5.1,
+      "Clicky macOS": 5.9,
+      "Pluely": 3.5,
+      "UI-TARS Desktop": 2.3,
+      "Open Interpreter": 2.7,
+      "Goose (Block)": 2
+    },
+    "Screen": {
+      "DanteClicky": 8.35,
+      "Screenpipe": 7.4,
+      "Cluely": 5.3,
+      "Raycast AI": 4.6,
+      "Wispr Flow": 2.9,
+      "Clicky macOS": 5.2,
+      "Pluely": 5.1,
+      "UI-TARS Desktop": 6.9,
+      "Open Interpreter": 4.1,
+      "Goose (Block)": 4.5
+    },
+    "CU": {
+      "DanteClicky": 8.55,
+      "Screenpipe": 3.2,
+      "Cluely": 3.6,
+      "Raycast AI": 3.7,
+      "Wispr Flow": 1.9,
+      "Clicky macOS": 4.9,
+      "Pluely": 3.3,
+      "UI-TARS Desktop": 7.8,
+      "Open Interpreter": 6,
+      "Goose (Block)": 6
+    },
+    "Memory": {
+      "DanteClicky": 9,
+      "Screenpipe": 7.67,
+      "Cluely": 4.17,
+      "Raycast AI": 4.67,
+      "Wispr Flow": 2.83,
+      "Clicky macOS": 4.17,
+      "Pluely": 4.83,
+      "UI-TARS Desktop": 3.83,
+      "Open Interpreter": 4.17,
+      "Goose (Block)": 5.17
+    },
+    "UX": {
+      "DanteClicky": 8.69,
+      "Screenpipe": 6,
+      "Cluely": 7,
+      "Raycast AI": 6.75,
+      "Wispr Flow": 6.88,
+      "Clicky macOS": 6,
+      "Pluely": 5.38,
+      "UI-TARS Desktop": 4.88,
+      "Open Interpreter": 4.75,
+      "Goose (Block)": 5.38
+    },
+    "Platform": {
+      "DanteClicky": 8.2,
+      "Screenpipe": 7,
+      "Cluely": 6.5,
+      "Raycast AI": 6.83,
+      "Wispr Flow": 6.5,
+      "Clicky macOS": 4.83,
+      "Pluely": 6.67,
+      "UI-TARS Desktop": 5.67,
+      "Open Interpreter": 5.83,
+      "Goose (Block)": 6.83
+    }
+  },
+  "latestValidation": {
+    "validatedAt": "2026-05-10T10:40:33.269Z",
+    "validatedBy": "Codex self-validation, harsh scoring pass",
+    "status": "valid_current_matrix",
+    "canonicalComposite": 8.49,
+    "dimensionCount": 50,
+    "counts": {
+      "dimsAt9Plus": 26,
+      "dims8ToLt9": 20,
+      "dims7ToLt8": 4,
+      "dimsUnder7": 0,
+      "dimsUnder6": 0
+    },
+    "competitorComposites": {
+      "DanteClicky": 8.49,
+      "Screenpipe": 5.64,
+      "Cluely": 5.12,
+      "Raycast AI": 4.96,
+      "Wispr Flow": 4.2,
+      "Clicky macOS": 5.24,
+      "Pluely": 4.62,
+      "UI-TARS Desktop": 5.32,
+      "Open Interpreter": 4.52,
+      "Goose (Block)": 4.8
+    },
+    "domainScores": {
+      "Voice": {
+        "DanteClicky": 8.3,
+        "Screenpipe": 4,
+        "Cluely": 4.7,
+        "Raycast AI": 4.2,
+        "Wispr Flow": 5.1,
+        "Clicky macOS": 5.9,
+        "Pluely": 3.5,
+        "UI-TARS Desktop": 2.3,
+        "Open Interpreter": 2.7,
+        "Goose (Block)": 2
+      },
+      "Screen": {
+        "DanteClicky": 8.35,
+        "Screenpipe": 7.4,
+        "Cluely": 5.3,
+        "Raycast AI": 4.6,
+        "Wispr Flow": 2.9,
+        "Clicky macOS": 5.2,
+        "Pluely": 5.1,
+        "UI-TARS Desktop": 6.9,
+        "Open Interpreter": 4.1,
+        "Goose (Block)": 4.5
+      },
+      "CU": {
+        "DanteClicky": 8.55,
+        "Screenpipe": 3.2,
+        "Cluely": 3.6,
+        "Raycast AI": 3.7,
+        "Wispr Flow": 1.9,
+        "Clicky macOS": 4.9,
+        "Pluely": 3.3,
+        "UI-TARS Desktop": 7.8,
+        "Open Interpreter": 6,
+        "Goose (Block)": 6
+      },
+      "Memory": {
+        "DanteClicky": 9,
+        "Screenpipe": 7.67,
+        "Cluely": 4.17,
+        "Raycast AI": 4.67,
+        "Wispr Flow": 2.83,
+        "Clicky macOS": 4.17,
+        "Pluely": 4.83,
+        "UI-TARS Desktop": 3.83,
+        "Open Interpreter": 4.17,
+        "Goose (Block)": 5.17
+      },
+      "UX": {
+        "DanteClicky": 8.69,
+        "Screenpipe": 6,
+        "Cluely": 7,
+        "Raycast AI": 6.75,
+        "Wispr Flow": 6.88,
+        "Clicky macOS": 6,
+        "Pluely": 5.38,
+        "UI-TARS Desktop": 4.88,
+        "Open Interpreter": 4.75,
+        "Goose (Block)": 5.38
+      },
+      "Platform": {
+        "DanteClicky": 8.2,
+        "Screenpipe": 7,
+        "Cluely": 6.5,
+        "Raycast AI": 6.83,
+        "Wispr Flow": 6.5,
+        "Clicky macOS": 4.83,
+        "Pluely": 6.67,
+        "UI-TARS Desktop": 5.67,
+        "Open Interpreter": 5.83,
+        "Goose (Block)": 6.83
+      }
+    },
+    "nextPriorities": [
+      {
+        "id": 47,
+        "dimension": "Cross-platform signed release and manual smoke",
+        "current": 8.2,
+        "target": 9,
+        "why": "Still blocked by real tagged release assets, signing/notarization secrets, attestations, and installed manual smoke proof."
+      },
+      {
+        "id": 29,
+        "dimension": "Local vision model to UI-TARS parity",
+        "current": 8,
+        "target": 9,
+        "why": "Grounding benchmark and deterministic fallback exist, but live local Moondream inference, richer screenshots, replay evidence, and latency/stability gates remain missing."
+      },
+      {
+        "id": 16,
+        "dimension": "Video / temporal context proof-hardening",
+        "current": 8.7,
+        "target": 9,
+        "why": "Needs live/manual smoke on real displays, perf proof, semantic keyframe retrieval, and replayable temporal evidence."
+      },
+      {
+        "id": 26,
+        "dimension": "GUI grounding / Set-of-Mark hardening",
+        "current": 8.5,
+        "target": 9,
+        "why": "Needs robust non-UIA labels, object-region fallback, and live replay proof across messy desktop surfaces."
+      }
+    ],
+    "scoreCaps": {
+      "dim47": "Cap below 9 until real signed/notarized tagged release assets, checksums/attestations, and installed manual smoke logs are green.",
+      "dim29": "Cap at 8 until live local model inference and stronger grounding benchmark evidence pass readiness."
+    },
+    "externalSourcesChecked": [
+      {
+        "competitor": "Screenpipe",
+        "type": "open_source",
+        "source": "https://github.com/screenpipe/screenpipe",
+        "checkedAt": "2026-05-10",
+        "note": "GitHub repo confirms MIT/open source, local screen/audio memory, macOS/Windows/Linux support claims."
+      },
+      {
+        "competitor": "Pluely",
+        "type": "open_source",
+        "source": "https://pluely.com/",
+        "checkedAt": "2026-05-10",
+        "note": "Official site claims GPLv3/open source, Tauri/Rust, cross-platform, stealth overlay, local/privacy posture."
+      },
+      {
+        "competitor": "UI-TARS Desktop",
+        "type": "open_source",
+        "source": "https://github.com/bytedance/UI-TARS-desktop",
+        "checkedAt": "2026-05-10",
+        "note": "GitHub repo confirms public Apache-2.0 multimodal GUI agent stack and native GUI agent focus."
+      },
+      {
+        "competitor": "Open Interpreter",
+        "type": "open_source",
+        "source": "https://github.com/OpenInterpreter/open-interpreter",
+        "checkedAt": "2026-05-10",
+        "note": "GitHub repo confirms AGPL natural-language computer interface and local code/browser/control abilities."
+      },
+      {
+        "competitor": "Goose (Block/AAIF)",
+        "type": "open_source",
+        "source": "https://github.com/aaif-goose/goose",
+        "checkedAt": "2026-05-10",
+        "note": "GitHub repo confirms Apache-2.0 open-source extensible agent, moved from Block to AAIF."
+      },
+      {
+        "competitor": "Cluely",
+        "type": "closed_source",
+        "source": "https://cluely.com/",
+        "checkedAt": "2026-05-10",
+        "note": "Official site confirms live meeting assistant, real-time answers/notes, undetectability claims."
+      },
+      {
+        "competitor": "Raycast AI",
+        "type": "closed_source",
+        "source": "https://manual.raycast.com/extensions",
+        "checkedAt": "2026-05-10",
+        "note": "Official manual confirms AI Extensions/actioning across installed extensions."
+      },
+      {
+        "competitor": "Wispr Flow",
+        "type": "closed_source",
+        "source": "https://wisprflow.ai/",
+        "checkedAt": "2026-05-10",
+        "note": "Official site confirms voice-to-text AI, Mac/Windows/iPhone/Android availability, 100+ language claim."
+      },
+      {
+        "competitor": "Clicky macOS",
+        "type": "closed_source_or_internal_baseline",
+        "source": "local matrix baseline only",
+        "checkedAt": "2026-05-10",
+        "note": "No external source revalidated in this pass; retained from existing matrix baseline."
+      }
+    ],
+    "gates": {
+      "dim29Readiness": {
+        "command": "npm run check:dim29-local-vision -- --failOnBlocked",
+        "status": "blocked_expected",
+        "passed": 4,
+        "total": 10,
+        "cap": 8
+      },
+      "dim47Release": {
+        "command": "npm run check:dim47-release -- --failOnBlocked",
+        "status": "blocked_expected",
+        "passed": 8,
+        "failed": 11,
+        "cap": 8.2
+      },
+      "adversarialScoreCli": {
+        "command": "danteforge score --adversary --full",
+        "status": "unavailable",
+        "detail": "CLI rejected --adversary as an unknown option; used explicit harsh self-validation plus readiness gates instead."
+      }
+    }
+  },
+  "lastUpdated": "2026-05-10T10:40:33.269Z"
 }

@@ -62,6 +62,17 @@ jobs:
       - name: Cargo lib tests
         run: cargo test --manifest-path src-tauri/Cargo.toml --lib --quiet
 
+      - name: Install cargo-audit (supply chain security — Dim 57)
+        run: cargo install cargo-audit --locked --quiet
+
+      - name: Cargo audit (vulnerability scan)
+        run: cargo audit --manifest-path src-tauri/Cargo.toml --deny warnings
+        continue-on-error: true
+
+      - name: npm audit (JS dependency vulnerability scan — Dim 57)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
   package-smoke:
     name: Tauri package smoke (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

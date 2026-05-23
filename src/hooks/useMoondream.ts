@@ -26,23 +26,21 @@ export function useMoondream() {
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
 
-  // Poll status every 30s
+  // Poll status every 30s — guarded against missing IPC (dev-mode timing race)
   useEffect(() => {
+    if (!(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__) return;
     let isMounted = true;
 
     const pollStatus = async () => {
       try {
         const s = await invoke<MoondreamStatus>("get_moondream_status");
         if (isMounted) setStatus(s);
-      } catch (err) {
-        console.error("Failed to poll moondream status:", err);
+      } catch {
+        // Swallow — moondream may not be loaded yet
       }
     };
 
-    // Initial poll
     pollStatus();
-
-    // Set up interval
     const interval = setInterval(pollStatus, 30000);
 
     return () => {
@@ -51,11 +49,13 @@ export function useMoondream() {
     };
   }, []);
 
-  // Listen to download progress events
+  // Listen to download progress events — guarded against missing IPC
   useEffect(() => {
+    if (!(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__) return;
+
     const unsubscribe = listen<DownloadProgress>("moondream-download-progress", (event) => {
       setDownloadProgress(event.payload);
-    }).catch(console.error);
+    }).catch(() => {});
 
     return () => {
       unsubscribe.then((unsub) => unsub?.());

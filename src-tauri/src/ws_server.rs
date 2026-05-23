@@ -576,6 +576,145 @@ mod tests {
         assert_eq!(int_field(&msg, "val"), Some(99));
     }
 
+    // ── Dim 78: WS bridge throughput gate ────────────────────────────────────
+    // Sends 50 sequential ping messages over one WS connection and asserts
+    // that total wall-clock time < 2 000ms (i.e. throughput > 25 msg/s).
+    // The dispatch loop is synchronous per message so this also validates
+    // backpressure behavior under sequential load.
+
+    // ── Dim 27: Multi-step agentic loops ─────────────────────────────────────
+    // A multi-step agent calls different tools in sequence to accomplish a goal:
+    //   1. ping (health check)
+    //   2. ambient_context (read current state)
+    //   3. video_search (find relevant context)
+    //   4. ping (confirm still alive)
+    // All four steps must succeed in a single WS session.
+
+    #[test]
+    fn test_multistep_agent_loop_four_tools_in_sequence() {
+        use tokio::runtime::Runtime;
+        use tokio_tungstenite::connect_async;
+
+        let rt = Runtime::new().expect("tokio runtime");
+        rt.block_on(async {
+            let db = std::sync::Arc::new(
+                crate::session::SessionDb::open_memory().expect("open memory db")
+            );
+            db.save_ambient_snapshot(
+                "Rust code editor showing agent loop",
+                "VSCode",
+                "hash_multi",
+                Some("Code editor"),
+            ).ok();
+
+            let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
+            let addr = listener.local_addr().expect("local_addr");
+            let db_clone = db.clone();
+
+            // Server handles 4 tools in sequence.
+            tokio::spawn(async move {
+                if let Ok((stream, _)) = listener.accept().await {
+                    if let Ok(ws) = accept_async(stream).await {
+                        let (mut tx, mut rx) = ws.split();
+                        while let Some(Ok(Message::Text(text))) = rx.next().await {
+                            let msg: Value = serde_json::from_str(&text).unwrap_or(Value::Null);
+                            let id = msg.get("id").cloned().unwrap_or(Value::Null);
+                            let tool = msg.get("tool").and_then(|v| v.as_str()).unwrap_or("");
+                            let response = match tool {
+                                "ping" => json!({ "id": id, "ok": true, "result": "pong" }),
+                                "ambient_context" => {
+                                    let minutes = msg.get("minutes").and_then(|v| v.as_i64()).unwrap_or(10);
+                                    ambient_context_from_db(id, &db_clone, minutes, 1200)
+                                }
+                                "video_search" => {
+                                    let query = msg.get("query").and_then(|v| v.as_str()).unwrap_or("");
+                                    video_search_from_db(id.clone(), &db_clone, query, 10)
+                                }
+                                _ => json!({ "id": id, "ok": false, "error": format!("unknown: {tool}") }),
+                            };
+                            let reply = serde_json::to_string(&response).unwrap();
+                            if tx.send(Message::Text(reply.into())).await.is_err() { break; }
+                        }
+                    }
+                }
+            });
+
+            let url = format!("ws://{addr}");
+            let (mut ws, _) = connect_async(&url).await.expect("connect");
+
+            // Step 1: ping
+            ws.send(Message::Text(json!({"id":"s1","tool":"ping"}).to_string().into())).await.ok();
+            let r1: Value = serde_json::from_str(ws.next().await.unwrap().unwrap().into_text().unwrap().as_str()).unwrap();
+            assert_eq!(r1["ok"].as_bool(), Some(true), "step1 ping failed");
+
+            // Step 2: ambient_context
+            ws.send(Message::Text(json!({"id":"s2","tool":"ambient_context","minutes":60}).to_string().into())).await.ok();
+            let r2: Value = serde_json::from_str(ws.next().await.unwrap().unwrap().into_text().unwrap().as_str()).unwrap();
+            assert_eq!(r2["ok"].as_bool(), Some(true), "step2 ambient_context failed");
+            let ctx = r2["result"].as_str().unwrap_or("");
+            assert!(ctx.contains("VSCode"), "ambient_context must include snapshotted window");
+
+            // Step 3: video_search (empty db → 0 results, not an error)
+            ws.send(Message::Text(json!({"id":"s3","tool":"video_search","query":"agent loop"}).to_string().into())).await.ok();
+            let r3: Value = serde_json::from_str(ws.next().await.unwrap().unwrap().into_text().unwrap().as_str()).unwrap();
+            assert_eq!(r3["ok"].as_bool(), Some(true), "step3 video_search failed");
+
+            // Step 4: ping (confirm WS session still alive after multi-step)
+            ws.send(Message::Text(json!({"id":"s4","tool":"ping"}).to_string().into())).await.ok();
+            let r4: Value = serde_json::from_str(ws.next().await.unwrap().unwrap().into_text().unwrap().as_str()).unwrap();
+            assert_eq!(r4["ok"].as_bool(), Some(true), "step4 final ping failed");
+        });
+    }
+
+    #[test]
+    fn test_ws_throughput_50_sequential_under_2s() {
+        use tokio::runtime::Runtime;
+        use tokio_tungstenite::connect_async;
+
+        const N: usize = 50;
+
+        let rt = Runtime::new().expect("tokio runtime");
+        rt.block_on(async {
+            let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
+            let addr = listener.local_addr().expect("local_addr");
+
+            // Echo server: reads one message, replies, loops N times.
+            tokio::spawn(async move {
+                if let Ok((stream, _)) = listener.accept().await {
+                    if let Ok(ws) = accept_async(stream).await {
+                        let (mut tx, mut rx) = ws.split();
+                        while let Some(Ok(Message::Text(text))) = rx.next().await {
+                            let msg: Value = serde_json::from_str(&text).unwrap_or(Value::Null);
+                            let id = msg.get("id").cloned().unwrap_or(Value::Null);
+                            let reply = serde_json::to_string(&json!({
+                                "id": id, "ok": true, "result": "pong"
+                            })).unwrap();
+                            if tx.send(Message::Text(reply.into())).await.is_err() { break; }
+                        }
+                    }
+                }
+            });
+
+            let url = format!("ws://{addr}");
+            let (mut ws, _) = connect_async(&url).await.expect("connect");
+
+            let t0 = std::time::Instant::now();
+            for i in 0..N {
+                let req = json!({ "id": i, "tool": "ping" }).to_string();
+                ws.send(Message::Text(req.into())).await.expect("send");
+                let resp = ws.next().await.expect("response").expect("ok");
+                let parsed: Value = serde_json::from_str(resp.into_text().expect("text").as_str()).expect("json");
+                assert_eq!(parsed.get("ok").and_then(|v| v.as_bool()), Some(true));
+            }
+            let elapsed_ms = t0.elapsed().as_millis();
+
+            assert!(
+                elapsed_ms < 2000,
+                "WS throughput gate: {N} messages took {elapsed_ms}ms (gate: < 2000ms = > 25 msg/s)"
+            );
+        });
+    }
+
     #[test]
     fn test_ws_ping_roundtrip() {
         use tokio::runtime::Runtime;

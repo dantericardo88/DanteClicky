@@ -29,3 +29,4 @@ src-tauri/target/
 *.bin
 # DanteForge worktrees
 wt-*/
+.danteforge/oss-repos/

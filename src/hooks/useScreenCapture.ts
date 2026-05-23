@@ -11,6 +11,7 @@ export interface CapturedScreen {
   y: number;
   scale_factor: number;
   is_primary: boolean;
+  contains_cursor?: boolean;
 }
 
 export async function captureAllScreens(telemetryContext?: TelemetryContext): Promise<CapturedScreen[]> {
@@ -35,7 +36,19 @@ export async function captureAllScreens(telemetryContext?: TelemetryContext): Pr
   }
 }
 
-// Returns the cursor-screen first (primary monitor first, matching macOS behaviour)
+// Returns the primary/cursor screen first and keeps screen labels aligned with
+// the multimodal image order passed to providers.
 export function sortScreens(screens: CapturedScreen[]): CapturedScreen[] {
-  return [...screens].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
+  return [...screens]
+    .sort((a, b) => screenRank(b) - screenRank(a))
+    .map((screen, index) => ({
+      ...screen,
+      label: `screen${index + 1}`,
+    }));
+}
+
+function screenRank(screen: CapturedScreen): number {
+  if (screen.contains_cursor) return 2;
+  if (screen.is_primary) return 1;
+  return 0;
 }

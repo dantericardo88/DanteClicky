@@ -287,7 +287,7 @@ export function useElevenLabs(
       drainQueue();
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [elevenLabsKey]
+    [elevenLabsKey, languageCode, activeVoiceId, activeModelId, activeOutputFormat, activeLatencyOpt]
   );
 
   const stop = useCallback(() => {

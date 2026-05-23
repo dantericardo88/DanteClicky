@@ -55,4 +55,6 @@ export const providerColors: Record<string, string> = {
   claude: "#D97706",
   openai: "#10A37F",
   grok: "#1DA1F2",
+  openrouter: "#7C3AED",
+  ollama: "#C7D2FE",
 };

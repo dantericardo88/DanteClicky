@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  ContextSnapshotZ,
   KeyframeHitZ,
   parseTemporalPhrase,
   SeekResultZ,
@@ -65,6 +66,29 @@ describe("videoSchemas — runtime parsers", () => {
       { keyframe_id: 2, segment_id: 2, pts_ms: 1000, ocr_snippet: "notion" },
     ]);
     expect(arr).toHaveLength(2);
+  });
+
+  it("ContextSnapshotZ preserves monitor and OCR metadata without loose privacy flags", () => {
+    const parsed = ContextSnapshotZ.parse({
+      keyframe_id: 7,
+      segment_id: 4,
+      monitor_idx: 1,
+      start_ts: "2026-05-08T10:00:00",
+      active_window: "Terminal",
+      ocr_snippet: "Deploy succeeded",
+      privacy_flag: "normal",
+      has_thumb: true,
+    });
+
+    expect(parsed.monitor_idx).toBe(1);
+    expect(parsed.ocr_snippet).toContain("Deploy succeeded");
+    expect(parsed.has_thumb).toBe(true);
+    expect(() =>
+      ContextSnapshotZ.parse({
+        ...parsed,
+        privacy_flag: "bogus",
+      })
+    ).toThrow();
   });
 });
 

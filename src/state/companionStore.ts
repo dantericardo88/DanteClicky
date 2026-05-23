@@ -1,12 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { PendingComputerAction } from "../lib/agentLoop";
+import { CURATED_MODELS, type ProviderLocality, type RegistryModel } from "../lib/providerRegistry";
 import type { SpeechLanguageCode, SpeechRecognitionMode } from "../lib/speechLanguages";
 import type { UiElement } from "../lib/uiTreeParser";
 import { DEFAULT_WAKE_PHRASE, type WakeSensitivity, type WakeStatus } from "../lib/wakeWord";
 
 export type VoiceState = "idle" | "listening" | "processing" | "responding";
-export type ProviderType = "claude" | "openai" | "grok";
+export type ProviderType = "claude" | "openai" | "grok" | "openrouter" | "ollama";
+export type ApiKeyProvider = "anthropic" | "openai" | "grok" | "openrouter" | "elevenLabs" | "assemblyAi";
 
 export interface SpeechLanguageDetection {
   mode: SpeechRecognitionMode;
@@ -21,17 +23,24 @@ export interface ModelOption {
   modelId: string;
   displayName: string;
   supportsVision: boolean;
+  supportsComputerUse?: boolean;
+  locality?: ProviderLocality;
+  costHint?: RegistryModel["costHint"];
+  privacyHint?: RegistryModel["privacyHint"];
+  description?: string;
 }
 
-export const MODEL_OPTIONS: ModelOption[] = [
-  { provider: "claude", modelId: "claude-sonnet-4-6",         displayName: "Claude Sonnet 4.6", supportsVision: true },
-  { provider: "claude", modelId: "claude-opus-4-7",           displayName: "Claude Opus 4.7",   supportsVision: true },
-  { provider: "claude", modelId: "claude-haiku-4-5-20251001", displayName: "Claude Haiku 4.5",  supportsVision: true },
-  { provider: "openai", modelId: "gpt-4o",                    displayName: "GPT-4o",            supportsVision: true },
-  { provider: "openai", modelId: "o3",                        displayName: "OpenAI o3",         supportsVision: true },
-  { provider: "grok",   modelId: "grok-2-vision-1212",        displayName: "Grok 2 Vision",     supportsVision: true },
-  { provider: "grok",   modelId: "grok-3",                    displayName: "Grok 3",            supportsVision: false },
-];
+export const MODEL_OPTIONS: ModelOption[] = CURATED_MODELS.map((model) => ({
+  provider: model.provider,
+  modelId: model.modelId,
+  displayName: model.displayName,
+  supportsVision: model.supportsVision,
+  supportsComputerUse: model.supportsComputerUse,
+  locality: model.locality,
+  costHint: model.costHint,
+  privacyHint: model.privacyHint,
+  description: model.description,
+}));
 
 export interface ConversationTurn {
   id?: number;
@@ -68,8 +77,11 @@ interface CompanionState {
   anthropicKey: string;
   openaiKey: string;
   grokKey: string;
+  openrouterKey: string;
   elevenLabsKey: string;
   assemblyAiKey: string;
+  apiKeyPresence: Record<ApiKeyProvider, boolean>;
+  automationSafetyMode: "confirm-actions" | "trusted-assist" | "power-user";
   hotkeyBinding: string;
   hotkeyCombo: string;
 
@@ -208,7 +220,9 @@ interface CompanionState {
   updateConversationTurnId: (index: number, id: number) => void;
   clearConversation: () => void;
   replaceConversationContext: (context: { summary: string; turns: ConversationTurn[] }) => void;
-  setApiKey: (provider: "anthropic" | "openai" | "grok" | "elevenLabs" | "assemblyAi", key: string) => void;
+  setApiKey: (provider: ApiKeyProvider, key: string) => void;
+  setApiKeyPresence: (provider: ApiKeyProvider, present: boolean) => void;
+  setAutomationSafetyMode: (mode: "confirm-actions" | "trusted-assist" | "power-user") => void;
   setError: (msg: string) => void;
   clearError: () => void;
   setPendingComputerAction: (pending: PendingComputerAction) => void;
@@ -254,10 +268,20 @@ export const useCompanionStore = create<CompanionState>()(
       anthropicKey: "",
       openaiKey: "",
       grokKey: "",
+      openrouterKey: "",
       elevenLabsKey: "",
       assemblyAiKey: "",
-      hotkeyBinding: "Ctrl+Alt+Space",
-      hotkeyCombo: "ctrl+alt+space",
+      apiKeyPresence: {
+        anthropic: false,
+        openai: false,
+        grok: false,
+        openrouter: false,
+        elevenLabs: false,
+        assemblyAi: false,
+      },
+      automationSafetyMode: "power-user" as const,
+      hotkeyBinding: "Ctrl+Shift+Space",
+      hotkeyCombo: "ctrl+shift+space",
       ttsMode: "cloud" as const,
       elevenLabsVoiceId: "21m00Tcm4TlvDq8ikWAM", // Rachel — warm, clear
       elevenLabsCustomVoiceId: "",
@@ -265,7 +289,7 @@ export const useCompanionStore = create<CompanionState>()(
       ttsQuality: "balanced" as const,
       vadEnabled: false,
       speechLanguage: "auto" as const,
-      sttMode: "Cloud" as const,
+      sttMode: "Local" as const,
       wakeModeEnabled: false,
       wakePhrase: DEFAULT_WAKE_PHRASE,
       wakeSensitivity: "balanced" as const,
@@ -374,11 +398,18 @@ export const useCompanionStore = create<CompanionState>()(
           anthropic: "anthropicKey",
           openai: "openaiKey",
           grok: "grokKey",
+          openrouter: "openrouterKey",
           elevenLabs: "elevenLabsKey",
           assemblyAi: "assemblyAiKey",
         }[provider] as keyof CompanionState;
-        set({ [field]: key } as Partial<CompanionState>);
+        set((s) => ({
+          [field]: key,
+          apiKeyPresence: { ...s.apiKeyPresence, [provider]: Boolean(key.trim()) },
+        } as Partial<CompanionState>));
       },
+      setApiKeyPresence: (provider, present) =>
+        set((s) => ({ apiKeyPresence: { ...s.apiKeyPresence, [provider]: present } })),
+      setAutomationSafetyMode: (automationSafetyMode) => set({ automationSafetyMode }),
       setError: (msg) => set({ lastError: msg }),
       clearError: () => set({ lastError: "" }),
       setPendingComputerAction: (pendingComputerAction) => set({ pendingComputerAction }),
@@ -408,11 +439,8 @@ export const useCompanionStore = create<CompanionState>()(
       // Only persist user settings and memory, not transient voice state
       partialize: (s) => ({
         selectedModel: s.selectedModel,
-        anthropicKey: s.anthropicKey,
-        openaiKey: s.openaiKey,
-        grokKey: s.grokKey,
-        elevenLabsKey: s.elevenLabsKey,
-        assemblyAiKey: s.assemblyAiKey,
+        apiKeyPresence: s.apiKeyPresence,
+        automationSafetyMode: s.automationSafetyMode,
         hotkeyBinding: s.hotkeyBinding,
         hotkeyCombo: s.hotkeyCombo,
         ttsMode: s.ttsMode,

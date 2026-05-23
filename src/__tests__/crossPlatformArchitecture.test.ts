@@ -204,16 +204,16 @@ describe("cross-platform architecture", () => {
     expect(tauriConfig).not.toContain("danteforge/dante-clicky");
 
     const lib = readProjectFile("src-tauri/src/lib.rs");
-    const companionPanel = readProjectFile("src/windows/CompanionPanel.tsx");
+    const platformStatusCard = readProjectFile("src/windows/companion/settings/PlatformStatusCard.tsx");
     expect(lib).toContain("check_for_update");
     expect(lib).toContain("tauri_plugin_updater::UpdaterExt");
     expect(lib).toContain("reached_manifest");
     expect(lib).toContain("latest_manifest_platform_probe");
     expect(lib).toContain("signature_present");
-    expect(companionPanel).toContain("check_for_update");
-    expect(companionPanel).toContain("Updater manifest");
-    expect(companionPanel).toContain("Manifest reached");
-    expect(companionPanel).toContain("manifestUrl");
+    expect(platformStatusCard).toContain("check_for_update");
+    expect(platformStatusCard).toContain("Updater manifest");
+    expect(platformStatusCard).toContain("Manifest reached");
+    expect(platformStatusCard).toContain("manifestUrl");
   });
 
   it("ships auditable release artifact proof scaffolding", () => {
@@ -314,12 +314,13 @@ describe("cross-platform architecture", () => {
   });
 
   it("surfaces platform capabilities in the visible app UI", () => {
-    const companionPanel = readProjectFile("src/windows/CompanionPanel.tsx");
+    const settingsSection = readProjectFile("src/windows/companion/settings/SettingsSection.tsx");
+    const platformStatusCard = readProjectFile("src/windows/companion/settings/PlatformStatusCard.tsx");
 
-    expect(companionPanel).toContain("get_platform_capabilities");
-    expect(companionPanel).toContain("PlatformCapabilities");
-    expect(companionPanel).toContain("PlatformStatusCard");
-    expect(companionPanel).toContain("overlayStealth");
-    expect(companionPanel).toContain("accessibilityTree");
+    expect(settingsSection).toContain("get_platform_capabilities");
+    expect(settingsSection).toContain("PlatformCapabilities");
+    expect(settingsSection).toContain("PlatformStatusCard");
+    expect(platformStatusCard).toContain("overlayStealth");
+    expect(platformStatusCard).toContain("accessibilityTree");
   });
 });

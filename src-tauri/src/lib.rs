@@ -5,6 +5,7 @@ mod chat_proxy;
 mod computer_use;
 mod cursor;
 mod embedding;
+mod hardware;
 mod hotkey;
 mod input;
 mod keystore;
@@ -15,12 +16,22 @@ mod observability;
 mod ocr;
 mod overlay;
 mod platform;
+pub mod security;
+mod clipboard_guard;
+mod context_awareness;
+mod event_bus;
+mod profiler;
+mod screenpipe_bridge;
+mod task_integrations;
 mod session;
+mod shell_hooks;
+mod workflow_recorder;
 mod stt;
 mod tray;
 mod tts_local;
 mod vad;
 mod video;
+mod wake_word;
 mod whisper_candle;
 mod ws_server;
 
@@ -596,23 +607,31 @@ fn start_audio(
     app: tauri::AppHandle,
     state: tauri::State<'_, Mutex<audio::AudioState>>,
 ) -> Result<(), String> {
+    log::info!("[audio] start_audio called — mic recording starting");
     let mut s = state.lock().unwrap();
+    if s.stream.is_some() {
+        log::warn!("[audio] start_audio — already recording, ignoring duplicate call");
+        return Ok(());
+    }
     let acc = Arc::clone(&s.accumulator);
     let vad_enabled = Arc::clone(&s.vad_enabled);
     // Acquire pre-warmed device (fast path) or fresh device (first-run fallback)
     let (device, config) = s.acquire_device()?;
     let stream = audio::start_with_device(app, device, config, acc, vad_enabled)?;
     s.stream = Some(stream);
+    log::info!("[audio] mic stream started OK");
     Ok(())
 }
 
 #[tauri::command]
 fn stop_audio(state: tauri::State<'_, Mutex<audio::AudioState>>) {
+    log::info!("[audio] stop_audio called — stopping mic");
     let mut s = state.lock().unwrap();
     // Drop stream first so no more audio callbacks push samples
     s.stream = None;
     // Mark accumulator inactive (samples preserved for transcription)
     s.accumulator.lock().unwrap().stop();
+    log::info!("[audio] mic stopped");
 }
 
 /// Download whisper-tiny.en (candle safetensors format) and load it.
@@ -647,7 +666,11 @@ async fn download_whisper_model(
     // Downloading this once guarantees exact byte-for-byte parity with the candle
     // whisper implementation; the local computed filterbank is used as fallback.
     let melfilters_dest = dir.join("melfilters.bytes");
-    if !melfilters_dest.exists() {
+    // melfilters.bytes is always exactly 64320 bytes; re-download if missing or truncated.
+    let melfilters_ok = melfilters_dest.exists()
+        && std::fs::metadata(&melfilters_dest).map(|m| m.len()).unwrap_or(0) == 64320;
+    if !melfilters_ok {
+        let _ = std::fs::remove_file(&melfilters_dest);
         let mf_url = "https://raw.githubusercontent.com/huggingface/candle/main/candle-examples/examples/whisper/melfilters.bytes";
         let res = client
             .get(mf_url)
@@ -663,8 +686,21 @@ async fn download_whisper_model(
     }
     for file in &files {
         let dest = dir.join(file);
+        // Guard against stale partial files from previous crashes.
+        // A truncated model.safetensors triggers a Windows SEH access violation
+        // (not a catchable Rust error) when candle mmaps it — so size matters.
+        let min_size: u64 = match *file {
+            "model.safetensors" => 50_000_000, // whisper-tiny.en ~75 MB, multilingual ~150 MB
+            "tokenizer.json"    => 1_000,
+            _                   => 100,
+        };
         if dest.exists() {
-            continue;
+            let size = std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0);
+            if size >= min_size {
+                continue; // file looks complete
+            }
+            // Truncated/corrupted — delete and re-download
+            let _ = std::fs::remove_file(&dest);
         }
 
         let res = client
@@ -675,32 +711,41 @@ async fn download_whisper_model(
 
         let total = res.content_length().unwrap_or(0);
         let mut stream = res.bytes_stream();
-        let mut data: Vec<u8> = if total > 0 {
-            Vec::with_capacity(total as usize)
-        } else {
-            Vec::new()
-        };
         let mut done: u64 = 0;
 
-        while let Some(chunk) = stream.next().await {
-            let chunk = chunk.map_err(|e| format!("stream {file}: {e}"))?;
-            done += chunk.len() as u64;
-            data.extend_from_slice(&chunk);
-            app.emit(
-                "whisper-download-progress",
-                serde_json::json!({ "file": file, "bytes_done": done, "bytes_total": total }),
-            )
-            .ok();
-        }
+        // Write directly to disk as chunks arrive — avoids buffering the entire
+        // model (~150 MB) in RAM before the first byte touches disk.
+        let tmp_dest = dest.with_extension("tmp");
+        {
+            use std::io::Write;
+            let file_handle = std::fs::File::create(&tmp_dest)
+                .map_err(|e| format!("create {file}: {e}"))?;
+            let mut writer = std::io::BufWriter::new(file_handle);
 
-        std::fs::write(&dest, &data).map_err(|e| format!("write {file}: {e}"))?;
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk.map_err(|e| format!("stream {file}: {e}"))?;
+                done += chunk.len() as u64;
+                writer.write_all(&chunk).map_err(|e| format!("write {file}: {e}"))?;
+                app.emit(
+                    "whisper-download-progress",
+                    serde_json::json!({ "file": file, "bytes_done": done, "bytes_total": total }),
+                )
+                .ok();
+            }
+            writer.flush().map_err(|e| format!("flush {file}: {e}"))?;
+        }
+        std::fs::rename(&tmp_dest, &dest).map_err(|e| format!("rename {file}: {e}"))?;
     }
 
     let dir_str = dir.to_string_lossy().to_string();
-    stt_state
-        .lock()
-        .map_err(|e| e.to_string())?
-        .load_model(&dir_str, requested_language)?;
+    // load_model mmaps and builds the candle graph — CPU-bound blocking work.
+    // block_in_place keeps the Tokio runtime responsive during model load.
+    tokio::task::block_in_place(|| {
+        stt_state
+            .lock()
+            .map_err(|e| e.to_string())?
+            .load_model(&dir_str, requested_language)
+    })?;
     Ok(dir_str)
 }
 
@@ -717,17 +762,24 @@ async fn transcribe_local(
         let acc = a.accumulator.lock().map_err(|e| e.to_string())?;
         (acc.samples.clone(), acc.sample_rate)
     };
+    log::info!("[stt] transcribe_local called — samples={}, rate={}, lang={:?}", samples.len(), sample_rate, language_code);
     if samples.is_empty() {
+        log::warn!("[stt] transcribe_local → no audio samples, returning empty");
         return Ok(String::new());
     }
     // block_in_place: yield the async worker thread for blocking CPU work
-    tokio::task::block_in_place(|| {
+    let result = tokio::task::block_in_place(|| {
         stt_state.lock().map_err(|e| e.to_string())?.transcribe(
             &samples,
             sample_rate,
             language_code.as_deref(),
         )
-    })
+    });
+    match &result {
+        Ok(text) => log::info!("[stt] transcribe_local → OK, transcript_len={}", text.len()),
+        Err(e) => log::error!("[stt] transcribe_local → FAILED: {e}"),
+    }
+    result
 }
 
 #[tauri::command]
@@ -923,8 +975,8 @@ fn ensure_onboarding_window<R: Runtime>(app: &AppHandle<R>) -> Result<WebviewWin
         WebviewUrl::App("index.html?window=onboarding".into()),
     )
     .title("Welcome to DanteClicky")
-    .inner_size(800.0, 560.0)
-    .min_inner_size(800.0, 560.0)
+    .inner_size(880.0, 640.0)
+    .min_inner_size(860.0, 600.0)
     .decorations(false);
     #[cfg(not(target_os = "macos"))]
     let onboarding_builder = onboarding_builder.transparent(true);
@@ -1217,9 +1269,23 @@ fn write_startup_probe_json<R: Runtime>(app: &AppHandle<R>, mut payload: serde_j
     }
 }
 
+/// Returns true when the process was started with `--headless` or `DANTE_HEADLESS=1`.
+/// In headless mode, no windows are created — only the tray icon, hotkeys,
+/// MCP server, and WS bridge start. Useful for CI smoke tests and agent pipelines.
+fn is_headless_mode() -> bool {
+    if std::env::var_os("DANTE_HEADLESS").is_some() {
+        return true;
+    }
+    std::env::args().any(|a| a == "--headless" || a == "--no-gui")
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let startup_started = Instant::now();
+    let headless = is_headless_mode();
+    if headless {
+        log::info!("[startup] headless mode — windows suppressed");
+    }
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
@@ -1245,6 +1311,14 @@ pub fn run() {
         .manage(Mutex::new(moondream::MoondreamState::new()))
         .manage(keystore::KeyStore::new())
         .manage(video::VideoState::default())
+        .manage(wake_word::WakeWordState::default())
+        .manage(event_bus::EventBus::default())
+        .manage(clipboard_guard::ClipboardHistory::default())
+        .manage(workflow_recorder::WorkflowState::default())
+        .manage(screenpipe_bridge::ScreenpipeSubscriptionState::default())
+        .manage(profiler::HeapMonitorState::default())
+        .manage(profiler::MemoryGuardState::default())
+        .manage(profiler::GpuMonitorState::default())
         .invoke_handler(tauri::generate_handler![
             save_turn,
             search_history,
@@ -1253,6 +1327,9 @@ pub fn run() {
             capture_screens,
             check_for_update,
             capture::capture_primary,
+            capture::capture_monitor,
+            capture::list_monitors,
+            capture::capture_secondary_screen,
             start_audio,
             stop_audio,
             show_overlay,
@@ -1282,6 +1359,7 @@ pub fn run() {
             chat_proxy::elevenlabs_add_voice,
             hotkey::set_hotkey,
             hotkey::drain_pending_hotkey_events,
+            hardware::get_hardware_profile,
             ws_server::get_ws_connection_count,
             tts_local::download_kokoro_model,
             tts_local::kokoro_tts,
@@ -1297,6 +1375,9 @@ pub fn run() {
             accessibility::get_ui_tree,
             keystore::set_api_key,
             keystore::clear_api_key,
+            keystore::get_api_key_status,
+            keystore::get_api_key_statuses,
+            keystore::session_clear_keys,
             session::db_new_session,
             session::db_save_message,
             session::db_get_history,
@@ -1351,6 +1432,51 @@ pub fn run() {
             clear_digest,
             get_last_consolidation_time,
             chat_proxy::extract_facts_oneshot,
+            chat_proxy::scan_prompt_for_injection,
+            chat_proxy::compress_context,
+            profiler::heap_stats,
+            profiler::gpu_stats,
+            profiler::start_heap_monitor,
+            profiler::stop_heap_monitor,
+            profiler::start_memory_guard,
+            profiler::stop_memory_guard,
+            profiler::start_gpu_monitor,
+            profiler::stop_gpu_monitor,
+            profiler::is_on_battery,
+            profiler::battery_status,
+            security::sanitize_screen_text,
+            security::scan_and_redact_pii,
+            security::validate_url_security,
+            event_bus::bus_publish,
+            event_bus::bus_recent,
+            shell_hooks::install_shell_hooks,
+            shell_hooks::get_shell_hook_paths,
+            clipboard_guard::read_clipboard_for_ai,
+            clipboard_guard::get_clipboard_history,
+            clipboard_guard::write_clipboard,
+            context_awareness::get_window_context,
+            context_awareness::get_calendar_context,
+            context_awareness::get_calendar_appointments,
+            context_awareness::get_recent_files,
+            context_awareness::send_os_notification,
+            task_integrations::get_github_issues,
+            task_integrations::get_github_issues_summary,
+            task_integrations::get_linear_issues,
+            task_integrations::get_notion_tasks,
+            screenpipe_bridge::screenpipe_status,
+            screenpipe_bridge::screenpipe_search,
+            screenpipe_bridge::screenpipe_recent,
+            screenpipe_bridge::screenpipe_subscribe,
+            screenpipe_bridge::screenpipe_unsubscribe,
+            workflow_recorder::start_recording,
+            workflow_recorder::record_step,
+            workflow_recorder::stop_recording,
+            workflow_recorder::list_workflows,
+            workflow_recorder::load_workflow,
+            workflow_recorder::replay_workflow,
+            wake_word::start_wake_word_monitor,
+            wake_word::stop_wake_word_monitor,
+            wake_word::get_wake_word_status,
             // Ambient / always-on mode
             get_active_window_title,
             session::save_ambient_snapshot,
@@ -1389,9 +1515,28 @@ pub fn run() {
             app.handle().manage(video::VideoPrivacyState::default());
 
             tray::setup(&handle)?;
+            if let Ok(dir) = handle.path().app_local_data_dir() {
+                if let Some(store) = handle.try_state::<keystore::KeyStore>() {
+                    store.configure_storage(dir.join("secrets"));
+                }
+            }
             write_startup_probe_marker(&handle, "tray_ready");
             hotkey::setup(&handle)?;
             write_startup_probe_marker(&handle, "hotkey_registered");
+
+            // ── Dev-mode only: auto-open companion panel so DevTools is reachable
+            // without needing a tray click. Skipped in headless mode.
+            #[cfg(debug_assertions)]
+            if !headless {
+                match crate::ensure_companion_panel(&handle) {
+                    Ok(panel) => {
+                        log::info!("[dev] companion panel auto-opened on startup");
+                        let _ = panel.show();
+                        let _ = panel.set_focus();
+                    }
+                    Err(e) => log::error!("[dev] failed to auto-open companion panel: {e}"),
+                }
+            }
 
             let ready_elapsed = startup_started.elapsed();
             log::info!("startup.ready elapsed_ms={}", ready_elapsed.as_millis());
@@ -1399,20 +1544,20 @@ pub fn run() {
             write_startup_probe(&handle, ready_elapsed);
 
             // ── Session memory database ───────────────────────────────────────
-            // The companion panel is lazy, so database warmup can move behind
-            // native tray/hotkey readiness without delaying cold launch.
-            let db_handle = handle.clone();
-            tauri::async_runtime::spawn_blocking(move || {
-                match session::SessionDb::open(&db_handle) {
-                    Ok(db) => {
-                        db_handle.manage(Arc::new(db));
-                        log::info!("session database initialized");
-                    }
-                    Err(e) => {
-                        log::error!("failed to open session database: {e}");
-                    }
+            // Always managed — either the real file DB or an in-memory fallback.
+            // This guarantees State<Arc<SessionDb>> is never called before manage().
+            let db = match session::SessionDb::open(&handle) {
+                Ok(db) => {
+                    log::info!("session database initialized");
+                    db
                 }
-            });
+                Err(e) => {
+                    log::error!("session database unavailable, using in-memory fallback: {e}");
+                    session::SessionDb::open_memory()
+                        .expect("in-memory SessionDb must always succeed")
+                }
+            };
+            handle.manage(Arc::new(db));
 
             let audio_prewarm_handle = handle.clone();
             tauri::async_runtime::spawn(async move {
@@ -1438,6 +1583,28 @@ pub fn run() {
                 tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                 mcp_server::start(handle3).await;
             });
+
+            // ── Whisper auto-load: if the model was downloaded in a previous
+            // session, load it immediately so transcribe_local works on first use.
+            if let Ok(app_data_dir) = handle.path().app_data_dir() {
+                for lang_code in &[Some("en"), None::<&str>] {
+                    let dir_name = stt::whisper_model_directory_name(*lang_code);
+                    let model_dir = app_data_dir.join(dir_name);
+                    let required = ["model.safetensors", "config.json", "tokenizer.json"];
+                    if required.iter().all(|f| model_dir.join(f).exists()) {
+                        let dir_str = model_dir.to_string_lossy().to_string();
+                        if let Ok(mut s) = handle.state::<Mutex<stt::SttState>>().lock() {
+                            if !s.is_ctx_loaded() {
+                                match s.load_model(&dir_str, *lang_code) {
+                                    Ok(()) => log::info!("[startup] auto-loaded whisper model from {}", dir_str),
+                                    Err(e) => log::warn!("[startup] whisper auto-load failed: {}", e),
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
 
             Ok(())
         })

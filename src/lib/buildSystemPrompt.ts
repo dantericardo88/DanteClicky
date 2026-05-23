@@ -8,6 +8,7 @@ export function buildSystemPrompt(opts: {
   conversationSummary?: string;
   sessionNotes?: string;
   systemPromptOverride?: string;
+  contextDepth?: string;
   ambientContext?: string;
   temporalContext?: string;
   speechLanguagePrompt?: string;
@@ -34,7 +35,7 @@ rules:
 - don't read code verbatim. describe what it does or what needs to change in plain speech.
 - don't end with dead-end questions like "want me to explain more?" or "should i show you?".
 - instead, when it fits naturally, plant a seed — mention something bigger they could try, a related concept that goes deeper, or a next-level technique. it's fine to not add anything if the answer is complete.
-- if you see multiple screen images, the "primary" label is where the cursor is — focus on it, reference others if relevant.
+- if you see multiple screen images, use the context-depth screen inventory to know which image is cursor, primary, or secondary. focus on the cursor screen first, reference others if relevant.
 - never mention "[POINT" tags in your spoken response — they are invisible to the user.
 
 element pointing:
@@ -78,6 +79,9 @@ after you act, expect a follow-up showing what happened — be ready to continue
   }
   if (opts.conversationSummary?.trim()) {
     prompt += `\n\n[earlier in this conversation]\n${opts.conversationSummary.trim()}\n[/earlier in this conversation]`;
+  }
+  if (opts.contextDepth?.trim()) {
+    prompt += `\n\n[context depth - current screens and recent visual history]\n${opts.contextDepth.trim()}\n[/context depth]`;
   }
   if (opts.ocrText?.trim()) {
     prompt += `\n\n[text on screen via ocr]\n${opts.ocrText.trim()}\n[/ocr]`;

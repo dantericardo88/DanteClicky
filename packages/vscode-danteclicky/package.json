@@ -1,0 +1,52 @@
+{
+  "name": "vscode-danteclicky",
+  "displayName": "DanteClicky AI Companion",
+  "description": "Bring DanteClicky's AI computer-use capabilities into VS Code — sidebar chat, screenshot capture, and context-aware prompts.",
+  "version": "0.1.0",
+  "publisher": "danteclicky",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["AI", "Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "danteclicky.ask", "title": "DanteClicky: Ask AI about selection" },
+      { "command": "danteclicky.screenshot", "title": "DanteClicky: Capture screenshot" },
+      { "command": "danteclicky.status", "title": "DanteClicky: Show status" },
+      { "command": "danteclicky.sendWebhook", "title": "DanteClicky: Send current file context" }
+    ],
+    "keybindings": [
+      { "command": "danteclicky.ask", "key": "ctrl+shift+d", "when": "editorTextFocus" }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "danteclicky", "title": "DanteClicky", "icon": "resources/icon.svg" }
+      ]
+    },
+    "views": {
+      "danteclicky": [
+        { "id": "danteclicky.sidebar", "name": "AI Companion", "type": "webview" }
+      ]
+    },
+    "configuration": {
+      "title": "DanteClicky",
+      "properties": {
+        "danteclicky.apiBase": {
+          "type": "string",
+          "default": "http://127.0.0.1:9002",
+          "description": "DanteClicky REST API base URL"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./tsconfig.json",
+    "watch": "tsc -watch -p ./tsconfig.json",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.0.0",
+    "typescript": "^5.0.0"
+  }
+}

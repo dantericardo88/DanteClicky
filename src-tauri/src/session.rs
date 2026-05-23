@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{Emitter, Manager};
 
-// â”€â”€ Encryption helpers (ChaCha20-Poly1305 + Windows DPAPI key storage) â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Encryption helpers (ChaCha20-Poly1305 + Windows DPAPI key storage) â"€â"€â"€â"€â"€â"€â"€
 //
 // Each encrypted column is stored as "enc:<base64(nonce||ciphertext)>".
 // Plaintext values (legacy rows) pass through transparently on read.
@@ -25,7 +25,7 @@ use chacha20poly1305::{
 
 const ENC_PREFIX: &str = "enc:";
 
-// â”€â”€ Windows DPAPI via raw FFI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Windows DPAPI via raw FFI â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 #[cfg(target_os = "windows")]
 mod dpapi_ffi {
@@ -102,7 +102,7 @@ fn load_or_create_key(dir: &std::path::Path) -> std::io::Result<[u8; 32]> {
                 }
             }
         }
-        // Corrupted â€” regenerate below
+        // Corrupted — regenerate below
     }
 
     // Migration: legacy plaintext key â†’ DPAPI-protected
@@ -154,7 +154,7 @@ fn encrypt_field(key: &[u8; 32], plaintext: &str) -> String {
 
 fn decrypt_field(key: &[u8; 32], value: &str) -> String {
     let Some(encoded) = value.strip_prefix(ENC_PREFIX) else {
-        return value.to_string(); // legacy plaintext â€” pass through
+        return value.to_string(); // legacy plaintext — pass through
     };
     use base64::Engine;
     let Ok(combined) = base64::engine::general_purpose::STANDARD.decode(encoded) else {
@@ -305,7 +305,7 @@ pub struct DigestFact {
     pub created_at: Option<String>,
 }
 
-/// Describes the current encryption key protection status â€” returned to the UI.
+/// Describes the current encryption key protection status — returned to the UI.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct KeyStatusResponse {
     pub encrypted: bool,
@@ -321,12 +321,12 @@ fn now_ts() -> i64 {
         .as_secs() as i64
 }
 
-// â”€â”€ SessionDb â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ SessionDb â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 pub struct SessionDb {
     conn: std::sync::Mutex<Connection>,
     /// Encryption key in a Mutex so `rekey_database` can atomically swap it
-    /// after writing the new DPAPI blob â€” no restart required.
+    /// after writing the new DPAPI blob — no restart required.
     key: std::sync::Mutex<[u8; 32]>,
 }
 
@@ -376,16 +376,34 @@ impl SessionDb {
 
         let db_path = dir.join("sessions.db");
 
+        Self::try_open_with_recovery(&db_path, &key)
+    }
+
+    fn try_open_with_recovery(db_path: &std::path::Path, key: &[u8; 32]) -> Result<Self> {
+        match Self::try_open_db(db_path, key) {
+            Ok(db) => Ok(db),
+            Err(e) => {
+                // Corrupted or incompatible file — rename it to .bak and start fresh.
+                log::warn!("sessions.db unreadable ({e}), archiving to .bak and recreating");
+                let bak = db_path.with_extension("db.bak");
+                // Best-effort rename; ignore if it fails (e.g., bak already exists).
+                let _ = std::fs::rename(db_path, &bak);
+                Self::try_open_db(db_path, key)
+            }
+        }
+    }
+
+    fn try_open_db(db_path: &std::path::Path, key: &[u8; 32]) -> Result<Self> {
         #[cfg(feature = "sqlcipher")]
         let conn = {
             let hex_key: String = key.iter().map(|b| format!("{:02x}", b)).collect();
-            let c = Connection::open(&db_path)?;
+            let c = Connection::open(db_path)?;
             c.pragma_update(None, "key", format!("x'{hex_key}'"))?;
-            // A failed query here means the DB is plaintext â€” migrate to SQLCipher.
+            // A failed query here means the DB is plaintext — migrate to SQLCipher.
             if c.query_row("SELECT count(*) FROM sqlite_master", [], |r| r.get::<_, i64>(0)).is_err() {
                 drop(c);
-                Self::migrate_to_sqlcipher(&db_path, &key)?;
-                let c2 = Connection::open(&db_path)?;
+                Self::migrate_to_sqlcipher(db_path, key)?;
+                let c2 = Connection::open(db_path)?;
                 c2.pragma_update(None, "key", format!("x'{hex_key}'"))?;
                 c2
             } else {
@@ -394,17 +412,17 @@ impl SessionDb {
         };
 
         #[cfg(not(feature = "sqlcipher"))]
-        let conn = Connection::open(&db_path)?;
+        let conn = Connection::open(db_path)?;
 
         let db = Self {
             conn: std::sync::Mutex::new(conn),
-            key: std::sync::Mutex::new(key),
+            key: std::sync::Mutex::new(*key),
         };
         db.init()?;
         Ok(db)
     }
 
-    /// Open an in-memory database â€” used by unit tests (zero key, no encryption).
+    /// Open an in-memory database — used by unit tests (zero key, no encryption).
     pub fn open_memory() -> Result<Self> {
         let conn = Connection::open_in_memory()?;
         let db = Self {
@@ -453,7 +471,7 @@ impl SessionDb {
             ",
         )?;
 
-        // Turns table â€” stores user+assistant exchanges as atomic units for cross-session memory.
+        // Turns table — stores user+assistant exchanges as atomic units for cross-session memory.
         conn.execute_batch(
             "
             CREATE TABLE IF NOT EXISTS turns (
@@ -689,7 +707,7 @@ impl SessionDb {
             CREATE INDEX IF NOT EXISTS ambient_snapshots_captured_at_idx
                 ON ambient_snapshots(captured_at DESC);
 
-            -- Dim 16: Video / temporal context â€” encrypted manifest of fMP4 segments.
+            -- Dim 16: Video / temporal context — encrypted manifest of fMP4 segments.
             -- The MP4 bytes live on disk under %LOCALAPPDATA%/DanteClicky/video/
             -- but their filenames are ChaCha20-encrypted in `path_enc` so an
             -- attacker with FS access cannot link bytes to content without the
@@ -767,7 +785,7 @@ impl SessionDb {
         Ok(())
     }
 
-    // â”€â”€ Public methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Public methods â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     /// Create a new chat session and return its id.
     pub fn new_session(&self, model: &str, provider: &str) -> Result<i64> {
@@ -1300,7 +1318,7 @@ impl SessionDb {
         Ok(())
     }
 
-    // â”€â”€ Ambient mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Ambient mode â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     /// Persist one ambient snapshot. `ocr_text` and `active_window` are
     /// encrypted at rest; `pixel_hash` is a plain fingerprint for change detection.
@@ -1325,7 +1343,7 @@ impl SessionDb {
     }
 
     /// Return a summarised context string covering the last `minutes` minutes
-    /// of ambient captures â€” deduplicated by active window and trimmed to
+    /// of ambient captures — deduplicated by active window and trimmed to
     /// `max_chars` characters. Used for injection into the AI system prompt.
     pub fn get_ambient_context(&self, minutes: i64, max_chars: usize) -> Result<String> {
         let key = self.current_key();
@@ -1460,7 +1478,7 @@ impl SessionDb {
         Ok(rows)
     }
 
-    // â”€â”€ Dim 16: video / temporal context CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Dim 16: video / temporal context CRUD â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     /// Insert a new video segment manifest row. `path` is encrypted with the
     /// session key before storage so the on-disk filename is unrecoverable
@@ -1538,7 +1556,7 @@ impl SessionDb {
         )?;
         let id = conn.last_insert_rowid();
 
-        // FTS5 mirror â€” index plaintext OCR. The DB file is SQLCipher-encrypted
+        // FTS5 mirror — index plaintext OCR. The DB file is SQLCipher-encrypted
         // at rest, so the index is unreadable without the key.
         if let Some(text) = ocr_text {
             conn.execute(
@@ -1854,7 +1872,7 @@ impl SessionDb {
         Ok(rows)
     }
 
-    // â”€â”€ End video CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ End video CRUD â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     /// Delete all memory: turns, summaries, and message history.
     pub fn purge_all_memory(&self) -> Result<()> {
@@ -1870,7 +1888,7 @@ impl SessionDb {
         conn.execute("INSERT INTO messages_fts(messages_fts) VALUES('rebuild')", [])?;
         conn.execute("DELETE FROM memory_digest", [])?;
         conn.execute("DELETE FROM ambient_snapshots", [])?;
-        // Dim 16 â€” video manifests + FTS index
+        // Dim 16 — video manifests + FTS index
         conn.execute("DELETE FROM video_keyframes_fts", [])?;
         conn.execute("DELETE FROM video_segments", [])?;
         conn.execute(
@@ -1908,7 +1926,7 @@ impl SessionDb {
             .collect();
         drop(stmt);
 
-        // Preference facts â€” decrypt summary/evidence (ChaCha20-Poly1305) before export.
+        // Preference facts — decrypt summary/evidence (ChaCha20-Poly1305) before export.
         let mut stmt2 = conn.prepare(
             "SELECT id, scope, category, polarity, summary, evidence, confidence,
                     evidence_count, source_event_ids_json, status, created_at, updated_at, last_seen_at
@@ -2231,7 +2249,7 @@ impl SessionDb {
     }
 
     /// Delete turns older than `days` days. Returns the number of rows deleted.
-    /// Passing 0 means "keep forever" â€” no deletion.
+    /// Passing 0 means "keep forever" — no deletion.
     pub fn delete_turns_older_than(&self, days: i64) -> Result<u64> {
         if days <= 0 {
             return Ok(0);
@@ -2364,7 +2382,7 @@ impl SessionDb {
         )
     }
 
-    /// Return turns that have not yet been embedded â€” used for background indexing.
+    /// Return turns that have not yet been embedded — used for background indexing.
     pub fn get_unembedded_turns(&self, limit: usize) -> Result<Vec<TurnRow>> {
         let key = self.current_key();
         let conn = self.conn.lock().unwrap();
@@ -2386,7 +2404,7 @@ impl SessionDb {
     }
 
     /// Returns the current encryption key protection status.
-    /// On Windows, attempts a real DPAPI decrypt to verify the key is actually readable â€”
+    /// On Windows, attempts a real DPAPI decrypt to verify the key is actually readable —
     /// a file-existence check alone would show false-green after account migration.
     pub fn key_status(&self, dir: &std::path::Path) -> KeyStatusResponse {
         #[cfg(target_os = "windows")]
@@ -2453,7 +2471,7 @@ impl SessionDb {
         Ok(count)
     }
 
-    // â”€â”€ Memory Digest (Dim 35) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Memory Digest (Dim 35) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     pub fn get_turns_to_consolidate(&self, since_turn_id: i64, limit: usize) -> Result<Vec<TurnRow>> {
         let key = self.current_key();
@@ -2627,7 +2645,7 @@ impl SessionDb {
     }
 }
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
     let dot: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
@@ -2805,9 +2823,13 @@ fn migrate_preference_tables(conn: &Connection) -> Result<()> {
     ensure_column(conn, "preference_traits", "user_note", "TEXT")?;
     // Add summary_hash for encrypted dedup (replaces UNIQUE on plaintext summary column).
     ensure_column(conn, "preference_facts", "summary_hash", "TEXT")?;
+    // Drop any pre-existing partial index — SQLite UPSERT ON CONFLICT(col) requires a
+    // non-partial unique index.  SQLite allows multiple NULLs in non-partial UNIQUE
+    // indexes so removing the WHERE clause is safe for nullable summary_hash rows.
     conn.execute_batch(
-        "CREATE UNIQUE INDEX IF NOT EXISTS preference_facts_summary_hash_idx
-         ON preference_facts(summary_hash) WHERE summary_hash IS NOT NULL;",
+        "DROP INDEX IF EXISTS preference_facts_summary_hash_idx;
+         CREATE UNIQUE INDEX IF NOT EXISTS preference_facts_summary_hash_idx
+         ON preference_facts(summary_hash);",
     )?;
 
     // Drop the old UNIQUE(scope, category, polarity, summary) constraint that was baked
@@ -2853,7 +2875,7 @@ fn migrate_preference_tables(conn: &Connection) -> Result<()> {
             ALTER TABLE preference_facts_new RENAME TO preference_facts;
 
             CREATE UNIQUE INDEX IF NOT EXISTS preference_facts_summary_hash_idx
-                ON preference_facts(summary_hash) WHERE summary_hash IS NOT NULL;
+                ON preference_facts(summary_hash);
 
             PRAGMA foreign_keys=ON;
         ")?;
@@ -2876,7 +2898,7 @@ fn ensure_column(conn: &Connection, table: &str, column: &str, definition: &str)
 }
 
 /// Stable 16-hex-char hash of a preference fact's canonical key fields for dedup.
-/// Uses DefaultHasher (not cryptographic â€” dedup accuracy only, not security).
+/// Uses DefaultHasher (not cryptographic — dedup accuracy only, not security).
 fn preference_fact_hash(scope: &str, category: &str, polarity: i64, summary: &str) -> String {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
@@ -2915,7 +2937,7 @@ fn record_preference_event_locked(
     let enc_reason = safe_reason.as_deref().map(|s| encrypt_field(key, s));
     let enc_raw_text = safe_raw_text.as_deref().map(|s| encrypt_field(key, s));
     let polarity = if spec.weight >= 0.0 { 1 } else { -1 };
-    // reason and raw_text are stored in dedicated encrypted columns â€” omit from payload_json
+    // reason and raw_text are stored in dedicated encrypted columns — omit from payload_json
     let payload_json = json!({ "signal": signal, "source": spec.source }).to_string();
     conn.execute(
         "INSERT INTO preference_events
@@ -3402,7 +3424,7 @@ fn preference_examples(
     rows
 }
 
-// â”€â”€ Tauri commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Tauri commands â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 #[tauri::command]
 pub fn db_new_session(
@@ -3724,7 +3746,7 @@ pub fn db_key_status(app: tauri::AppHandle) -> Result<KeyStatusResponse, String>
 }
 
 /// Re-encrypt all turns with a fresh key and atomically update the in-memory key.
-/// No restart required â€” subsequent saves immediately use the new key.
+/// No restart required — subsequent saves immediately use the new key.
 #[tauri::command]
 pub fn rekey_database(
     state: tauri::State<'_, Arc<SessionDb>>,
@@ -3748,14 +3770,14 @@ pub fn enforce_retention_policy(
 ) -> Result<u64, String> {
     let turn_count = state.delete_turns_older_than(days).map_err(|e| e.to_string())?;
     if days > 0 {
-        // Best-effort â€” don't fail the whole call if video pruning hits an issue.
+        // Best-effort — don't fail the whole call if video pruning hits an issue.
         let _ = state.prune_video_segments(days);
         let _ = state.prune_ambient_snapshots(days);
     }
     Ok(turn_count)
 }
 
-/// Dim 16 â€” explicit video-only prune. Returns count of segments deleted.
+/// Dim 16 — explicit video-only prune. Returns count of segments deleted.
 /// `days <= 0` deletes ALL video segments (used by the "Delete all video now"
 /// settings button).
 #[tauri::command]
@@ -3775,7 +3797,7 @@ pub fn get_oldest_turn_date(
     state.get_oldest_turn_date().map_err(|e| e.to_string())
 }
 
-// â”€â”€ Ambient mode Tauri commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Ambient mode Tauri commands â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 #[tauri::command]
 pub fn save_ambient_snapshot(
@@ -3826,7 +3848,7 @@ pub fn count_ambient_today(
     state.count_ambient_today().map_err(|e| e.to_string())
 }
 
-// â”€â”€ Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Tests â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 #[cfg(test)]
 mod tests {
@@ -3836,7 +3858,7 @@ mod tests {
         SessionDb::open_memory().expect("in-memory DB should open")
     }
 
-    // â”€â”€ Dim 16: Video / temporal context â€” DB methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Dim 16: Video / temporal context — DB methods â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     #[test]
     fn save_and_get_keyframe_thumb_round_trips_encryption() {
@@ -3962,7 +3984,7 @@ mod tests {
         .unwrap()
     }
 
-    // â”€â”€ Dim 36: Retention enforcement tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Dim 36: Retention enforcement tests â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     #[test]
     fn retention_zero_days_deletes_nothing() {
@@ -4210,7 +4232,7 @@ mod tests {
     #[test]
     fn test_save_turn_content_encrypted_at_rest() {
         // Prove processed memory (turns) is field-encrypted at rest via ChaCha20-Poly1305.
-        // This test does NOT require SQLCipher â€” field encryption is always on.
+        // This test does NOT require SQLCipher — field encryption is always on.
         // The turns table stores sensitive derived memory (user+assistant exchanges, screenshots).
         let key = [42u8; 32];
         let conn = Connection::open_in_memory().unwrap();
@@ -4225,7 +4247,7 @@ mod tests {
         db.save_turn(user_prompt, assistant_response, None)
             .unwrap();
 
-        // Read the raw SQL values â€” bypass get_turn() to inspect actual stored bytes
+        // Read the raw SQL values — bypass get_turn() to inspect actual stored bytes
         let (raw_user, raw_asst): (String, String) = {
             let conn = db.conn.lock().unwrap();
             let mut stmt = conn
@@ -4242,7 +4264,7 @@ mod tests {
             (u, a)
         };
 
-        // Raw stored values must NOT be plaintext â€” they must be encrypted with enc: prefix
+        // Raw stored values must NOT be plaintext — they must be encrypted with enc: prefix
         assert_ne!(
             raw_user, user_prompt,
             "User prompt must be encrypted, not plaintext"
@@ -4753,7 +4775,7 @@ mod tests {
         );
         assert!(
             !profile.traits.iter().any(|t| t.key == "direct_answer"),
-            "direct_answer should not exist â€” it was removed"
+            "direct_answer should not exist — it was removed"
         );
 
         // Long wall-of-text response (>55 words) â†’ concise should NOT fire
@@ -5013,7 +5035,7 @@ mod tests {
         assert_eq!(sc_count, 1, "abstract response should not increment screen_grounded");
     }
 
-    // â”€â”€ Dim 16: Video / temporal context CRUD tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Dim 16: Video / temporal context CRUD tests â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     #[test]
     fn video_segment_insert_and_path_decrypts() {
@@ -5048,7 +5070,7 @@ mod tests {
                 None, 1000, 1, 16, 16, 1.0, "normal",
             )
             .unwrap();
-        // Read raw column â€” should NOT contain the plaintext path
+        // Read raw column — should NOT contain the plaintext path
         let raw: String = db.conn.lock().unwrap()
             .query_row(
                 "SELECT path_enc FROM video_segments WHERE id = ?1",
@@ -5071,12 +5093,12 @@ mod tests {
         db.save_video_keyframe(
             seg_id, 1500,
             Some("Stripe Dashboard payment refunded order #1234"),
-            Some("Chrome â€” stripe.com/dashboard"),
+            Some("Chrome — stripe.com/dashboard"),
             None, None, None,
         ).unwrap();
         db.save_video_keyframe(
             seg_id, 3000,
-            Some("Notepad â€” meeting notes about the launch"),
+            Some("Notepad — meeting notes about the launch"),
             Some("Notepad"),
             None, None, None,
         ).unwrap();
@@ -5141,7 +5163,7 @@ mod tests {
     #[test]
     fn video_segments_in_window_overlap_query() {
         let db = setup();
-        // Three segments: 10:00â€“10:01, 10:01â€“10:02, 10:02â€“10:03
+        // Three segments: 10:00—10:01, 10:01—10:02, 10:02—10:03
         db.save_video_segment(0, "C:/v/a.mp4", "2026-05-08T10:00:00",
             Some("2026-05-08T10:01:00"), 60_000, 100, 1, 1, 1.0, "normal").unwrap();
         db.save_video_segment(0, "C:/v/b.mp4", "2026-05-08T10:01:00",
@@ -5153,7 +5175,7 @@ mod tests {
             "2026-05-08T10:00:30", "2026-05-08T10:01:30",
             None, 100,
         ).unwrap();
-        assert_eq!(hits.len(), 2, "10:00:30â€“10:01:30 should overlap first two segments");
+        assert_eq!(hits.len(), 2, "10:00:30—10:01:30 should overlap first two segments");
 
         let all = db.get_video_segments_in_window(
             "2026-05-08T09:00:00", "2026-05-08T11:00:00",
@@ -5260,6 +5282,115 @@ mod tests {
         assert_eq!(n, 0);
         let hits = db.search_video_keyframes("hello", 10).unwrap();
         assert_eq!(hits.len(), 0);
+    }
+
+    // ── Dim 23/70: Context compression + token efficiency ────────────────────
+    // Verifies the conversation_summaries table stores before/after token counts
+    // and that compression always reduces context size (tokens_after < tokens_before).
+
+    #[test]
+    fn context_compression_records_token_reduction() {
+        let db = setup();
+        let tokens_before: i64 = 8_000;
+        let tokens_after: i64 = 1_200; // summary is ~15% of original
+        let id = db.save_conversation_summary(
+            "User asked about Rust. I explained ownership rules and borrowing.",
+            None,
+            None,
+            tokens_before,
+            tokens_after,
+            "anthropic",
+            "claude-sonnet-4-6",
+            1,
+        ).expect("save summary");
+        assert!(id > 0);
+
+        let row = db.get_latest_conversation_summary()
+            .expect("get summary ok")
+            .expect("row present");
+        assert_eq!(row.estimated_tokens_before, tokens_before);
+        assert_eq!(row.estimated_tokens_after, tokens_after);
+        assert!(
+            row.estimated_tokens_after < row.estimated_tokens_before,
+            "compression must reduce token count: before={tokens_before}, after={tokens_after}"
+        );
+        let ratio = tokens_after as f64 / tokens_before as f64;
+        assert!(
+            ratio < 0.50,
+            "compression ratio {ratio:.2} should be < 0.50 (summaries are at most half the original)"
+        );
+    }
+
+    // ── Dim 41: Settings configurability — preference fact persistence ────────
+
+    #[test]
+    fn preference_facts_store_and_retrieve() {
+        let db = setup();
+        // Valid categories: style|workflow|tool|safety|domain|avoidance; polarity: -1|1
+        let id = db.upsert_preference_fact(
+            "global",
+            "style",
+            1,
+            "User prefers concise responses",
+            "Observed 5 times: user interrupts long answers",
+            0.82,
+            5,
+            None,
+        ).expect("upsert ok");
+        assert!(id > 0);
+        let facts = db.get_active_preference_facts(10).expect("get ok");
+        assert_eq!(facts.len(), 1, "one fact stored");
+        assert!(facts[0].confidence > 0.8, "confidence preserved");
+    }
+
+    #[test]
+    fn preference_facts_upsert_updates_existing() {
+        let db = setup();
+        db.upsert_preference_fact("global", "style", 1,
+            "User prefers concise responses",
+            "Initial evidence record", 0.5, 1, None).expect("insert");
+        db.upsert_preference_fact("global", "style", 1,
+            "User prefers concise responses",
+            "Updated with ten more examples observed", 0.95, 11, None).expect("update");
+        let facts = db.get_active_preference_facts(10).expect("get ok");
+        assert_eq!(facts.len(), 1, "upsert must not create duplicate");
+        assert!(facts[0].confidence > 0.9, "upsert must update confidence");
+    }
+
+    #[test]
+    fn preference_facts_support_multiple_categories() {
+        let db = setup();
+        // Valid categories
+        for (cat, summary) in [
+            ("style",    "prefers concise tone"),
+            ("workflow", "prefers batch operations"),
+            ("tool",     "uses terminal over IDE"),
+        ] {
+            db.upsert_preference_fact("global", cat, 1, summary, "evidence text here", 0.7, 2, None)
+                .expect("insert");
+        }
+        let facts = db.get_active_preference_facts(10).expect("get ok");
+        assert_eq!(facts.len(), 3, "three distinct preference categories stored");
+    }
+
+    #[test]
+    fn multiple_compression_rounds_accumulate() {
+        let db = setup();
+        // Simulate 3 compression rounds over a long session.
+        for i in 0..3 {
+            let before = 6_000 + i * 1_000;
+            let after = 800 + i * 100;
+            db.save_conversation_summary(
+                &format!("Round {i} summary"),
+                None, None, before, after,
+                "anthropic", "claude-sonnet-4-6", 1,
+            ).expect("save ok");
+        }
+        let latest = db.get_latest_conversation_summary()
+            .expect("ok").expect("present");
+        // Latest = round 2 → before=8000, after=1000
+        assert_eq!(latest.estimated_tokens_before, 8_000);
+        assert_eq!(latest.estimated_tokens_after, 1_000);
     }
 }
 

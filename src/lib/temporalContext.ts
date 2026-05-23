@@ -11,7 +11,7 @@
 // budget intact even when the user has been busy.
 
 import { invoke } from "@tauri-apps/api/core";
-import { RecentKeyframe, RecentKeyframeZ } from "./videoSchemas";
+import { ExtractFrameResultZ, RecentKeyframe, RecentKeyframeZ } from "./videoSchemas";
 
 export interface TemporalContextOptions {
   /** Max keyframes to consider (newest first). */
@@ -20,6 +20,8 @@ export interface TemporalContextOptions {
   monitorIdx?: number | null;
   /** Hard cap on the rendered prose length. */
   maxChars?: number;
+  /** Max recent keyframe thumbnails to attach when visual history is requested. */
+  maxImages?: number;
   /** Coalesce contiguous same-window keyframes into a single line. */
   coalesce?: boolean;
   /** `Date.now()` injection point for tests. */
@@ -34,6 +36,7 @@ const DEFAULT_OPTIONS: Required<Omit<TemporalContextOptions, "monitorIdx" | "now
   maxKeyframes: 24,
   monitorIdx: null,
   maxChars: 1200,
+  maxImages: 0,
   coalesce: true,
 };
 
@@ -44,6 +47,8 @@ export interface CoalescedKeyframe {
   ts: string;
   /** Cleaned active-window title, or "" if unknown. */
   activeWindow: string;
+  /** Monitor index from the video ring buffer. */
+  monitorIdx: number;
   /** Number of keyframes folded into this line. */
   count: number;
   /** Newest keyframe id in the group (used for thumbnail extraction). */
@@ -65,7 +70,7 @@ export function renderTemporalContext(
   for (const k of visible) {
     const win = sanitizeWindow(k.active_window);
     const last = groups[groups.length - 1];
-    if (cfg.coalesce && last && last.activeWindow === win) {
+    if (cfg.coalesce && last && last.activeWindow === win && last.monitorIdx === k.monitor_idx) {
       last.count += 1;
       // Newest keyframe wins for ts (visible is newest-first per backend)
       continue;
@@ -73,6 +78,7 @@ export function renderTemporalContext(
     groups.push({
       ts: k.start_ts,
       activeWindow: win,
+      monitorIdx: k.monitor_idx,
       count: 1,
       keyframeId: k.keyframe_id,
     });
@@ -84,7 +90,7 @@ export function renderTemporalContext(
     const ago = humanDuration(now - parseUtc(g.ts));
     const win = g.activeWindow || "(unknown window)";
     const dwell = g.count > 1 ? ` for ${g.count} captures` : "";
-    const line = `${ago} ago — ${win}${dwell}`;
+    const line = `${ago} ago - screen${g.monitorIdx + 1} - ${win}${dwell} (keyframe #${g.keyframeId})`;
     if (used + line.length + 1 > cfg.maxChars) break;
     lines.push(line);
     used += line.length + 1;
@@ -133,5 +139,55 @@ export async function getTemporalContext(opts: TemporalContextOptions = {}): Pro
   } catch {
     // Video subsystem may not be running — return empty context.
     return "";
+  }
+}
+
+export interface TemporalSnapshotContext {
+  text: string;
+  images: string[];
+  imageKeyframes: number[];
+}
+
+/** Production context-depth packet: temporal prose plus bounded keyframe thumbs. */
+export async function getTemporalSnapshotContext(
+  opts: TemporalContextOptions = {},
+): Promise<TemporalSnapshotContext> {
+  const cfg = { ...DEFAULT_OPTIONS, ...opts };
+  const callInvoke = opts.invokeFn ?? invoke;
+  try {
+    const raw = await callInvoke<unknown[]>("video_recent_keyframes", {
+      limit: cfg.maxKeyframes,
+      monitorIdx: cfg.monitorIdx,
+    });
+    const parsed = RecentKeyframeZ.array().parse(raw);
+    const text = renderTemporalContext(parsed, opts);
+    const candidates = parsed
+      .filter((k) => !PRIVATE_FLAGS.has(k.privacy_flag) && k.has_thumb)
+      .slice(0, Math.max(0, cfg.maxImages));
+    const thumbs = await Promise.all(
+      candidates.map(async (keyframe) => {
+        try {
+          const result = await callInvoke<unknown>("video_extract_frame", {
+            keyframeId: keyframe.keyframe_id,
+          });
+          const parsedFrame = ExtractFrameResultZ.parse(result);
+          return parsedFrame.jpeg_base64
+            ? { id: keyframe.keyframe_id, image: parsedFrame.jpeg_base64 }
+            : null;
+        } catch {
+          return null;
+        }
+      }),
+    );
+    const usable = thumbs.filter((entry): entry is { id: number; image: string } =>
+      Boolean(entry?.image)
+    );
+    return {
+      text,
+      images: usable.map((entry) => entry.image),
+      imageKeyframes: usable.map((entry) => entry.id),
+    };
+  } catch {
+    return { text: "", images: [], imageKeyframes: [] };
   }
 }

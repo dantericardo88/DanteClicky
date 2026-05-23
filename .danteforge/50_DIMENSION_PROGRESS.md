@@ -21,6 +21,12 @@ Next four priority dimensions: **47 Cross-platform signed release/manual smoke**
 
 Dims meaningfully improved so far: **39 of 50**
 
+## Hardened 2026-05-10
+
+| Dim | What | Score Change | How |
+|-----|------|--------------|-----|
+| 29 | Local vision grounding gate | 8.0 -> 8.0 | Added strict 50-fixture local-vision grounding fixtures, UI-TARS/Moondream/Dante `[POINT:x,y]` parser coverage, `npm run bench:dim29-grounding`, `npm run check:dim29-local-vision`, generated blocked artifacts in `docs/local-vision-grounding/`, and fixed the `useVoice.ts` fallback threshold so fewer than 3 UIAutomation elements use local vision. Score remains 8.0 because the gate has 0 real measured predictions, no >=70% within 50px run, no p95 latency evidence, no local model identity in results, and no production point-hint telemetry. |
+
 ## Closed 2026-05-05
 
 | Dim | What | Score Change | How |
@@ -96,7 +102,7 @@ Dims improved: **3, 6, 7, 8, 9, 12, 13, 14, 16, 17, 20, 21, 22, 23, 25, 26, 27, 
 | Priority | Dim | What | Current | Target | Blocker |
 |----------|-----|------|--------:|-------:|---------|
 | 1 | 47 | Cross-platform signed release/manual smoke | 8.2 | 9 | Commit the release gates, produce signed/notarized tagged release artifacts, real updater signatures, platform permission flows, verified release attestations, and dated manual smoke logs for screenshot, input, onboarding, chat, close-to-tray, and updater checks on all three OSes |
-| 2 | 29 | Local vision model | 8 | 9 | Reliable full grounding benchmark or UI-TARS/new Moondream coordinate decoder integration |
+| 2 | 29 | Local vision model | 8 | 9 | Run the new 50-fixture grounding gate with real local model predictions, achieve >=70% within 50px, record p95 latency/model identity, and attach production `[POINT:x,y]` telemetry |
 | 3 | 16 | Video / temporal context | 8.7 | 9+ | Ignored live-screen test observed passing, manual app smoke run, per-keyframe semantic embedding, and perf benchmark evidence |
 | 4 | 26 | GUI grounding / Set-of-Mark hardening | 8.5 | 9 | More robust non-UIA labels, object-region fallback beyond UIAutomation, and live desktop grounding replay evidence |
 | 5 | 50 | OSS / licensing clarity | 8 | 9 | Public repo posture, dependency audit, and release-readiness polish |

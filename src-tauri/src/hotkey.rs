@@ -39,24 +39,33 @@ fn record_pending_hotkey_event(event: PendingHotkeyEvent) {
 }
 
 fn emit_or_queue_hotkey_event<R: Runtime>(app: &AppHandle<R>, event: PendingHotkeyEvent) {
-    let panel_missing = app.get_webview_window("companion-panel").is_none();
-    if panel_missing || has_pending_hotkey_events() {
-        if let Err(e) = crate::ensure_companion_panel(app) {
-            eprintln!("[hotkey] failed to create companion panel for pending hotkey: {e}");
+    let panel_exists = app.get_webview_window("companion-panel").is_some();
+    log::info!("[hotkey] {} fired — companion-panel exists: {}", event.event_name(), panel_exists);
+
+    if !panel_exists || has_pending_hotkey_events() {
+        match crate::ensure_companion_panel(app) {
+            Ok(_) => log::info!("[hotkey] companion panel created/ready"),
+            Err(e) => log::error!("[hotkey] failed to create companion panel: {e}"),
         }
         record_pending_hotkey_event(event.clone());
     }
 
-    app.emit(event.event_name(), ()).ok();
+    match app.emit(event.event_name(), ()) {
+        Ok(_) => log::info!("[hotkey] app.emit({}) → OK", event.event_name()),
+        Err(e) => log::error!("[hotkey] app.emit({}) → FAILED: {}", event.event_name(), e),
+    }
 }
 
 fn register_shortcut<R: Runtime>(app: &AppHandle<R>, shortcut: &str) -> Result<(), String> {
+    log::info!("[hotkey] registering shortcut: {shortcut}");
     app.global_shortcut()
         .on_shortcut(shortcut, |app, _shortcut, event| match event.state() {
             ShortcutState::Pressed => {
+                log::info!("[hotkey] *** CTRL+SHIFT+SPACE PRESSED ***");
                 emit_or_queue_hotkey_event(app, PendingHotkeyEvent::Pressed);
             }
             ShortcutState::Released => {
+                log::info!("[hotkey] *** CTRL+SHIFT+SPACE RELEASED ***");
                 emit_or_queue_hotkey_event(app, PendingHotkeyEvent::Released);
             }
         })
@@ -64,12 +73,16 @@ fn register_shortcut<R: Runtime>(app: &AppHandle<R>, shortcut: &str) -> Result<(
 }
 
 pub fn setup<R: Runtime>(app: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
-    // Ctrl+Alt+Space — push-to-talk hotkey (mirrors macOS Ctrl+Option)
-    // Graceful degradation: if Ctrl+Alt+Space is already claimed by another app,
-    // log a warning instead of panicking. The user can still use the tray menu.
-    if let Err(e) = register_shortcut(app, "Ctrl+Alt+Space") {
-        eprintln!("[hotkey] Ctrl+Alt+Space unavailable (another app may own it): {e}");
+    // Ctrl+Shift+Space — push-to-talk hotkey.
+    // Ctrl+Alt on many Windows keyboard layouts equals AltGr, which the input method
+    // captures before global shortcuts can see it. Ctrl+Shift+Space is safe on all layouts.
+    log::info!("[hotkey] setup() — registering Ctrl+Shift+Space");
+    if let Err(e) = register_shortcut(app, "Ctrl+Shift+Space") {
+        log::error!("[hotkey] Ctrl+Shift+Space UNAVAILABLE: {e}");
+        eprintln!("[hotkey] Ctrl+Shift+Space unavailable (another app may own it): {e}");
         eprintln!("[hotkey] Push-to-talk disabled. Reassign the hotkey in Settings to fix.");
+    } else {
+        log::info!("[hotkey] Ctrl+Shift+Space registered OK");
     }
 
     Ok(())

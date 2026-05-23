@@ -216,6 +216,17 @@ pub fn observability_prune(
         .map_err(|err| err.to_string())
 }
 
+pub fn observability_snapshot_internal(
+    app: &AppHandle,
+    limit: i64,
+) -> std::result::Result<serde_json::Value, String> {
+    let store = store_for_app(app)?;
+    let snapshot = store
+        .snapshot(limit.clamp(1, MAX_SNAPSHOT_LIMIT as i64) as usize, None)
+        .map_err(|e| e.to_string())?;
+    serde_json::to_value(snapshot).map_err(|e| e.to_string())
+}
+
 pub fn install_panic_hook(app: AppHandle) {
     let crash_path = app
         .path()

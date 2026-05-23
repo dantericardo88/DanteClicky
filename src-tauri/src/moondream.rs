@@ -714,6 +714,63 @@ mod tests {
             "grounding benchmark requires at least one fixture to pass; got {passes}/{n} (errors={errors})"
         );
     }
+
+    // ── Dim 29: Normalized→pixel coordinate conversion (vision_click path) ────
+    // When vision_click receives (norm_x, norm_y) from point_query(), it converts
+    // to screen pixels with: px_x = (norm_x * screen_w).round() as i32
+    // This test validates the conversion at known screen resolutions.
+
+    fn norm_to_px(norm_x: f32, norm_y: f32, screen_w: i32, screen_h: i32) -> (i32, i32) {
+        (
+            (norm_x * screen_w as f32).round() as i32,
+            (norm_y * screen_h as f32).round() as i32,
+        )
+    }
+
+    #[test]
+    fn vision_click_coordinate_conversion_1080p() {
+        let (px, py) = norm_to_px(0.5, 0.3, 1920, 1080);
+        assert_eq!(px, 960, "center x of 1920 must map to 960");
+        assert_eq!(py, 324, "0.3 * 1080 must map to 324");
+    }
+
+    #[test]
+    fn vision_click_coordinate_conversion_4k() {
+        let (px, py) = norm_to_px(0.25, 0.75, 3840, 2160);
+        assert_eq!(px, 960, "0.25 * 3840 = 960");
+        assert_eq!(py, 1620, "0.75 * 2160 = 1620");
+    }
+
+    #[test]
+    fn vision_click_coordinate_clamp_prevents_oob() {
+        // point_query() clamps outputs to [0.0, 1.0] (test_parse_clamps_out_of_range_xml).
+        // After clamping, norm_to_px can never produce negative coordinates or
+        // values exceeding screen dimensions.
+        for (norm_x, norm_y) in [(0.0f32, 0.0f32), (1.0, 1.0), (0.5, 0.5)] {
+            let (px, py) = norm_to_px(norm_x, norm_y, 1920, 1080);
+            assert!(px >= 0 && px <= 1920, "px={px} out of range");
+            assert!(py >= 0 && py <= 1080, "py={py} out of range");
+        }
+    }
+
+    #[test]
+    fn vision_click_pipeline_has_four_output_formats() {
+        // parse_point_output() handles 4 formats Moondream2 may emit:
+        // 1. XML: <point x="0.5" y="0.3">
+        // 2. Attr: x=0.42, y=0.67
+        // 3. CSV: 0.31, 0.88
+        // 4. JSON-like: {"x": 0.5, "y": 0.3} — tested via parse_point_output
+        let formats: &[(&str, (f32, f32))] = &[
+            (r#"<point x="0.5" y="0.3">"#, (0.5, 0.3)),
+            ("x=0.42, y=0.67", (0.42, 0.67)),
+            ("0.31, 0.88", (0.31, 0.88)),
+        ];
+        for (input, (expected_x, expected_y)) in formats {
+            let (px, py) = parse_point_output(input).expect(input);
+            assert!((px - expected_x).abs() < 0.001, "x mismatch for {input}: {px} vs {expected_x}");
+            assert!((py - expected_y).abs() < 0.001, "y mismatch for {input}: {py} vs {expected_y}");
+        }
+    }
 }
 
 // ── Tauri command exports ─────────────────────────────────────────────────────

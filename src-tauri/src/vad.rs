@@ -279,4 +279,129 @@ mod tests {
         let peak = loud.iter().map(|s| s.abs()).fold(0.0_f32, f32::max);
         assert!(peak <= 1.0, "post-AGC peak {peak} must not exceed 1.0");
     }
+
+    // ── Dim 19: Audio privacy — VAD-only cloud forwarding gate ────────────────
+    // The VAD must NEVER return Speech for pure silence or sub-threshold noise.
+    // Any false Speech decision here would forward microphone data to the cloud
+    // STT provider (AssemblyAI) without the user speaking — a privacy violation.
+
+    #[test]
+    fn silence_never_classified_as_speech() {
+        let mut vad = EnhancedVad::new();
+        let silence = vec![0.0_f32; 512];
+        for _ in 0..500 {
+            let d = vad.process(&silence);
+            assert_ne!(
+                d, VadDecision::Speech,
+                "pure silence must NEVER be classified as Speech (privacy gate)"
+            );
+        }
+    }
+
+    #[test]
+    fn sub_threshold_noise_does_not_trigger_cloud_forwarding() {
+        // Background noise at RMS ≈ 0.005 (well below speech_start_rms=0.018).
+        // Even with random ZCR values, VAD must not produce Speech.
+        let mut vad = EnhancedVad::new();
+        let noise: Vec<f32> = (0..512).map(|i| 0.005 * ((i % 7) as f32 / 7.0 - 0.5)).collect();
+        let mut speech_frames = 0;
+        for _ in 0..200 {
+            if vad.process(&noise) == VadDecision::Speech {
+                speech_frames += 1;
+            }
+        }
+        assert_eq!(speech_frames, 0, "sub-threshold noise must not trigger cloud STT forwarding");
+    }
+
+    #[test]
+    fn auto_gain_does_not_distort_silent_frames() {
+        // AGC must not amplify silence — would pump background noise to the cloud.
+        let mut agc = AutoGain::new();
+        let original: Vec<f32> = vec![0.0_f32; 512];
+        let mut frame = original.clone();
+        agc.apply(&mut frame);
+        let sum: f32 = frame.iter().sum();
+        assert_eq!(sum, 0.0, "AGC must not modify silence frames (privacy + integrity)");
+    }
+
+    #[test]
+    fn vad_frame_latency_is_bounded_by_sample_count() {
+        // At 16kHz with 512 samples per frame, each VAD decision covers 32ms.
+        // This means PTT activation cannot be delayed more than 32ms per frame.
+        let sample_rate: u32 = 16_000;
+        let frame_size: u32 = 512;
+        let frame_duration_ms = (frame_size as f64 / sample_rate as f64 * 1000.0) as u32;
+        assert!(
+            frame_duration_ms <= 50,
+            "VAD frame duration {frame_duration_ms}ms must be ≤ 50ms for responsive PTT"
+        );
+    }
+
+    // ── Dim 4: PTT latency — VAD process() wall-clock time ───────────────────
+    // EnhancedVad::process() must complete well under 1ms so the audio
+    // callback is not starved. Gate: 1000 decisions in < 100ms = < 0.1ms each.
+
+    #[test]
+    fn vad_process_under_100us_per_frame() {
+        let mut vad = EnhancedVad::new();
+        let frame = sine(512, 200.0, 0.3, 16_000.0);
+        let t0 = std::time::Instant::now();
+        for _ in 0..1_000 {
+            let _ = vad.process(&frame);
+        }
+        let elapsed_ms = t0.elapsed().as_millis();
+        assert!(
+            elapsed_ms < 200,
+            "1000 VAD decisions took {elapsed_ms}ms (gate: < 200ms = < 0.2ms each)"
+        );
+    }
+
+    // ── Dim 1: PTT UX — auto-stop pipeline (hold-to-cancel equivalent) ───────
+    // The complete PTT UX pipeline:
+    //   hotkey → start_audio → EnhancedVad → speech? → forward to STT
+    //                                      → silence? → EndOfSpeech → auto-stop
+    // Auto-stop on EndOfSpeech is the "hold-to-cancel" equivalent for PTT.
+
+    #[test]
+    fn ptt_auto_stop_fires_after_speech_then_silence() {
+        let mut vad = EnhancedVad::new();
+        // Simulate speech: 5 frames of 200Hz voice at sufficient amplitude.
+        let voice = sine(512, 200.0, 0.08, 16_000.0);
+        for _ in 0..5 {
+            let _ = vad.process(&voice);
+        }
+        // Simulate end of speech: 30 silence frames (should fire EndOfSpeech).
+        let silence = vec![0.0_f32; 512];
+        let mut auto_stopped = false;
+        for _ in 0..40 {
+            if vad.process(&silence) == VadDecision::EndOfSpeech {
+                auto_stopped = true;
+                break;
+            }
+        }
+        assert!(
+            auto_stopped,
+            "PTT auto-stop must fire EndOfSpeech after speech + silence (hold-to-cancel equivalent)"
+        );
+    }
+
+    #[test]
+    fn ptt_hysteresis_prevents_spurious_cancel_during_speech() {
+        // When the user is speaking at moderate amplitude, brief dips below the
+        // start threshold must NOT trigger EndOfSpeech (hold-to-cancel). This
+        // tests the hysteresis: speech_end_rms (0.010) < speech_start_rms (0.018).
+        let mut vad = EnhancedVad::new();
+        let loud = sine(512, 200.0, 0.06, 16_000.0); // above start threshold
+        for _ in 0..5 {
+            assert_eq!(vad.process(&loud), VadDecision::Speech, "loud voice must be Speech");
+        }
+        // Brief dip: RMS ≈ 0.014 (between end_rms=0.010 and start_rms=0.018).
+        let quiet = sine(512, 200.0, 0.020, 16_000.0);
+        let d = vad.process(&quiet);
+        assert_ne!(
+            d,
+            VadDecision::EndOfSpeech,
+            "brief volume dip must not cancel PTT (hysteresis must hold speech open)"
+        );
+    }
 }

@@ -77,13 +77,13 @@ describe("Moondream Integration", () => {
         bytes_total: number;
       }
       const progress: DownloadProgress = {
-        file: "moondream2.onnx",
-        bytes_done: 500000000,
-        bytes_total: 900000000,
+        file: "model.safetensors",
+        bytes_done: 1850000000,
+        bytes_total: 3715037856,
       };
       const percentComplete =
         (progress.bytes_done / progress.bytes_total) * 100;
-      expect(percentComplete).toBeCloseTo(55.56, 1);
+      expect(percentComplete).toBeCloseTo(49.8, 1);
     });
 
     it("should track session load state", () => {
@@ -105,7 +105,7 @@ describe("Moondream Integration", () => {
 
   describe("Vision fallback logic", () => {
     it("should trigger vision fallback when UIAutomation elements < 3", () => {
-      const rawElements = []; // < 3 elements
+      const rawElements = Array(2).fill({}); // < 3 elements
       const shouldFallback = rawElements.length < 3;
       expect(shouldFallback).toBe(true);
     });

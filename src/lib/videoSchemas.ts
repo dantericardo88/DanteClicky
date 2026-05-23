@@ -74,6 +74,20 @@ export const RecentKeyframeZ = z.object({
 });
 export type RecentKeyframe = z.infer<typeof RecentKeyframeZ>;
 
+// Dim 13 context-depth snapshot DTO. Raw image bytes stay in multimodal
+// attachments and never in prompt text.
+export const ContextSnapshotZ = z.object({
+  keyframe_id: z.number(),
+  segment_id: z.number(),
+  monitor_idx: z.number(),
+  start_ts: z.string(),
+  active_window: z.string(),
+  ocr_snippet: z.string().default(""),
+  privacy_flag: z.enum(["normal", "excluded", "drm_blackout", "paused", "incognito"]),
+  has_thumb: z.boolean(),
+});
+export type ContextSnapshot = z.infer<typeof ContextSnapshotZ>;
+
 /// Parse a natural-language temporal phrase into a target ISO8601 timestamp.
 /// Returns null if no temporal phrase recognised. Pure client-side heuristic —
 /// the AI layer can refine this when it sees a chat input that didn't match.

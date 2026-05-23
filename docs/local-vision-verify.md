@@ -1,53 +1,65 @@
-# Local Vision (Moondream2) — Manual E2E Verification
+# Local Vision (Moondream2) Manual E2E Verification
 
-This is the procedure a developer follows to prove Dimension 29 (Local Vision Model) actually works end-to-end on their machine. The integration test in `src-tauri/src/moondream.rs` is gated on the `MOONDREAM_MODEL_DIR` environment variable so CI doesn't have to ship 3.7 GB of weights, but it runs real candle inference when those weights are present.
+This procedure proves Dimension 29, Local Vision Model, on a developer machine.
+The repo already proves real local Moondream2 caption inference, so the harsh
+score is **8.0/10**. It is not 9+ until the coordinate-grounding gate in this
+doc is green.
 
-> **Why this doc exists.** The harsh score for Dim 29 is held at 7/10 (compile + tests pass + UI ships) until a developer follows this procedure and confirms a non-stub caption. Reaching honest 8 requires this verification on at least one machine.
+## Current Harsh Status
+
+- Current Dim 29 score: **8.0/10**
+- Reason: real local Moondream2 inference has been proven, but GUI grounding is
+  still brittle.
+- Current blocker: prior evidence only completed 2 of 7 synthetic grounding
+  fixtures before a crash, with one miss at 304px against a loose 100px
+  tolerance.
+- Honest 9+ bar: 50+ desktop GUI fixtures, >=70% pass rate, <=50px tolerance,
+  model identity, p50/p95 latency evidence, and production proof that the
+  `useVoice.ts` point-query fallback emits usable `[POINT:x,y]` hints.
 
 ## Requirements
 
-- Windows 10/11 with at least **8 GB free RAM** (F16 path) or **16 GB free RAM** (F32 fallback)
-- ~4 GB free disk space
-- `huggingface-cli` (`pip install huggingface_hub`) **OR** plain `curl`
-- Built workspace: `cargo build --lib` clean
+- Windows 10/11 with at least 16 GB free RAM for the current F32 CPU path.
+- About 4 GB free disk space for the pinned Moondream2 weights.
+- `huggingface-cli` (`pip install huggingface_hub`) or plain `curl`.
+- Built workspace: `cargo build --lib` clean from `src-tauri`.
 
-## Step 1 — Download model files
+## Step 1 - Download Model Files
 
-The runtime URL we ship in `download_moondream_model` is:
+The runtime downloader is pinned to the 2024-03-04 Moondream2 revision because
+that revision still matches the Phi-based architecture supported by the current
+Rust `candle-transformers` integration:
 
+```text
+https://huggingface.co/vikhyatk/moondream2/resolve/2024-03-04/model.safetensors
+https://huggingface.co/vikhyatk/moondream2/resolve/2024-03-04/tokenizer.json
 ```
-https://huggingface.co/vikhyatk/moondream2/resolve/main/model.safetensors  (3,854,538,968 bytes, verified 2026-05-09)
-https://huggingface.co/vikhyatk/moondream2/resolve/main/tokenizer.json
-```
 
-### Option A — huggingface-cli (recommended)
+Option A, using Hugging Face:
 
 ```powershell
 $env:MOONDREAM_MODEL_DIR = "C:\models\moondream2"
-huggingface-cli download vikhyatk/moondream2 model.safetensors tokenizer.json --local-dir $env:MOONDREAM_MODEL_DIR
+huggingface-cli download vikhyatk/moondream2 model.safetensors tokenizer.json --revision 2024-03-04 --local-dir $env:MOONDREAM_MODEL_DIR
 ```
 
-### Option B — curl
+Option B, using curl:
 
 ```powershell
 $env:MOONDREAM_MODEL_DIR = "C:\models\moondream2"
 mkdir $env:MOONDREAM_MODEL_DIR -Force | Out-Null
 curl.exe -L -o "$env:MOONDREAM_MODEL_DIR\model.safetensors" `
-  https://huggingface.co/vikhyatk/moondream2/resolve/main/model.safetensors
+  https://huggingface.co/vikhyatk/moondream2/resolve/2024-03-04/model.safetensors
 curl.exe -L -o "$env:MOONDREAM_MODEL_DIR\tokenizer.json" `
-  https://huggingface.co/vikhyatk/moondream2/resolve/main/tokenizer.json
+  https://huggingface.co/vikhyatk/moondream2/resolve/2024-03-04/tokenizer.json
 ```
 
-After download, both files should exist:
+Expected files:
 
 ```powershell
 Get-ChildItem $env:MOONDREAM_MODEL_DIR | Format-Table Name, Length
-# Expected:
-#   model.safetensors    3854538968
-#   tokenizer.json       ~2 MB
 ```
 
-## Step 2 — Run the integration test
+## Step 2 - Prove Real Caption Inference
 
 ```powershell
 cd c:\Projects\DanteClicky\dante-clicky-windows\src-tauri
@@ -55,59 +67,99 @@ $env:MOONDREAM_MODEL_DIR = "C:\models\moondream2"
 cargo test --lib moondream::tests::test_real_caption_integration -- --nocapture
 ```
 
-### Expected output (success)
+Expected result:
 
-```
-[moondream] loaded with dtype=f16, eos_token=50256
+```text
+[moondream] loaded with dtype=f32, eos_token=50256
 [real-caption] <a non-empty natural-language caption>
-
 test result: ok. 1 passed; 0 failed
 ```
 
-The test asserts:
-- caption is non-empty
-- caption is not the old hardcoded stub `"A scene with UI elements and content"`
+This proves an honest 8.0, not 9.0.
 
-### What "good" looks like
+## Step 3 - Run The Dim 29 Grounding Gate
 
-For the embedded 1×1 white-pixel JPEG fixture, the model typically produces something like:
-- `"A blank white image."`
-- `"A solid white background."`
+Create a prediction file at `bench/local-vision/dim29-grounding-predictions.jsonl`.
+Each line must be one real local model output for the matching fixture:
 
-Any natural-language caption that is **not** the stub string counts as success.
+```jsonl
+{"id":"button-blue-top-left","rawOutput":"<point x=\"0.15\" y=\"0.18\">","latencyMs":1180,"provider":"moondream2","modelRevision":"vikhyatk/moondream2@2024-03-04","local":true}
+{"id":"button-blue-top-right","rawOutput":"click(start_box='(830,155,870,205)')","latencyMs":1240,"provider":"ui-tars-local","modelRevision":"ByteDance-Seed/UI-TARS-2B-SFT","local":true}
+```
 
-## Step 3 — Optional: smoke the full app path
+Then run:
+
+```powershell
+cd c:\Projects\DanteClicky\dante-clicky-windows
+npm run bench:dim29-grounding
+npm run check:dim29-local-vision -- --failOnBlocked
+```
+
+The benchmark writes:
+
+- `docs/local-vision-grounding/dim29-grounding-results.json`
+- `docs/local-vision-grounding/dim29-readiness.json`
+
+The readiness gate stays blocked until all of these are true:
+
+- at least 50 fixtures;
+- at least 50 measured predictions;
+- maximum tolerance is 50px;
+- pass rate is at least 70%;
+- no missing predictions;
+- no parse errors;
+- p95 latency is recorded;
+- local model provider and revision are recorded;
+- production telemetry proves a `[POINT:x,y]` hint was emitted by the app path.
+
+## Step 4 - Attach Production Point-Hint Telemetry
+
+Add a dated telemetry sample under:
+
+```text
+docs/local-vision-grounding/dim29-production-telemetry-sample-YYYY-MM-DD.json
+```
+
+Minimal shape:
+
+```json
+{
+  "events": [
+    {
+      "name": "vision_point_hint_emitted",
+      "transcript": "click the submit button",
+      "target": "submit button",
+      "pointHint": "[POINT:512,690:submit button:screen1]",
+      "provider": "moondream2",
+      "modelRevision": "vikhyatk/moondream2@2024-03-04",
+      "local": true
+    }
+  ]
+}
+```
+
+## Full App Smoke
 
 1. Launch with `npm run tauri dev`.
-2. Open Settings → Local vision card.
-3. Click **Download model** (~3.7 GB; or skip if already in `app_data_dir/moondream2`).
-4. Click **Load model**. Status should change to `● Loaded (f16)` (or `f32` on older hardware).
-5. Toggle **Use in ambient capture** ON.
-6. Wait ~60 seconds for one ambient capture cycle.
-7. Open Settings → Ambient → **View recent captures**.
-8. The latest snapshot row should show a `vision ✓` badge AND the OCR snippet should NOT contain the stub string.
-
-If you see real captions reflect real screen content, **Dim 29 is honestly 8/10**.
+2. Open Settings > Local vision.
+3. Click **Download model** or place the files in `app_data_dir/moondream2`.
+4. Click **Load model**. Status should show loaded with `f32`.
+5. Toggle local vision for ambient capture.
+6. Speak a UI command on a low-UIA surface, such as "click the submit button."
+7. Confirm the prompt/log path includes a `[POINT:x,y]` hint from local vision.
 
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `f16 mmap failed (...)` then `f32 fallback` | Model weights aren't representable as f16 (some ops only have f32 kernels in candle) | None needed — the load() automatically retries with f32. Expect ~7 GB resident memory. |
-| `OutOfMemory` during model build | Insufficient free RAM for f32 fallback | Close other apps. F32 needs ~7 GB free. Or wait for the future quantized GGUF path. |
-| `tokenizer at ...: unknown PreTokenizer type "ByteLevel"` | Old `tokenizers` crate version | Should not happen — `tokenizers = "0.20"` supports it |
-| Caption is empty `""` | EOS token fired immediately (model output starts with `<\|endoftext\|>`) | Likely a prompt-format mismatch. Check the prompt string in `caption()` exactly matches `\n\nQuestion: Describe this image briefly.\n\nAnswer:` |
-| `model.safetensors not found` | Wrong path in `MOONDREAM_MODEL_DIR` | Verify with `Test-Path "$env:MOONDREAM_MODEL_DIR\model.safetensors"` |
+| `model.safetensors not found` | Wrong `MOONDREAM_MODEL_DIR` | Verify the path and file names. |
+| Out of memory during load | F32 CPU path needs about 7 GB resident memory | Close other apps or run on a larger machine. |
+| Empty caption | Prompt/model mismatch or immediate EOS | Verify the pinned revision and tokenizer file. |
+| Grounding benchmark is below 70% | Moondream2 captions work but coordinate grounding is weak | Use UI-TARS-class local grounding or newer Moondream coord-decoder architecture. |
 
-## Path to honest 9/10
+## What Would Make 9+
 
-Even after this verification (which moves the score 7 → 8), reaching 9 requires:
-
-1. **GUI-grounding accuracy benchmark.** Compare `moondream_point_query` outputs against `cloud_vision_click_target` on a fixture set of 50 screenshots. Target: ≥70% within 50 pixels of ground truth.
-2. **Computer-use loop integration.** Already started in Session 20 (`useVoice.ts` UIAutomation-poor fallback now calls `moondream_point_query` on click intent). Needs production traffic + telemetry to confirm it actually fires and the LLM uses the resulting `[POINT:x,y]` hint.
-3. **A real cold-start latency budget.** Document p50/p95 inference latencies on representative hardware (the LocalVisionCard already surfaces them; just need a logged baseline).
-
-## What this doc is NOT
-
-- **Not a substitute for the integration test.** If you can't run Step 2 successfully, the implementation is broken regardless of UI.
-- **Not a guarantee of accuracy.** Moondream2 is 1.86B params — much smaller than UI-TARS 7B. Captions are good; click coordinate prediction is rough. That's the dim-29 ceiling without research-grade fine-tuning.
+Dim 29 can move to 9 only when `npm run check:dim29-local-vision -- --failOnBlocked`
+passes against real local-model predictions and real app telemetry. Parser
+coverage, fixture manifests, and docs are necessary scaffolding; they are not
+the score by themselves.

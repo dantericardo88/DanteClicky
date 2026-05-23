@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderTemporalContext } from "../lib/temporalContext";
+import { getTemporalSnapshotContext, renderTemporalContext } from "../lib/temporalContext";
 import type { RecentKeyframe } from "../lib/videoSchemas";
 
 const NOW_MS = Date.parse("2026-05-09T12:00:00Z");
@@ -161,5 +161,64 @@ describe("renderTemporalContext", () => {
     const lines = out.split("\n");
     expect(lines[0]).toContain("Newest");
     expect(lines[1]).toContain("Older");
+  });
+
+  it("includes monitor labels and keyframe anchors", () => {
+    const out = renderTemporalContext(
+      [
+        frame({ keyframe_id: 42, monitor_idx: 1, active_window: "Terminal" }),
+      ],
+      { now: NOW_MS },
+    );
+
+    expect(out).toContain("screen2");
+    expect(out).toContain("Terminal");
+    expect(out).toContain("keyframe #42");
+  });
+
+  it("does not coalesce identical windows across different monitors", () => {
+    const out = renderTemporalContext(
+      [
+        frame({ keyframe_id: 1, monitor_idx: 0, active_window: "VS Code" }),
+        frame({ keyframe_id: 2, monitor_idx: 1, active_window: "VS Code" }),
+      ],
+      { now: NOW_MS },
+    );
+
+    expect(out.split("\n")).toHaveLength(2);
+  });
+
+  it("builds bounded temporal snapshot images without private keyframes", async () => {
+    const invokeFn = async <T>(command: string, args?: unknown): Promise<T> => {
+      if (command === "video_recent_keyframes") {
+        return [
+          frame({ keyframe_id: 1, monitor_idx: 0, active_window: "Newest App", has_thumb: true }),
+          frame({ keyframe_id: 2, monitor_idx: 1, active_window: "Bank", privacy_flag: "incognito", has_thumb: true }),
+          frame({ keyframe_id: 3, monitor_idx: 1, active_window: "Older App", has_thumb: true }),
+        ] as T;
+      }
+      if (command === "video_extract_frame") {
+        const keyframeId = typeof args === "object" && args !== null && "keyframeId" in args
+          ? (args as { keyframeId: unknown }).keyframeId
+          : null;
+        return {
+          keyframe_id: keyframeId,
+          jpeg_base64: `thumb-${keyframeId}`,
+        } as T;
+      }
+      throw new Error(`unexpected command ${command}`);
+    };
+
+    const out = await getTemporalSnapshotContext({
+      now: NOW_MS,
+      maxImages: 5,
+      invokeFn,
+    });
+
+    expect(out.text).toContain("Newest App");
+    expect(out.text).toContain("Older App");
+    expect(out.text).not.toContain("Bank");
+    expect(out.images).toEqual(["thumb-1", "thumb-3"]);
+    expect(out.imageKeyframes).toEqual([1, 3]);
   });
 });

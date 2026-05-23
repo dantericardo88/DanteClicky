@@ -34,8 +34,10 @@ A local-first desktop companion that combines:
 git clone https://github.com/dantericardo88/DanteClicky.git
 cd DanteClicky
 npm install
-npm run tauri dev
+npm run tauri:dev
 ```
+
+`npm run tauri:dev` starts the app with SQLCipher enabled so local dev can read the same encrypted memory database used by installed builds. Use `npm run tauri:dev:plain` only for isolated plain-SQLite debugging with a separate test profile.
 
 Enter your API keys in the Settings panel (gear icon in tray). No server to deploy.
 

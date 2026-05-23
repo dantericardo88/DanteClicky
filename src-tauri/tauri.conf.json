@@ -42,7 +42,6 @@
       "nsis": {
         "installMode": "currentUser",
         "installerIcon": "icons/icon.ico",
-        "headerImage": "icons/128x128.png",
         "displayLanguageSelector": false
       },
       "webviewInstallMode": {

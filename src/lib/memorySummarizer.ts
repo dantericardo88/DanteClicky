@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { ConversationTurn, ProviderType } from "../state/companionStore";
 import { fallbackSummarizeTurns } from "./contextCompression";
+import { providerForModel } from "./providerRegistry";
 
 export interface SummaryProviderOptions {
   provider: ProviderType | string;
@@ -9,6 +10,7 @@ export interface SummaryProviderOptions {
   anthropicKey?: string;
   openaiKey?: string;
   grokKey?: string;
+  openrouterKey?: string;
   maxTokens?: number;
   summaryTimeoutMs?: number;
 }
@@ -79,6 +81,9 @@ function resolveSummaryTarget(options: SummaryProviderOptions): SummaryTarget | 
   }
   if (options.provider === "grok" && options.grokKey?.trim()) {
     return { provider: "grok", modelId: options.modelId };
+  }
+  if (options.provider === "openrouter" && options.openrouterKey?.trim()) {
+    return { provider: "openrouter", modelId: options.modelId };
   }
   if (options.provider === "claude" && options.anthropicKey?.trim()) {
     return { provider: "claude", modelId: options.modelId };
@@ -156,8 +161,7 @@ async function streamSummaryRequest(
         return;
       }
 
-      const baseUrl =
-        target.provider === "grok" ? "https://api.x.ai/v1" : "https://api.openai.com/v1";
+      const baseUrl = providerForModel(target.provider as ProviderType).baseUrl;
       invoke("stream_openai_compat", {
         baseUrl,
         provider: target.provider,

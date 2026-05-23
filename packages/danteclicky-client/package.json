@@ -1,0 +1,29 @@
+{
+  "name": "@danteclicky/client",
+  "version": "0.1.0",
+  "description": "TypeScript/JavaScript client SDK for the DanteClicky REST + MCP API",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test src/client.test.js"
+  },
+  "keywords": ["danteclicky", "mcp", "ai", "desktop", "automation"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dantericardo88/DanteClicky"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

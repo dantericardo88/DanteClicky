@@ -1,11 +1,13 @@
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { providerForModel } from "../lib/providerRegistry";
 import {
   captureTelemetryError,
   recordTelemetryEvent,
   startTelemetrySpan,
   type TelemetryContext,
 } from "../lib/telemetry";
+import type { ProviderType } from "../state/companionStore";
 
 export interface ToolUseBlock {
   type: "tool_use";
@@ -86,8 +88,9 @@ export async function streamChat(opts: StreamChatOptions): Promise<string> {
   let toolUseCount = 0;
   let stopReason = "unknown";
 
+  const providerDefinition = providerForModel(provider as ProviderType);
   const body =
-    provider === "claude"
+    providerDefinition.kind === "anthropic"
       ? buildClaudeBody(modelId, systemPrompt, messages, images, screenWidth, screenHeight, maxTokens)
       : buildOpenAIBody(modelId, systemPrompt, messages, images, maxTokens);
 
@@ -149,8 +152,10 @@ export async function streamChat(opts: StreamChatOptions): Promise<string> {
     ]).then(([u1, u2, u3, u4, u5]) => {
       unlisteners.push(u1, u2, u3, u4, u5);
 
-      if (provider === "claude") {
+      if (providerDefinition.kind === "anthropic") {
+        console.log("[chat] invoking stream_claude callId=%s model=%s", callId, modelId);
         invoke("stream_claude", { body, callId }).catch((err: unknown) => {
+          console.error("[chat] stream_claude invoke FAILED callId=%s err=%s", callId, String(err));
           cleanup();
           captureTelemetryError(
             err,
@@ -165,12 +170,12 @@ export async function streamChat(opts: StreamChatOptions): Promise<string> {
           reject(err);
         });
       } else {
-        const baseUrl =
-          provider === "grok"
-            ? "https://api.x.ai/v1"
-            : "https://api.openai.com/v1";
-        invoke("stream_openai_compat", { baseUrl, provider, body, callId }).catch(
+        console.log("[chat] invoking stream_openai_compat callId=%s provider=%s model=%s baseUrl=%s",
+          callId, provider, modelId, providerDefinition.baseUrl);
+        invoke("stream_openai_compat", { baseUrl: providerDefinition.baseUrl, provider, body, callId }).catch(
           (err: unknown) => {
+            console.error("[chat] stream_openai_compat invoke FAILED callId=%s provider=%s err=%s",
+              callId, provider, String(err));
             cleanup();
             captureTelemetryError(
               err,
@@ -186,6 +191,11 @@ export async function streamChat(opts: StreamChatOptions): Promise<string> {
           }
         );
       }
+    }).catch((err: unknown) => {
+      console.error("[chat] listener setup FAILED callId=%s err=%s", callId, String(err));
+      cleanup();
+      span.fail(err, { chunkCount, toolUseCount });
+      reject(err instanceof Error ? err : new Error(String(err)));
     });
   });
 }
@@ -259,7 +269,7 @@ export function buildOpenAIBody(
   systemPrompt: string,
   messages: ChatMessage[],
   images: string[],
-  maxTokens = 1024
+  maxTokens = 4096
 ) {
   const lastContent: Array<object> = [
     { type: "text", text: messages.at(-1)?.content ?? "" },
@@ -390,6 +400,6 @@ export async function streamChatWithTools(
           reject(err);
         }
       );
-    });
+    }).catch((err: unknown) => reject(err));
   });
 }

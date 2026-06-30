@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-05-08T13:43:38.781Z",
+  "pattern": "OSS licensing credibility",
+  "reposFound": 0,
+  "reposLanguages": [],
+  "gapsPresented": 0,
+  "gapsImplemented": 0,
+  "beforeScore": 1.7,
+  "afterScore": 1.7,
+  "beforeGitSha": null,
+  "afterGitSha": null,
+  "status": "no-harvest",
+  "notes": [
+    "GitHub search returned 0 repos for \"OSS licensing credibility\" (TypeScript only, >100 stars). Use --url to target a specific repo.",
+    "No repos found — cannot extract gaps without a target repo."
+  ]
+}

@@ -1,0 +1,48 @@
+# ---- Secrets / env ----
+.env
+.env.*
+*.local
+!.env.example
+
+# ---- Rust ----
+target/
+**/target/
+*.rs.bk
+*.pdb
+
+# ---- Node / JS ----
+node_modules/
+**/node_modules/
+dist/
+build/
+.next/
+out/
+.turbo/
+.cache/
+*.tsbuildinfo
+.pnp.*
+.yarn/
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Logs / tmp ----
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+*.swp
+*~

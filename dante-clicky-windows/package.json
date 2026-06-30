@@ -1,0 +1,58 @@
+{
+  "name": "dante-clicky-windows",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Voice-commanded, screen-aware, computer-use capable AI desktop companion",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dantericardo88/DanteClicky.git"
+  },
+  "author": "DanteForge Contributors",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev -- --features sqlcipher",
+    "tauri:dev:plain": "tauri dev",
+    "test": "vitest run",
+    "test:frontend": "vitest run",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml --lib --quiet",
+    "test:cross-platform": "vitest run src/__tests__/crossPlatformArchitecture.test.ts",
+    "check:dim47-release": "node scripts/run-dim47-release-check.mjs",
+    "bench:dim29-grounding": "node scripts/run-dim29-grounding-benchmark.mjs",
+    "check:dim29-local-vision": "node scripts/check-dim29-local-vision-readiness.mjs",
+    "bench:context-depth": "npx tsx bench/context-depth/run.ts",
+    "test:ci": "npm run test:frontend -- --reporter=dot && npx tsc --noEmit --pretty false && npm run build && cargo check --manifest-path src-tauri/Cargo.toml --locked && npm run test:rust",
+    "test:ui": "vitest --ui",
+    "tauri:release": "tauri build -- --features sqlcipher",
+    "installer:local": "powershell -ExecutionPolicy Bypass -File scripts/build-local-installer.ps1"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.74",
+    "@ai-sdk/openai": "^3.0.60",
+    "@ai-sdk/xai": "^3.0.88",
+    "@huggingface/transformers": "^3.0.0",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-autostart": "^2.5.1",
+    "@tauri-apps/plugin-global-shortcut": "^2.3.1",
+    "@tauri-apps/plugin-opener": "^2",
+    "ai": "^6.0.175",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "@vitest/ui": "^2.0.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.4",
+    "vitest": "^2.0.0"
+  }
+}

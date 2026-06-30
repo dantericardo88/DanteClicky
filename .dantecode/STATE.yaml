@@ -1,0 +1,106 @@
+version: 1.0.0
+projectRoot: c:\Projects\DanteClicky
+createdAt: 2026-05-06T21:13:09.900Z
+updatedAt: 2026-05-06T21:13:09.901Z
+model:
+  default:
+    provider: grok
+    modelId: grok-4.3
+    maxTokens: 8192
+    temperature: 0.1
+    contextWindow: 2000000
+    supportsVision: true
+    supportsToolCalls: true
+    supportsExtendedThinking: true
+  fallback:
+    - provider: anthropic
+      modelId: claude-sonnet-4-20250514
+      maxTokens: 8192
+      temperature: 0.1
+      contextWindow: 200000
+      supportsVision: true
+      supportsToolCalls: true
+  taskOverrides: {}
+pdse:
+  threshold: 85
+  hardViolationsAllowed: 0
+  maxRegenerationAttempts: 3
+  weights:
+    completeness: 0.3
+    correctness: 0.3
+    clarity: 0.2
+    consistency: 0.2
+autoforge:
+  enabled: true
+  maxIterations: 5
+  gstackCommands:
+    - name: typecheck
+      command: npx tsc --noEmit
+      runInSandbox: true
+      timeoutMs: 60000
+      failureIsSoft: false
+    - name: lint
+      command: npx eslint .
+      runInSandbox: true
+      timeoutMs: 60000
+      failureIsSoft: true
+    - name: test
+      command: npx vitest run
+      runInSandbox: true
+      timeoutMs: 120000
+      failureIsSoft: false
+  lessonInjectionEnabled: true
+  abortOnSecurityViolation: true
+git:
+  autoCommit: true
+  commitPrefix: "dantecode:"
+  worktreeEnabled: true
+  worktreeBase: .dantecode/worktrees
+  signCommits: false
+sandbox:
+  enabled: true
+  defaultImage: ghcr.io/dantecode/sandbox:latest
+  networkMode: bridge
+  memoryLimitMb: 2048
+  cpuLimit: 2
+  timeoutMs: 300000
+  autoStart: true
+skills:
+  directories:
+    - .dantecode/skills
+    - ~/.dantecode/skills
+  autoImport: false
+  constitutionEnforced: true
+  antiStubEnabled: true
+agents:
+  maxConcurrent: 4
+  nomaEnabled: true
+  fileLockingEnabled: true
+  defaultLane: lead
+audit:
+  enabled: true
+  logDirectory: .dantecode
+  retentionDays: 90
+  includePayloads: true
+  sensitiveFieldMask:
+    - apiKey
+    - token
+    - secret
+    - password
+sessionHistory: []
+lessons:
+  enabled: true
+  maxPerProject: 500
+  autoInject: true
+  minSeverity: warning
+project:
+  name: ""
+  language: ""
+  sourceDirectories:
+    - src
+  excludePatterns:
+    - node_modules/
+    - dist/
+    - .next/
+    - __pycache__/
+    - .dantecode/worktrees/

@@ -1,0 +1,19 @@
+# DanteClicky STT Cloud Accuracy — Ablation Report
+
+Ran at: 2026-05-08T19:42:58.794Z
+Manifest entries: 5
+
+| Ablation | WER | Sub | Del | Ins | Hits | Ref words |
+|----------|-----|-----|-----|-----|------|-----------|
+| baseline | 28.21% | 7 | 0 | 4 | 32 | 39 |
+| vad+gain | 20.51% | 4 | 0 | 4 | 35 | 39 |
+| +keyterms | 5.13% | 1 | 0 | 1 | 38 | 39 |
+| +keyterms+cleanup | 0.00% | 0 | 0 | 0 | 39 | 39 |
+| +keyterms+cleanup+ensemble | 0.00% | 0 | 0 | 0 | 39 | 39 |
+
+## Cumulative improvements vs baseline
+
+- **vad+gain**: WER -7.70 pts (27.3% relative)
+- **+keyterms**: WER -23.08 pts (81.8% relative)
+- **+keyterms+cleanup**: WER -28.21 pts (100.0% relative)
+- **+keyterms+cleanup+ensemble**: WER -28.21 pts (100.0% relative)

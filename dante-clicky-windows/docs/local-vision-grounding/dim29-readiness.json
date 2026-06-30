@@ -1,0 +1,82 @@
+{
+  "generatedAt": "2026-05-21T13:21:22.993Z",
+  "dimension": 29,
+  "name": "Local vision model to UI-TARS parity",
+  "status": "blocked",
+  "scoreGate": {
+    "status": "blocked",
+    "currentCap": 8,
+    "target": 9,
+    "reason": "Dim 29 remains capped below 9 until all readiness checks pass against a real local model run."
+  },
+  "passedChecks": 4,
+  "failedChecks": 6,
+  "checks": [
+    {
+      "id": "benchmark-report-present",
+      "passed": true,
+      "remediation": null
+    },
+    {
+      "id": "fixture-count-50",
+      "passed": true,
+      "remediation": null
+    },
+    {
+      "id": "measured-count-50",
+      "passed": false,
+      "remediation": "Every fixture needs a measured prediction, not skipped/missing rows."
+    },
+    {
+      "id": "max-tolerance-50px",
+      "passed": true,
+      "remediation": null
+    },
+    {
+      "id": "pass-rate-70",
+      "passed": false,
+      "remediation": "Score 9 requires >=70% pass rate."
+    },
+    {
+      "id": "no-missing-predictions",
+      "passed": false,
+      "remediation": "Every fixture needs a prediction row."
+    },
+    {
+      "id": "no-parse-errors",
+      "passed": true,
+      "remediation": null
+    },
+    {
+      "id": "latency-p95-recorded",
+      "passed": false,
+      "remediation": "Record latencyMs per fixture."
+    },
+    {
+      "id": "local-model-identity",
+      "passed": false,
+      "remediation": "Report must identify the local model provider and revision."
+    },
+    {
+      "id": "production-point-hint-telemetry",
+      "passed": false,
+      "remediation": "Attach production telemetry proving point_query fired and produced a [POINT:x,y] hint."
+    }
+  ],
+  "reportPath": "docs/local-vision-grounding/dim29-grounding-results.json",
+  "telemetryPath": null,
+  "summary": {
+    "fixtureCount": 50,
+    "measuredCount": 0,
+    "passedCount": 0,
+    "failedCount": 0,
+    "missingCount": 50,
+    "parseErrorCount": 0,
+    "passRate": 0,
+    "maxTolerancePx": 50,
+    "meanErrorPx": null,
+    "p50LatencyMs": null,
+    "p95LatencyMs": null
+  },
+  "harshVerdict": "Harsh score remains 8.0 right now. The repo proves local caption inference, but not UI-TARS-class grounding parity."
+}

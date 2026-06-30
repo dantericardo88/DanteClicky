@@ -1,0 +1,45 @@
+[advisories]
+# Vulnerability advisory database
+vulnerability = "deny"
+unmaintained = "warn"
+yanked = "warn"
+
+[licenses]
+# Cargo will deny licenses not in this allow list
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "ISC",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "0BSD",
+    "MPL-2.0",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+]
+deny = [
+    "GPL-2.0",
+    "GPL-3.0",
+    "AGPL-3.0",
+]
+copyleft = "warn"
+allow-osi-fsf-free = true
+default = "deny"
+
+[bans]
+# Lint levels for crates which do not have a detectable license
+multiple-licenses = "deny"
+wildcards = "deny"
+# The confidence threshold for detecting a license from license text.
+confidence-threshold = 0.8
+
+[[bans.skip]]
+name = "unicode-ident"
+
+[sources]
+# Lint levels for what to happen when a crate from a crate from a git repository that is not in the allow list is detected
+unknown-git = "warn"
+unknown-registry = "warn"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

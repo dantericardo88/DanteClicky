@@ -1,0 +1,33 @@
+# CODEOWNERS — Code Ownership and Review Requirements
+
+# Default owner for all files
+* @richard-porras
+
+# Voice module
+/src/voice/ @richard-porras
+/dante-clicky-windows/src-tauri/src/voice/ @richard-porras
+
+# Memory and database
+/src/memory/ @richard-porras
+/dante-clicky-windows/src-tauri/src/db/ @richard-porras
+
+# Computer Use and screen interaction
+/src/screen/ @richard-porras
+/dante-clicky-windows/src-tauri/src/computer_use/ @richard-porras
+
+# Security and encryption
+/dante-clicky-windows/src-tauri/src/security/ @richard-porras
+/SECURITY.md @richard-porras
+
+# Configuration and CI/CD
+/.github/ @richard-porras
+/Cargo.toml @richard-porras
+/package.json @richard-porras
+
+# Documentation
+/*.md @richard-porras
+/docs/ @richard-porras
+
+# Tests
+/**/*test*.* @richard-porras
+/**/*spec*.* @richard-porras

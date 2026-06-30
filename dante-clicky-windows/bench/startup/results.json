@@ -1,0 +1,224 @@
+﻿{
+    "summary":  {
+                    "exe":  "C:\\Projects\\DanteClicky\\dante-clicky-windows\\src-tauri\\target\\release\\dante-clicky-windows.exe",
+                    "runs_requested":  30,
+                    "runs_ok":  30,
+                    "runs_timeout":  0,
+                    "app_ready_p50_ms":  18,
+                    "app_ready_p95_ms":  37,
+                    "launch_observed_p50_ms":  55,
+                    "launch_observed_p95_ms":  155
+                },
+    "results":  [
+                    {
+                        "run":  1,
+                        "status":  "ok",
+                        "pid":  28720,
+                        "launch_observed_ms":  3485,
+                        "app_ready_elapsed_ms":  37
+                    },
+                    {
+                        "run":  2,
+                        "status":  "ok",
+                        "pid":  16864,
+                        "launch_observed_ms":  73,
+                        "app_ready_elapsed_ms":  25
+                    },
+                    {
+                        "run":  3,
+                        "status":  "ok",
+                        "pid":  35188,
+                        "launch_observed_ms":  42,
+                        "app_ready_elapsed_ms":  17
+                    },
+                    {
+                        "run":  4,
+                        "status":  "ok",
+                        "pid":  36364,
+                        "launch_observed_ms":  71,
+                        "app_ready_elapsed_ms":  18
+                    },
+                    {
+                        "run":  5,
+                        "status":  "ok",
+                        "pid":  8480,
+                        "launch_observed_ms":  81,
+                        "app_ready_elapsed_ms":  21
+                    },
+                    {
+                        "run":  6,
+                        "status":  "ok",
+                        "pid":  36292,
+                        "launch_observed_ms":  63,
+                        "app_ready_elapsed_ms":  18
+                    },
+                    {
+                        "run":  7,
+                        "status":  "ok",
+                        "pid":  8308,
+                        "launch_observed_ms":  68,
+                        "app_ready_elapsed_ms":  24
+                    },
+                    {
+                        "run":  8,
+                        "status":  "ok",
+                        "pid":  18208,
+                        "launch_observed_ms":  98,
+                        "app_ready_elapsed_ms":  21
+                    },
+                    {
+                        "run":  9,
+                        "status":  "ok",
+                        "pid":  34124,
+                        "launch_observed_ms":  61,
+                        "app_ready_elapsed_ms":  24
+                    },
+                    {
+                        "run":  10,
+                        "status":  "ok",
+                        "pid":  34348,
+                        "launch_observed_ms":  49,
+                        "app_ready_elapsed_ms":  16
+                    },
+                    {
+                        "run":  11,
+                        "status":  "ok",
+                        "pid":  33016,
+                        "launch_observed_ms":  49,
+                        "app_ready_elapsed_ms":  16
+                    },
+                    {
+                        "run":  12,
+                        "status":  "ok",
+                        "pid":  24744,
+                        "launch_observed_ms":  55,
+                        "app_ready_elapsed_ms":  16
+                    },
+                    {
+                        "run":  13,
+                        "status":  "ok",
+                        "pid":  6900,
+                        "launch_observed_ms":  54,
+                        "app_ready_elapsed_ms":  15
+                    },
+                    {
+                        "run":  14,
+                        "status":  "ok",
+                        "pid":  36360,
+                        "launch_observed_ms":  61,
+                        "app_ready_elapsed_ms":  22
+                    },
+                    {
+                        "run":  15,
+                        "status":  "ok",
+                        "pid":  28508,
+                        "launch_observed_ms":  50,
+                        "app_ready_elapsed_ms":  18
+                    },
+                    {
+                        "run":  16,
+                        "status":  "ok",
+                        "pid":  33044,
+                        "launch_observed_ms":  54,
+                        "app_ready_elapsed_ms":  17
+                    },
+                    {
+                        "run":  17,
+                        "status":  "ok",
+                        "pid":  31560,
+                        "launch_observed_ms":  51,
+                        "app_ready_elapsed_ms":  18
+                    },
+                    {
+                        "run":  18,
+                        "status":  "ok",
+                        "pid":  33196,
+                        "launch_observed_ms":  47,
+                        "app_ready_elapsed_ms":  15
+                    },
+                    {
+                        "run":  19,
+                        "status":  "ok",
+                        "pid":  16588,
+                        "launch_observed_ms":  155,
+                        "app_ready_elapsed_ms":  54
+                    },
+                    {
+                        "run":  20,
+                        "status":  "ok",
+                        "pid":  35992,
+                        "launch_observed_ms":  100,
+                        "app_ready_elapsed_ms":  30
+                    },
+                    {
+                        "run":  21,
+                        "status":  "ok",
+                        "pid":  4912,
+                        "launch_observed_ms":  90,
+                        "app_ready_elapsed_ms":  26
+                    },
+                    {
+                        "run":  22,
+                        "status":  "ok",
+                        "pid":  6992,
+                        "launch_observed_ms":  61,
+                        "app_ready_elapsed_ms":  18
+                    },
+                    {
+                        "run":  23,
+                        "status":  "ok",
+                        "pid":  35448,
+                        "launch_observed_ms":  55,
+                        "app_ready_elapsed_ms":  17
+                    },
+                    {
+                        "run":  24,
+                        "status":  "ok",
+                        "pid":  7248,
+                        "launch_observed_ms":  50,
+                        "app_ready_elapsed_ms":  17
+                    },
+                    {
+                        "run":  25,
+                        "status":  "ok",
+                        "pid":  17528,
+                        "launch_observed_ms":  44,
+                        "app_ready_elapsed_ms":  14
+                    },
+                    {
+                        "run":  26,
+                        "status":  "ok",
+                        "pid":  21000,
+                        "launch_observed_ms":  56,
+                        "app_ready_elapsed_ms":  22
+                    },
+                    {
+                        "run":  27,
+                        "status":  "ok",
+                        "pid":  34596,
+                        "launch_observed_ms":  52,
+                        "app_ready_elapsed_ms":  19
+                    },
+                    {
+                        "run":  28,
+                        "status":  "ok",
+                        "pid":  35968,
+                        "launch_observed_ms":  48,
+                        "app_ready_elapsed_ms":  17
+                    },
+                    {
+                        "run":  29,
+                        "status":  "ok",
+                        "pid":  24672,
+                        "launch_observed_ms":  55,
+                        "app_ready_elapsed_ms":  19
+                    },
+                    {
+                        "run":  30,
+                        "status":  "ok",
+                        "pid":  26348,
+                        "launch_observed_ms":  51,
+                        "app_ready_elapsed_ms":  16
+                    }
+                ]
+}

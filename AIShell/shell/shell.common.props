@@ -1,0 +1,33 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <Product>AI Shell</Product>
+    <Company>Microsoft Corporation</Company>
+    <Copyright>(c) Microsoft Corporation.</Copyright>
+
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12.0</LangVersion>
+    <Version>1.0.0-preview.8</Version>
+
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <!-- Disable PDB generation for the Release build -->
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>None</DebugType>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'StaticAnalysis' ">
+    <Optimize>true</Optimize>
+    <!-- This is required to be full for compliance tools !-->
+    <DebugType>full</DebugType>
+  </PropertyGroup>
+
+</Project>

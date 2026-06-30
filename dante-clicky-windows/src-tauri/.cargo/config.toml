@@ -1,0 +1,8 @@
+# whisper-rs-sys build configuration
+# WHISPER_DONT_GENERATE_BINDINGS uses bundled bindings.rs instead of running
+# bindgen, so contributors do not need LLVM just to check the Rust crate.
+[env]
+WHISPER_DONT_GENERATE_BINDINGS = "1"
+
+# Host-specific CMAKE/PERL paths intentionally stay out of shared config.
+# Windows encrypted release builders should provide them via PATH or CI env.

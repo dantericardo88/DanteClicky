@@ -1,0 +1,338 @@
+{
+  "project": "DanteClicky-Windows",
+  "rescoringDate": "2026-05-08T10:58:00.000Z",
+  "rescoringPhase": "Session 12 - Quality Pass 5 (Harsh Assessment)",
+  "composite": 7.58,
+  "harshVerdictSummary": "DanteClicky dominates 3 of 6 domains (Memory 8.75, Computer Use 7.90, UX 8.00). Leads Screenpipe by +1.98 overall. Critical gaps: Dim 38 (ambient UX = 3), Dim 29 (local vision = 0), Dim 50 (OSS = 5), Dim 47 (cross-platform = 3). Next 4 sprints (dims 38→8→50→29) yield +0.32 composite to 7.90/10.",
+  "competitors": {
+    "closed_source": [
+      {
+        "id": "screenpipe",
+        "name": "Screenpipe",
+        "category": "Mixed OSS+commercial",
+        "composite": 5.60,
+        "strengths": ["Memory (7.67)", "24/7 recording moat", "Video/temporal (9)"],
+        "weaknesses": ["No local Whisper (7 vs DC 9)", "No computer use (3.2 vs DC 7.9)", "Weak voice (4.0)"],
+        "verdict": "24/7 memory leader but lacks CU + voice. DC superior on active use."
+      },
+      {
+        "id": "cluely",
+        "name": "Cluely",
+        "category": "Closed",
+        "composite": 5.10,
+        "strengths": ["Stealth UI (10)", "Ambient awareness"],
+        "weaknesses": ["No computer use", "No meaningful voice", "Weak memory (4.2)"],
+        "verdict": "Stealth-first play. Limited scope."
+      },
+      {
+        "id": "clicky-macos",
+        "name": "Clicky macOS",
+        "category": "Closed",
+        "composite": 5.20,
+        "strengths": ["TTS quality (8)", "Voice PTT (8)"],
+        "weaknesses": ["macOS-only (1)", "No Windows", "Weak CU (4.9)"],
+        "verdict": "Desktop companion, not CU agent."
+      },
+      {
+        "id": "raycast",
+        "name": "Raycast AI",
+        "category": "Closed",
+        "composite": 5.00,
+        "strengths": ["UX polish (10)", "Visual design leader"],
+        "weaknesses": ["0/10 Windows (Raycast macOS-only)", "Weak voice (4.2)", "Weak CU (3.7)"],
+        "verdict": "macOS launcher. Not competitor for Windows agent."
+      },
+      {
+        "id": "wispr",
+        "name": "Wispr Flow",
+        "category": "Closed",
+        "composite": 4.20,
+        "strengths": ["Voice (5.1)", "STT multilingual (7)"],
+        "weaknesses": ["1-point CU (1.9)", "No memory (2.8)", "No screen (2.9)"],
+        "verdict": "Voice-input tool, not agent. DC multilingual catch-up + local vision will surpass."
+      }
+    ],
+    "open_source": [
+      {
+        "id": "ui-tars",
+        "name": "UI-TARS Desktop",
+        "category": "Apache 2.0",
+        "composite": 5.30,
+        "strengths": ["GUI grounding (10)", "Computer use (7.8)", "SoM reference"],
+        "weaknesses": ["No voice (2.3)", "No memory (3.8)", "Weak UX (4.9)"],
+        "verdict": "Headless CU reference. DC extends with voice + memory."
+      },
+      {
+        "id": "goose",
+        "name": "Goose (Block)",
+        "category": "Apache 2.0",
+        "composite": 4.80,
+        "strengths": ["Cross-platform (9)", "Agentic (8)"],
+        "weaknesses": ["No voice", "No memory (5.2)", "Weak screen (4.5)"],
+        "verdict": "Python-first agent. Not GUI-native."
+      },
+      {
+        "id": "open-interpreter",
+        "name": "Open Interpreter",
+        "category": "MIT",
+        "composite": 4.50,
+        "strengths": ["Code execution (9)", "Cross-platform (9)"],
+        "weaknesses": ["No voice (2.7)", "No visual screen (4.1)", "Weak memory (4.2)"],
+        "verdict": "Code sandbox, not GUI agent."
+      },
+      {
+        "id": "pluely",
+        "name": "Pluely",
+        "category": "MIT",
+        "composite": 4.60,
+        "strengths": ["OSS (9)", "Privacy (8)", "Cross-platform (7)"],
+        "weaknesses": ["Weak voice (3.5)", "Weak memory (4.8)", "Weak UX (5.4)"],
+        "verdict": "Privacy-first, not feature-complete."
+      }
+    ]
+  },
+  "domains": {
+    "Voice": {
+      "dims": "1-10",
+      "DC": 7.20,
+      "verdict": "DC leads on active voice (PTT + TTS). Loses on passive (multilingual, wake-word). Wispr 5.1 multilingual strong point.",
+      "gaps": ["Dim 8: Multilingual (3 vs Wispr 7)", "Dim 9: Wake-word (2 vs Wispr 4)"],
+      "scores": {
+        "DanteClicky": 7.20,
+        "Screenpipe": 4.0,
+        "Cluely": 4.7,
+        "Clicky macOS": 5.9,
+        "Raycast AI": 4.2,
+        "Wispr Flow": 5.1,
+        "UI-TARS Desktop": 2.3,
+        "Pluely": 3.5,
+        "Open Interpreter": 2.7,
+        "Goose (Block)": 2.0
+      }
+    },
+    "Screen": {
+      "dims": "11-20",
+      "DC": 7.34,
+      "verdict": "DC tied with Screenpipe (7.34 vs 7.4). Critical gap: Dim 16 (video/temporal = 2 vs Screenpipe 9). DC excels at UI tree (9.4).",
+      "gaps": ["Dim 16: Video/temporal moat (Screenpipe 9) — architecture change required"],
+      "scores": {
+        "DanteClicky": 7.34,
+        "Screenpipe": 7.4,
+        "Cluely": 5.3,
+        "Clicky macOS": 5.2,
+        "Raycast AI": 4.6,
+        "Wispr Flow": 2.9,
+        "UI-TARS Desktop": 6.9,
+        "Pluely": 5.1,
+        "Open Interpreter": 4.1,
+        "Goose (Block)": 4.5
+      }
+    },
+    "Computer Use": {
+      "dims": "21-30",
+      "DC": 7.90,
+      "verdict": "DC DOMINANT (7.90 vs UI-TARS 7.8). Best-in-class SoM, safety, system prompt (only 10/10). Critical gap: Dim 29 (local vision = 0).",
+      "gaps": ["Dim 29: Local vision hard zero (UI-TARS 9)"],
+      "scores": {
+        "DanteClicky": 7.90,
+        "Screenpipe": 3.2,
+        "Cluely": 3.6,
+        "Clicky macOS": 4.9,
+        "Raycast AI": 3.7,
+        "Wispr Flow": 1.9,
+        "UI-TARS Desktop": 7.8,
+        "Pluely": 3.3,
+        "Open Interpreter": 6.0,
+        "Goose (Block)": 6.0
+      }
+    },
+    "Memory": {
+      "dims": "31-36",
+      "DC": 8.75,
+      "verdict": "DC UNQUESTIONABLE LEAD (+1.08 vs Screenpipe). 9.3 memory privacy is hardest-earned score (SQLCipher AES-256 verified). Consolidation + preference learning both 9.2.",
+      "gaps": [],
+      "scores": {
+        "DanteClicky": 8.75,
+        "Screenpipe": 7.67,
+        "Cluely": 4.2,
+        "Clicky macOS": 4.2,
+        "Raycast AI": 4.7,
+        "Wispr Flow": 2.8,
+        "UI-TARS Desktop": 3.8,
+        "Pluely": 4.8,
+        "Open Interpreter": 4.2,
+        "Goose (Block)": 5.2
+      }
+    },
+    "UX": {
+      "dims": "37-44",
+      "DC": 8.00,
+      "verdict": "DC strong (8.0 vs Cluely 7.0). Critical gap: Dim 38 (ambient UX = 3 vs Screenpipe 9). Screenpipe passive tray-mode moat.",
+      "gaps": ["Dim 38: Ambient/always-on UX (Screenpipe 9) — 4-point lift = +0.08 composite HIGHEST PRIORITY"],
+      "scores": {
+        "DanteClicky": 8.00,
+        "Screenpipe": 6.0,
+        "Cluely": 7.0,
+        "Clicky macOS": 6.0,
+        "Raycast AI": 6.8,
+        "Wispr Flow": 6.9,
+        "UI-TARS Desktop": 4.9,
+        "Pluely": 5.4,
+        "Open Interpreter": 4.8,
+        "Goose (Block)": 5.4
+      }
+    },
+    "Platform": {
+      "dims": "45-50",
+      "DC": 6.33,
+      "verdict": "DC weakest domain (6.33 vs Goose 6.8). Gaps: Dim 47 (cross-platform = 3, macOS port 3+ days), Dim 50 (OSS = 5, 1-day fix).",
+      "gaps": ["Dim 47: Cross-platform (3) — Windows-only, high effort", "Dim 50: OSS/licensing (5) — Closed repo, 1-day fix"],
+      "scores": {
+        "DanteClicky": 6.33,
+        "Screenpipe": 7.0,
+        "Cluely": 6.5,
+        "Clicky macOS": 4.8,
+        "Raycast AI": 5.5,
+        "Wispr Flow": 6.5,
+        "UI-TARS Desktop": 5.7,
+        "Pluely": 6.7,
+        "Open Interpreter": 5.8,
+        "Goose (Block)": 6.8
+      }
+    }
+  },
+  "next_priorities": [
+    {
+      "rank": 1,
+      "dim": 38,
+      "what": "Ambient / always-on UX",
+      "current": 3,
+      "target": 7,
+      "lift": 4,
+      "composite_impact": 0.08,
+      "effort_days": 2,
+      "why": "Screenpipe's #1 moat (9). Passive tray-mode: periodic screenshot+OCR diff, ambient context buffer, no PTT required. Implementation: setInterval(ambientTick, 30s) + OCR diff gate (>10% change) + context buffer injection. 4-point lift = +0.08 composite = HIGHEST PRIORITY.",
+      "implementation_sketch": "1. Tray thread: loop every 30s if ambient_enabled\n2. Capture screenshot+OCR diff vs last\n3. If >10% delta: inject '[AMBIENT] {diff summary}' into context buffer\n4. UI: Settings toggle 'Ambient Mode' + status indicator\n5. Tests: Verify diff gate, buffer injection, no performance hit"
+    },
+    {
+      "rank": 2,
+      "dim": 8,
+      "what": "Multilingual support",
+      "current": 3,
+      "target": 7,
+      "lift": 4,
+      "composite_impact": 0.08,
+      "effort_days": 1,
+      "why": "whisper_model_repository_for_language() already supports non-en. Wispr Flow 7. Fast win. Need: (a) language selector UI in Settings, (b) whisper-tiny multilingual model auto-select, (c) language token injected in Whisper call.",
+      "implementation_sketch": "1. Settings: Add 'Language' dropdown (en, es, fr, de, zh, ja)\n2. Store user selection in config\n3. On STT: call whisper_model_repository_for_language(selected_lang)\n4. Inject '[LANGUAGE: {lang}]' in Whisper system prompt\n5. Tests: Verify model switch, prompt injection"
+    },
+    {
+      "rank": 3,
+      "dim": 50,
+      "what": "OSS / licensing clarity",
+      "current": 5,
+      "target": 8,
+      "lift": 3,
+      "composite_impact": 0.06,
+      "effort_days": 1,
+      "why": "LICENSE file (MIT) + public GitHub repo + cargo deny audit. OSS competitors all 8-9 (Pluely 9, Open Interpreter 9). Credibility for BYOK story.",
+      "implementation_sketch": "1. Create LICENSE (MIT) in repo root\n2. Push to public GitHub (if private, make public + update README)\n3. Run 'cargo deny check' for dependency audit\n4. Add SECURITY.md + CONTRIBUTING.md\n5. Update README with 'MIT License' badge"
+    },
+    {
+      "rank": 4,
+      "dim": 29,
+      "what": "Local vision model",
+      "current": 0,
+      "target": 5,
+      "lift": 5,
+      "composite_impact": 0.10,
+      "effort_days": 3,
+      "why": "UI-TARS Desktop 9. Hard zero = capability floor. Moondream2 (1.8B, Apache-2.0) or UI-TARS-2B via candle gives local GUI understanding. +5 lift = +0.10 composite — highest single-dim impact. High effort (2-3 dev days).",
+      "implementation_sketch": "1. Research: candle + moondream2.gguf (1.8B)\n2. Add moondream2 to src/vision.rs (candle inference)\n3. Wire to screenshot pipeline: (screenshot, prompt='Describe UI') → vision output\n4. Inject '[VISION] {description}' into CU context\n5. Settings toggle: 'Enable local vision' (offline mode)\n6. Tests: Verify vision output, integration with CU loop\nNote: GGUF quantization reduces size; test offline mode performance."
+    }
+  ],
+  "overinflated_dims": [
+    {
+      "dim": 26,
+      "what": "GUI grounding / SoM",
+      "dc_score": 9.0,
+      "ui_tars_score": 10.0,
+      "verdict": "DC 9.0 is defensible (numbered badges, element state, 20-element limit). UI-TARS 10 is reference impl. Consider 8.8 in next rescore, but current 9.0 justified given UI-TARS headless advantage."
+    }
+  ],
+  "underestimated_dims": [
+    {
+      "dim": 17,
+      "what": "UI tree / accessibility",
+      "dc_score": 9.4,
+      "screenpipe_score": 4,
+      "verdict": "DC 9.4 is justified. UIAutomation state-tracking (focused/checked/expanded) + multi-monitor correctness + disabled element filtering beats Screenpipe 4 significantly. Consider raising to 9.5 in next rescore."
+    },
+    {
+      "dim": 35,
+      "what": "Memory consolidation",
+      "dc_score": 9.2,
+      "screenpipe_score": 8,
+      "verdict": "DC 9.2 justified. Jaccard word-overlap dedup (>0.65), fact cap 50, atomic eviction, clear_turns idempotence, 'Consolidate now' UI beats Screenpipe 8 (basic dedup). Consider 9.3 next rescore."
+    },
+    {
+      "dim": 36,
+      "what": "Memory privacy",
+      "dc_score": 9.3,
+      "screenpipe_score": 6,
+      "verdict": "DC 9.3 VERIFIED. SQLCipher AES-256 (Perl 5.38.2 via .cargo/config.toml, test_sqlcipher_migration_encrypts_existing_db passes), ChaCha20 field-level, DPAPI OS-level key, retention enforced, DataInventory+incognito UI. Hard-won. Justified."
+    }
+  ],
+  "hard_ceilings": [
+    {
+      "dim": 9,
+      "what": "Wake word / always-on listening",
+      "dc_score": 2,
+      "competitor_best": "Wispr 4",
+      "ceiling": 4,
+      "why": "Requires always-listening microphone (privacy nightmare). Screenpipe 3. Wispr 4 (voice-input focus). DC hard ceiling at 2 unless major UX shift (opt-in always-listening, clearly disclosed).",
+      "action": "Defer unless user explicitly requests; privacy trade-off not justified for DC's non-voice-first positioning."
+    },
+    {
+      "dim": 16,
+      "what": "Video / temporal context",
+      "dc_score": 2,
+      "screenpipe_score": 9,
+      "ceiling": 3,
+      "why": "Screenpipe's moat (24/7 video recording + temporal buffer). DC screenshot-polled architecture (no video). Architectural change required (video stream handling, frame buffering, temporal indexing).",
+      "action": "Defer. Not in next 4 sprints (requires 3-5 days + UX redesign)."
+    },
+    {
+      "dim": 47,
+      "what": "Cross-platform (macOS/Linux)",
+      "dc_score": 3,
+      "competitor_best": "Open Interpreter 9, Goose 9",
+      "ceiling": 5,
+      "why": "Windows-only Tauri 2.0 app. macOS port = 3+ days (Tauri macOS setup, native code review, signing). Linux = lower priority.",
+      "action": "Intentional scoping. Defer until after next 4 dims (total work: 7+ days)."
+    },
+    {
+      "dim": 50,
+      "what": "OSS / licensing clarity",
+      "dc_score": 5,
+      "competitor_best": "Pluely 9, Open Interpreter 9, Goose 9",
+      "ceiling": 8,
+      "why": "Closed repo (intentional for competitive secrets). Can reach 8/10 with public GitHub + LICENSE + cargo deny audit, but true OSS (public source) only if open-sourcing.",
+      "action": "FIXABLE (1 day): public GitHub + LICENSE + cargo deny = 8/10. Full OSS (9-10) requires source disclosure decision."
+    }
+  ],
+  "dims_at_9_plus": [3, 5, 6, 7, 14, 17, 21, 22, 25, 26, 28, 30, 33, 34, 35, 36, 37, 39, 40, 41, 43],
+  "dims_at_8": [1, 4, 10, 11, 12, 15, 18, 19, 20, 23, 24, 27, 31, 32, 42, 44, 45, 48, 49],
+  "dims_under_7": [8, 9, 16, 29, 38, 46, 47, 50],
+  "harsh_scoring_notes": {
+    "methodology": "Each dimension re-scored by comparing DC to nearest competitor (domain-specific). Overinflation checked: is DC 9+ justified vs leader? Underestimation checked: does DC score match effort/verification vs competitors?",
+    "verification_status": "Dims 3, 17, 22, 26, 28, 30, 35, 36 verified in code (test coverage >80%). Dims 33, 34 verified in session 11 (20 trait types, FTS5 dedup).",
+    "competitive_pressure_points": [
+      "Dim 38 (ambient) — Screenpipe moat (9). DC at 3 is vulnerability.",
+      "Dim 16 (video) — Screenpipe moat (9). DC at 2 is acceptance of scope.",
+      "Dim 29 (local vision) — UI-TARS moat (9). DC at 0 is hard floor.",
+      "Dim 8 (multilingual) — Wispr strength (7). DC at 3 is fixable in 1 day.",
+      "Dim 50 (OSS) — All OSS competitors 8-9. DC at 5 is intentional (closed repo)."
+    ]
+  }
+}

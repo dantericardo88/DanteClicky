@@ -1,0 +1,17 @@
+{
+  "snapshot_purpose": "Session 17 harsh rescore archive. Cross-agent reference.",
+  "snapshot_date": "2026-05-08T18:00:00.000Z",
+  "previous_composite": 7.94,
+  "harsh_composite": 7.81,
+  "delta": -0.13,
+  "inflation_findings_count": 9,
+  "summary": "Found 9 inflated dims. Biggest: Dim 38 Ambient UX 9→7 (Screenpipe 24/7 video + OS service is a real architectural moat that Tauri timer cannot match). Other corrections: Dim 22 (10→9 no perfect scores), Dim 17 (9.4→8.8 false precision), Dim 26 (9→8.5 UI-TARS reference), Dim 39/40 (9→8.5/8 Raycast and Cluely lead), Dims 33/35/36 (9.x→9 false precision). Lead over Screenpipe drops +2.34→+2.21 but dominance intact.",
+  "next_4_priorities": [
+    { "rank": 1, "dim": 29, "name": "Local vision model",           "lift": "0→5", "composite_impact": "+0.10", "effort_days": "2-3" },
+    { "rank": 2, "dim": 16, "name": "Video / temporal context",     "lift": "2→5", "composite_impact": "+0.06", "effort_days": "2" },
+    { "rank": 3, "dim": 38, "name": "Ambient / always-on UX (true)","lift": "7→9", "composite_impact": "+0.04", "effort_days": "2" },
+    { "rank": 4, "dim": 46, "name": "Startup time",                 "lift": "6→8", "composite_impact": "+0.04", "effort_days": "1" }
+  ],
+  "total_potential": "+0.24 → 8.05/10",
+  "see_full_matrix": ".danteforge/compete/dc-50dim-matrix.json"
+}

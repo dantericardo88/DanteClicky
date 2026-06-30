@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\shell.common.props" />
+
+  <PropertyGroup>
+    <AssemblyName>Markdown.VT</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Markdig" Version="0.41.2" />
+    <PackageReference Include="ColorCode.Core" Version="2.0.15" />
+    <PackageReference Include="Spectre.Console" Version="0.50.0" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,566 @@
+{
+  "version": "1.1",
+  "lastUpdated": "2026-05-21",
+  "passesRun": 9,
+  "plateauReached": true,
+  "repos": [
+    {
+      "name": "screenpipe",
+      "url": "https://github.com/screenpipe/screenpipe",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "10k+",
+      "description": "24/7 screen+mic recording, SQLite memory, MCP server, event-driven capture, Tauri UI",
+      "relevantDims": [13, 16, 19, 20, 31, 32, 88],
+      "patterns": [
+        "event-driven-capture",
+        "sqlite-memory",
+        "mcp-server",
+        "change-detection-capture"
+      ]
+    },
+    {
+      "name": "OpenFlux",
+      "url": "https://github.com/EDEAI/OpenFlux",
+      "license": "Apache-2.0",
+      "status": "allowed",
+      "stars": "1k+",
+      "description": "Tauri v2 + Node.js sidecar, multi-LLM, SQLite+vector memory, Playwright browser automation, Sherpa-ONNX STT",
+      "relevantDims": [24, 34, 79, 90],
+      "patterns": [
+        "nodejs-sidecar",
+        "sqlite-vector-memory",
+        "browser-automation",
+        "multi-llm-routing",
+        "offline-stt-sherpa"
+      ]
+    },
+    {
+      "name": "natively-cluely-ai-assistant",
+      "url": "https://github.com/evinjohnn/natively-cluely-ai-assistant",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "2k+",
+      "description": "Rust zero-copy audio capture, stealth overlay, local RAG vector search, <500ms latency, process-name disguise",
+      "relevantDims": [10, 14, 40, 52, 63],
+      "patterns": [
+        "zero-copy-audio",
+        "stealth-overlay",
+        "local-rag",
+        "process-name-disguise",
+        "sub-500ms-latency"
+      ]
+    },
+    {
+      "name": "windows-capture",
+      "url": "https://github.com/NiiightmareXD/windows-capture",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "1k+",
+      "description": "Fastest WGC GPU screen capture for Rust+Python, frame-on-change only, DXGI duplication API",
+      "relevantDims": [11, 15, 18, 69],
+      "patterns": [
+        "frame-on-change",
+        "dxgi-duplication-fallback",
+        "gpu-capture-abstraction"
+      ]
+    },
+    {
+      "name": "adk-rust",
+      "url": "https://github.com/zavora-ai/adk-rust",
+      "license": "Apache-2.0",
+      "status": "allowed",
+      "stars": "500+",
+      "description": "25-crate modular agent framework, multi-provider, real-time voice, RAG pipeline, sequential/parallel/loop agents",
+      "relevantDims": [24, 27, 30, 75, 82],
+      "patterns": [
+        "modular-agent-crates",
+        "tool-registration",
+        "sequential-parallel-loop-agents",
+        "realtime-voice-bidirectional",
+        "rag-pipeline"
+      ]
+    },
+    {
+      "name": "rust-mcp-sdk",
+      "url": "https://github.com/modelcontextprotocol/rust-sdk",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "1k+",
+      "description": "Official Rust MCP SDK, tokio async, full spec compliance",
+      "relevantDims": [20, 75, 76, 87],
+      "patterns": [
+        "official-mcp-sdk",
+        "tokio-mcp",
+        "mcp-client-server"
+      ]
+    },
+    {
+      "name": "whisper-cpp-plus-rs",
+      "url": "https://github.com/operator-kit/whisper-cpp-plus-rs",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "200+",
+      "description": "Safe Rust whisper.cpp bindings with real-time PCM streaming, VAD, temperature fallback, Send+Sync",
+      "relevantDims": [2, 3, 4, 8],
+      "patterns": [
+        "realtime-pcm-streaming",
+        "vad-integration",
+        "temperature-fallback-quality",
+        "thread-safe-whisper-context"
+      ]
+    },
+    {
+      "name": "whisper-rs",
+      "url": "https://github.com/tazz4843/whisper-rs",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "1k+",
+      "description": "Official whisper.cpp Rust bindings, WhisperContext + FullParams, widely used baseline",
+      "relevantDims": [3, 8],
+      "patterns": [
+        "whisper-context-pooling",
+        "full-params-configuration",
+        "model-caching"
+      ]
+    },
+    {
+      "name": "scap",
+      "url": "https://github.com/CapSoftware/scap",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "500+",
+      "description": "Cross-platform screen capture Rust lib, platform-module isolation, permission checks, captureable target query",
+      "relevantDims": [11, 15, 18, 47],
+      "patterns": [
+        "platform-module-isolation",
+        "capturable-target-query",
+        "permission-check-pattern"
+      ]
+    },
+    {
+      "name": "moondream",
+      "url": "https://github.com/m87-labs/moondream",
+      "license": "Apache-2.0",
+      "status": "allowed",
+      "stars": "5k+",
+      "description": "Tiny vision language model, ScreenSpot UI element localization F1@0.5 of 80.4, ONNX/safetensors, runs on CPU",
+      "relevantDims": [29, 26, 65],
+      "patterns": [
+        "ui-element-localization",
+        "screenspot-benchmark",
+        "cpu-only-inference",
+        "onnx-safetensors",
+        "pointing-query-api"
+      ]
+    },
+    {
+      "name": "openWakeWord",
+      "url": "https://github.com/dscripka/openWakeWord",
+      "license": "Apache-2.0",
+      "status": "allowed",
+      "stars": "3k+",
+      "description": "Open-source wake word detection framework, ONNX runtime, runs 15-20 models simultaneously, accuracy > Porcupine",
+      "relevantDims": [9],
+      "patterns": [
+        "onnx-wake-word",
+        "multi-model-simultaneous",
+        "false-positive-rate-benchmark",
+        "detection-latency-benchmark"
+      ]
+    },
+    {
+      "name": "oww_rs",
+      "url": "https://github.com/skoky/oww_rs",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "100+",
+      "description": "openWakeWord inference in Rust using ORT, cross-platform",
+      "relevantDims": [9],
+      "patterns": [
+        "rust-wake-word",
+        "ort-inference",
+        "cross-platform-wakeword"
+      ]
+    },
+    {
+      "name": "tauri-plugin-mcp",
+      "url": "https://github.com/P3GLEG/tauri-plugin-mcp",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "200+",
+      "description": "MCP plugin for Tauri apps: screenshot capture, window management, DOM access, simulated user inputs for AI agents",
+      "relevantDims": [20, 75, 76, 77, 87],
+      "patterns": [
+        "tauri-mcp-bridge",
+        "dom-access-mcp",
+        "screenshot-to-mcp",
+        "window-management-mcp"
+      ]
+    },
+    {
+      "name": "overlay-companion-mcp",
+      "url": "https://github.com/RyansOpenSourceRice/overlay-companion-mcp",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "100+",
+      "description": "General-purpose overlay + MCP: visual overlays, screenshots, mouse/keyboard control, multi-monitor support",
+      "relevantDims": [20, 25, 40, 75, 88],
+      "patterns": [
+        "overlay-mcp-server",
+        "multi-monitor-overlay",
+        "mouse-keyboard-mcp",
+        "screenshot-mcp"
+      ]
+    },
+    {
+      "name": "Grounded-SAM-2",
+      "url": "https://github.com/IDEA-Research/Grounded-SAM-2",
+      "license": "Apache-2.0",
+      "status": "allowed",
+      "stars": "5k+",
+      "description": "Florence-2 + SAM-2: object detection, segmentation, phrase grounding, dense region captioning",
+      "relevantDims": [29, 26, 65],
+      "patterns": [
+        "phrase-grounding",
+        "dense-region-captioning",
+        "florence-2-detection",
+        "sam2-segmentation"
+      ]
+    },
+    {
+      "name": "pluely",
+      "url": "https://github.com/iamsrikanthnani/pluely",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "2k+",
+      "description": "OSS Cluely alternative: Tauri, 10MB, completely undetectable in video calls/screen shares, privacy-first",
+      "relevantDims": [14, 40, 47],
+      "patterns": [
+        "screen-share-exclusion",
+        "tauri-stealth",
+        "capture-exclusion-wda"
+      ]
+    },
+    {
+      "name": "ironclaw",
+      "url": "https://github.com/nearai/ironclaw",
+      "license": "Apache-2.0",
+      "status": "allowed",
+      "stars": "300+",
+      "description": "Agent OS: prompt injection defense with pattern detection + content sanitization, sandboxed WebAssembly tools, capability-based permissions",
+      "relevantDims": [51, 56, 58, 60],
+      "patterns": [
+        "prompt-injection-defense",
+        "wasm-sandboxing",
+        "capability-based-permissions",
+        "content-sanitization"
+      ]
+    },
+    {
+      "name": "tauri-benchmark-electron",
+      "url": "https://github.com/tauri-apps/benchmark_electron",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "500+",
+      "description": "Official Tauri vs Electron benchmark: startup time, memory footprint, CPU, GPU, binary size",
+      "relevantDims": [63, 64, 65, 66, 68, 73],
+      "patterns": [
+        "startup-benchmark",
+        "memory-footprint-benchmark",
+        "cpu-idle-benchmark",
+        "binary-size-comparison"
+      ]
+    },
+    {
+      "name": "web-to-desktop-comparison",
+      "url": "https://github.com/Elanis/web-to-desktop-framework-comparison",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "1k+",
+      "description": "Objective comparison: Tauri/Electron/Flutter/etc across memory, CPU, GPU, startup, binary size",
+      "relevantDims": [63, 64, 66, 68, 73],
+      "patterns": [
+        "rss-measurement",
+        "cpu-gpu-comparison",
+        "framework-benchmarking"
+      ]
+    },
+    {
+      "name": "mcp-clipboard",
+      "url": "https://github.com/erik-balfe/mcp-clipboard",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "200+",
+      "description": "MCP server for clipboard management: persistent storage, search, multimodal support for AI agents",
+      "relevantDims": [61, 85, 92],
+      "patterns": [
+        "clipboard-mcp-server",
+        "persistent-clipboard-storage",
+        "multimodal-clipboard"
+      ]
+    },
+    {
+      "name": "playwright-mcp",
+      "url": "https://github.com/microsoft/playwright-mcp",
+      "license": "Apache-2.0",
+      "status": "allowed",
+      "stars": "5k+",
+      "description": "Microsoft Playwright MCP server: browser automation, DOM access, screenshot, network interception",
+      "relevantDims": [90, 87, 79],
+      "patterns": [
+        "browser-mcp-server",
+        "dom-inspection-mcp",
+        "network-interception-mcp"
+      ]
+    },
+    {
+      "name": "UI-TARS-desktop",
+      "url": "https://github.com/bytedance/UI-TARS-desktop",
+      "license": "Apache-2.0",
+      "status": "allowed",
+      "stars": "10k+",
+      "description": "ByteDance's GUI agent: UI-TARS + Seed-1.5-VL/1.6, CLI + Web UI, MCP tools, multimodal, GUI/game/code/tool use",
+      "relevantDims": [26, 27, 29, 65],
+      "patterns": [
+        "seed-vlm-grounding",
+        "gui-agent-stack",
+        "cli-web-ui-modes",
+        "mcp-tools-integration"
+      ]
+    },
+    {
+      "name": "tts-rs-kokoro",
+      "url": "https://github.com/rishiskhare/tts-rs",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "300+",
+      "description": "Kokoro TTS inference in Rust + ONNX, 9 languages, streaming synthesis, CPU-only, f32/f16/int8 variants",
+      "relevantDims": [5, 6, 8],
+      "patterns": [
+        "kokoro-onnx-rust",
+        "streaming-tts-synthesis",
+        "cpu-only-tts",
+        "multi-precision-models"
+      ]
+    },
+    {
+      "name": "Kokoros",
+      "url": "https://github.com/lucasjinreal/Kokoros",
+      "license": "Apache-2.0",
+      "status": "allowed",
+      "stars": "1k+",
+      "description": "Kokoro in Rust, insanely fast, HTTP API streaming, parallel processing, OpenAI-compatible server",
+      "relevantDims": [5, 6, 63],
+      "patterns": [
+        "kokoro-rust-native",
+        "openai-compatible-tts-server",
+        "parallel-tts-processing",
+        "http-streaming-tts"
+      ]
+    },
+    {
+      "name": "kokorox",
+      "url": "https://github.com/WismutHansen/kokorox",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "200+",
+      "description": "Kokoro in Rust, 87M params, Windows binaries, multi-language via espeak-ng",
+      "relevantDims": [5, 6, 8],
+      "patterns": [
+        "kokoro-windows-binary",
+        "espeak-ng-phonemization",
+        "small-model-tts"
+      ]
+    },
+    {
+      "name": "Aura-AI",
+      "url": "https://github.com/Rkcr7/Aura-AI",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "500+",
+      "description": "Undetectable AI overlay, Deepgram STT, Groq/Cerebras/Gemini LLM, Vision AI for screenshots, invisible in recordings",
+      "relevantDims": [14, 40, 2],
+      "patterns": [
+        "undetectable-overlay",
+        "vision-screenshot-analysis",
+        "multi-provider-llm-routing"
+      ]
+    },
+    {
+      "name": "OpenCluely",
+      "url": "https://github.com/TechyCSR/OpenCluely",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "300+",
+      "description": "Free OSS Cluely alternative: invisible overlay, real-time AI help, Smart Image Processing, multi-language",
+      "relevantDims": [14, 40, 8],
+      "patterns": [
+        "smart-image-processing",
+        "invisible-overlay",
+        "multi-language-ai"
+      ]
+    },
+    {
+      "name": "Invisiwind",
+      "url": "https://github.com/radiantly/Invisiwind",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "1k+",
+      "description": "Hide windows from screen sharing via DLL injection + SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)",
+      "relevantDims": [14, 40, 56],
+      "patterns": [
+        "SetWindowDisplayAffinity",
+        "WDA_EXCLUDEFROMCAPTURE",
+        "dll-injection-exclusion",
+        "screen-share-hide"
+      ]
+    },
+    {
+      "name": "shadow-ai",
+      "url": "https://github.com/HEUDavid/shadow-ai",
+      "license": "Apache-2.0",
+      "status": "allowed",
+      "stars": "200+",
+      "description": "Stealth AI for restricted environments, cross-device LAN interaction, screen+audio capture, real-time AI inference",
+      "relevantDims": [14, 40, 56],
+      "patterns": [
+        "lan-ai-relay",
+        "stealth-restricted-environments",
+        "cross-device-capture"
+      ]
+    },
+    {
+      "name": "AIShell",
+      "url": "https://github.com/PowerShell/AIShell",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "2k+",
+      "description": "Microsoft's interactive AI shell with multiple AI agent providers, PowerShell integration, extensible framework",
+      "relevantDims": [84, 91],
+      "patterns": [
+        "shell-ai-integration",
+        "multi-agent-shell",
+        "powershell-hooks"
+      ]
+    },
+    {
+      "name": "windows-user-action-hook",
+      "url": "https://github.com/justcoding121/windows-user-action-hook",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "200+",
+      "description": ".NET library for Windows global event hooks: mouse, keyboard, clipboard, print events",
+      "relevantDims": [61, 85, 91, 92],
+      "patterns": [
+        "global-mouse-hook",
+        "global-keyboard-hook",
+        "clipboard-event-hook",
+        "windows-event-subscription"
+      ]
+    },
+    {
+      "name": "Windows-Use",
+      "url": "https://github.com/CursorTouch/Windows-Use",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "500+",
+      "description": "AI Agent for Windows OS GUI control: multi-monitor cursor-aware positioning, coordinate mapping",
+      "relevantDims": [21, 25, 15, 26],
+      "patterns": [
+        "windows-gui-agent",
+        "multi-monitor-coordinate",
+        "cursor-aware-ui-control"
+      ]
+    },
+    {
+      "name": "XandSuite",
+      "url": "https://github.com/XandAI-project/XandSuite",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "300+",
+      "description": "Local-first AI desktop suite with Tauri v2 + Rust + React, GGUF/llama.cpp, chat/voice/RAG/agents",
+      "relevantDims": [24, 34, 79, 89],
+      "patterns": [
+        "local-first-gguf",
+        "llama-cpp-integration",
+        "rag-agents-combined",
+        "tauri-v2-local-llm"
+      ]
+    },
+    {
+      "name": "terax-ai",
+      "url": "https://github.com/crynta/terax-ai",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "200+",
+      "description": "Lightweight 7MB AI terminal emulator, Tauri 2 + Rust + React 19, PTY backend, AI side-panel, code editor",
+      "relevantDims": [84, 91, 73],
+      "patterns": [
+        "pty-backend",
+        "terminal-ai-sidebar",
+        "lightweight-tauri"
+      ]
+    },
+    {
+      "name": "voice-mirror",
+      "url": "https://github.com/contextmirror/voice-mirror",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "500+",
+      "description": "Voice-controlled AI agent overlay: Tauri 2 + Rust + Svelte 5, Whisper ONNX STT, Kokoro ONNX TTS, VAD, MCP, 75+ models",
+      "relevantDims": [1, 2, 3, 5, 6, 9, 20, 75],
+      "patterns": [
+        "whisper-onnx-rust",
+        "kokoro-onnx-rust",
+        "vad-rust-native",
+        "mcp-tool-access",
+        "tauri-2-svelte-voice"
+      ]
+    },
+    {
+      "name": "livekit-agents",
+      "url": "https://github.com/livekit/agents",
+      "license": "Apache-2.0",
+      "status": "allowed",
+      "stars": "8k+",
+      "description": "Framework for realtime voice AI agents: STT/TTS/LLM pipeline, WebRTC, low-latency voice, multi-provider",
+      "relevantDims": [1, 2, 4, 6, 63],
+      "patterns": [
+        "realtime-voice-pipeline",
+        "webrtc-audio",
+        "multi-provider-stt-tts",
+        "turn-detection-pipeline"
+      ]
+    },
+    {
+      "name": "VibeVoice",
+      "url": "https://github.com/microsoft/VibeVoice",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "1k+",
+      "description": "Microsoft's Open-Source Frontier Voice AI with real-time voice streaming",
+      "relevantDims": [1, 2, 4, 6],
+      "patterns": [
+        "frontier-voice-model",
+        "realtime-streaming-voice",
+        "microsoft-voice-patterns"
+      ]
+    },
+    {
+      "name": "phantom-lens",
+      "url": "https://github.com/inulute/phantom-lens",
+      "license": "MIT",
+      "status": "allowed",
+      "stars": "300+",
+      "description": "Privacy-first OSS AI assistant: off-screen presence, no overlays, no telemetry, Windows-native, contextual screen understanding",
+      "relevantDims": [14, 40, 86, 88, 90],
+      "patterns": [
+        "off-screen-ai-presence",
+        "zero-telemetry-design",
+        "contextual-screen-reading",
+        "privacy-first-ai"
+      ]
+    }
+  ]
+}

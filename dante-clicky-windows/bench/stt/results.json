@@ -1,0 +1,106 @@
+{
+  "ranAt": "2026-05-08T19:42:58.794Z",
+  "manifestVersion": 1,
+  "manifestEntryCount": 5,
+  "results": [
+    {
+      "ablation": "baseline",
+      "wer": 0.2821,
+      "insertions": 4,
+      "deletions": 0,
+      "substitutions": 7,
+      "hits": 32,
+      "referenceWordCount": 39,
+      "utteranceCount": 5,
+      "perCategory": {
+        "all": {
+          "wer": 0.2821,
+          "utteranceCount": 5
+        }
+      }
+    },
+    {
+      "ablation": "vad+gain",
+      "wer": 0.2051,
+      "insertions": 4,
+      "deletions": 0,
+      "substitutions": 4,
+      "hits": 35,
+      "referenceWordCount": 39,
+      "utteranceCount": 5,
+      "perCategory": {
+        "all": {
+          "wer": 0.2051,
+          "utteranceCount": 5
+        }
+      }
+    },
+    {
+      "ablation": "+keyterms",
+      "wer": 0.0513,
+      "insertions": 1,
+      "deletions": 0,
+      "substitutions": 1,
+      "hits": 38,
+      "referenceWordCount": 39,
+      "utteranceCount": 5,
+      "perCategory": {
+        "all": {
+          "wer": 0.0513,
+          "utteranceCount": 5
+        }
+      }
+    },
+    {
+      "ablation": "+keyterms+cleanup",
+      "wer": 0,
+      "insertions": 0,
+      "deletions": 0,
+      "substitutions": 0,
+      "hits": 39,
+      "referenceWordCount": 39,
+      "utteranceCount": 5,
+      "perCategory": {
+        "all": {
+          "wer": 0,
+          "utteranceCount": 5
+        }
+      }
+    },
+    {
+      "ablation": "+keyterms+cleanup+ensemble",
+      "wer": 0,
+      "insertions": 0,
+      "deletions": 0,
+      "substitutions": 0,
+      "hits": 39,
+      "referenceWordCount": 39,
+      "utteranceCount": 5,
+      "perCategory": {
+        "all": {
+          "wer": 0,
+          "utteranceCount": 5
+        }
+      }
+    }
+  ],
+  "improvements": {
+    "vad+gain": {
+      "absoluteWerReduction": 0.077,
+      "relativeWerReduction": 0.273
+    },
+    "+keyterms": {
+      "absoluteWerReduction": 0.2308,
+      "relativeWerReduction": 0.8181
+    },
+    "+keyterms+cleanup": {
+      "absoluteWerReduction": 0.2821,
+      "relativeWerReduction": 1
+    },
+    "+keyterms+cleanup+ensemble": {
+      "absoluteWerReduction": 0.2821,
+      "relativeWerReduction": 1
+    }
+  },
+  "_source": "fixture"
+}

@@ -1,0 +1,159 @@
+{
+  "features": [
+    {
+      "id": "feat-001",
+      "name": "Real-time collaboration",
+      "description": "Allows multiple users to edit diagrams simultaneously with real-time synchronization.",
+      "category": "planning",
+      "competitorsThatHaveIt": [
+        "Miro",
+        "Lucidchart"
+      ],
+      "bestImplementationHint": "Uses WebSocket and serverless functions for real-time updates."
+    },
+    {
+      "id": "feat-002",
+      "name": "Automated diagram updates",
+      "description": "Syncs changes across all views of a diagram in real-time.",
+      "category": "execution",
+      "competitorsThatHaveIt": [
+        "Miro",
+        "Lucidchart"
+      ],
+      "bestImplementationHint": "Real-time database triggers and event listeners for instant synchronization."
+    },
+    {
+      "id": "feat-003",
+      "name": "Customizable validation rules",
+      "description": "Enforces specific diagram standards through custom checks.",
+      "category": "quality",
+      "competitorsThatHaveIt": [
+        "Lucidchart"
+      ],
+      "bestImplementationHint": "Uses regular expressions and custom workflows to ensure compliance."
+    },
+    {
+      "id": "feat-004",
+      "name": "Automated feedback for design decisions",
+      "description": "Provides instant insights on design choices based on best practices.",
+      "category": "quality",
+      "competitorsThatHaveIt": [
+        "Lucidchart"
+      ],
+      "bestImplementationHint": "Analyzes user feedback and industry norms to offer suggestions."
+    },
+    {
+      "id": "feat-005",
+      "name": "Third-party application integration",
+      "description": "Connects with external tools for enhanced functionality.",
+      "category": "integration",
+      "competitorsThatHaveIt": [
+        "Miro"
+      ],
+      "bestImplementationHint": "Provides API documentation and SDKs for integration."
+    },
+    {
+      "id": "feat-006",
+      "name": "Visual collaboration tools",
+      "description": "Enables real-time communication and document sharing during meetings.",
+      "category": "dx",
+      "competitorsThatHaveIt": [
+        "Miro"
+      ],
+      "bestImplementationHint": "Integrates with popular collaboration platforms like Slack and Microsoft Teams."
+    },
+    {
+      "id": "feat-007",
+      "name": "Risk assessment dashboard",
+      "description": "Visualizes potential risks and mitigation strategies.",
+      "category": "planning",
+      "competitorsThatHaveIt": [
+        "Miro"
+      ],
+      "bestImplementationHint": "Displays data-driven insights in a customizable dashboard."
+    },
+    {
+      "id": "feat-008",
+      "name": "Task prioritization based on dependencies",
+      "description": "Automatically reorders tasks based on their interdependencies.",
+      "category": "execution",
+      "competitorsThatHaveIt": [
+        "Miro"
+      ],
+      "bestImplementationHint": "Uses complex algorithms to calculate task impact."
+    },
+    {
+      "id": "feat-009",
+      "name": "Code review automation",
+      "description": "Automates the code review process using machine learning.",
+      "category": "quality",
+      "competitorsThatHaveIt": [
+        "Miro"
+      ],
+      "bestImplementationHint": "Analyzes code for quality and security issues in real-time."
+    },
+    {
+      "id": "feat-010",
+      "name": "Workflow automation",
+      "description": "Reduces manual steps in workflows by automating repetitive tasks.",
+      "category": "dx",
+      "competitorsThatHaveIt": [
+        "Miro"
+      ],
+      "bestImplementationHint": "Uses configurable workflows that trigger actions based on events."
+    },
+    {
+      "id": "feat-011",
+      "name": "Pre-built templates and symbols",
+      "description": "Provides ready-to-use shapes and diagrams for common use cases.",
+      "category": "planning",
+      "competitorsThatHaveIt": [
+        "Lucidchart"
+      ],
+      "bestImplementationHint": "Templates auto-suggest based on user activity."
+    },
+    {
+      "id": "feat-012",
+      "name": "Automated UI testing",
+      "description": "Checks for bugs and issues in the application interface.",
+      "category": "quality",
+      "competitorsThatHaveIt": [
+        "Miro"
+      ],
+      "bestImplementationHint": "Uses Selenium WebDriver for browser automation."
+    },
+    {
+      "id": "feat-013",
+      "name": "Self-healing components",
+      "description": "Automatically recovers from failures without manual intervention.",
+      "category": "autonomy",
+      "competitorsThatHaveIt": [
+        "Miro"
+      ],
+      "bestImplementationHint": "Monitors component health using heartbeat checks."
+    },
+    {
+      "id": "feat-014",
+      "name": "Cloud provider integration",
+      "description": "Connects to various cloud services for seamless operations.",
+      "category": "integration",
+      "competitorsThatHaveIt": [
+        "Miro"
+      ],
+      "bestImplementationHint": "Provides native SDKs and APIs for major providers."
+    }
+  ],
+  "competitors": [
+    "Miro",
+    "Lucidchart",
+    "Crello",
+    "Asana",
+    "Trello",
+    "Monday.com",
+    "Microsoft Teams",
+    "Jira"
+  ],
+  "generatedAt": "2026-05-08T12:14:14.446Z",
+  "version": 1,
+  "sourceDescription": "Derived from 8 competitor analysis (14 unique features)"
+}

@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\shell.common.props" />
+
+  <PropertyGroup>
+    <AssemblyName>AIShell.Integration</AssemblyName>
+
+    <!-- Disable deps.json generation -->
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Management.Automation" Version="7.4.7">
+      <ExcludeAssets>contentFiles</ExcludeAssets>
+      <PrivateAssets>All</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AIShell.Abstraction\AIShell.Abstraction.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="AIShell.psd1;AIShell.psm1">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

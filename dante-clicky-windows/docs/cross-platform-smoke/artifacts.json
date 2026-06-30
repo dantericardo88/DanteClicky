@@ -1,0 +1,507 @@
+{
+  "dimension": 47,
+  "name": "Cross-platform",
+  "lastUpdated": "2026-05-10T07:09:44.597Z",
+  "status": "strict-release-readiness-gate-blocked",
+  "scoreClaim": 8.2,
+  "scoreCap": "8.2 after adversarial correction. Do not claim 9+ until Apple notarization secrets/certificate, Windows signing certificate secrets, a successful v* tagged signed/notarized release with verified latest.json/SHA256SUMS updater signatures, release trust evidence, GitHub attestations, and strict dated Windows/macOS/Linux installed-artifact manual smoke logs exist.",
+  "ciProof": {
+    "workflow": "Build & Test",
+    "runId": 25610105987,
+    "runUrl": "https://github.com/dantericardo88/DanteClicky/actions/runs/25610105987",
+    "commit": "18e712aef6145d5320639bc473297e53130e515d",
+    "testJobs": {
+      "windows-latest": "passed",
+      "macos-latest": "passed",
+      "ubuntu-latest": "passed"
+    },
+    "packageSmokeJobs": {
+      "windows-latest": "passed",
+      "macos-latest": "passed",
+      "ubuntu-latest": "passed"
+    },
+    "runtimeSmokeJobs": {
+      "windows-latest": {
+        "status": "passed",
+        "nativeReadyMs": 18,
+        "elapsedMs": 394,
+        "requiredMarkers": [
+          "tray_ready",
+          "hotkey_registered",
+          "native_ready"
+        ],
+        "artifact": "danteclicky-windows-latest-runtime-smoke",
+        "artifactId": 6898203008
+      },
+      "macos-latest": {
+        "status": "passed",
+        "nativeReadyMs": 497,
+        "elapsedMs": 786,
+        "requiredMarkers": [
+          "tray_ready",
+          "hotkey_registered",
+          "native_ready"
+        ],
+        "artifact": "danteclicky-macos-latest-runtime-smoke",
+        "artifactId": 6898188608
+      },
+      "ubuntu-latest": {
+        "status": "passed",
+        "nativeReadyMs": 495,
+        "elapsedMs": 870,
+        "requiredMarkers": [
+          "tray_ready",
+          "hotkey_registered",
+          "native_ready"
+        ],
+        "artifact": "danteclicky-ubuntu-latest-runtime-smoke",
+        "artifactId": 6898194282
+      }
+    },
+    "artifacts": [
+      {
+        "name": "danteclicky-windows-latest-no-bundle",
+        "artifactId": 6898203221,
+        "sizeBytes": 16534232
+      },
+      {
+        "name": "danteclicky-macos-latest-no-bundle",
+        "artifactId": 6898188794,
+        "sizeBytes": 17045844
+      },
+      {
+        "name": "danteclicky-ubuntu-latest-no-bundle",
+        "artifactId": 6898194609,
+        "sizeBytes": 19813889
+      },
+      {
+        "name": "danteclicky-windows-latest-runtime-smoke",
+        "artifactId": 6898203008,
+        "sizeBytes": 660
+      },
+      {
+        "name": "danteclicky-macos-latest-runtime-smoke",
+        "artifactId": 6898188608,
+        "sizeBytes": 660
+      },
+      {
+        "name": "danteclicky-ubuntu-latest-runtime-smoke",
+        "artifactId": 6898194282,
+        "sizeBytes": 665
+      }
+    ]
+  },
+  "expectedReleaseArtifacts": {
+    "windows-x86_64": [
+      "*.exe",
+      "*.exe.sig"
+    ],
+    "darwin-aarch64": [
+      "*.app.tar.gz",
+      "*.app.tar.gz.sig"
+    ],
+    "darwin-x86_64": [
+      "*.app.tar.gz",
+      "*.app.tar.gz.sig"
+    ],
+    "linux-x86_64": [
+      "*.AppImage",
+      "*.AppImage.sig"
+    ]
+  },
+  "requiredManualSmokeLogs": [
+    "docs/cross-platform-smoke/YYYY-MM-DD-windows-vX.Y.Z.md",
+    "docs/cross-platform-smoke/YYYY-MM-DD-macos-vX.Y.Z.md",
+    "docs/cross-platform-smoke/YYYY-MM-DD-linux-vX.Y.Z.md"
+  ],
+  "checks": {
+    "windowsReleaseNoBundle": "passed in CI package-smoke and uploaded artifact",
+    "macosCi": "passed test job, package-smoke, and runtime smoke with uploaded artifacts",
+    "linuxCi": "passed test job, package-smoke, and runtime smoke with uploaded artifacts",
+    "releasePreflight": "partially unblocked: updater pubkey and Tauri signing secrets are set; release preflight rejects version/tag drift; release actions are SHA-pinned; macOS direct distribution requires Developer ID Application; Apple notarization and Windows certificate secrets are still missing",
+    "notarization": "blocked: not yet proven by tagged macOS release with codesign, spctl, stapler, and release tool-version evidence",
+    "updaterSignatures": "partially unblocked: verifier requires SemVer-like version, RFC3339 pub_date, expected platform keys, tag/repo release URLs, mandatory latest.json presence, signatures that exactly match downloaded .sig file contents, and deterministic latest.json generation; not yet proven by tagged release artifacts",
+    "releaseTrustEvidence": "blocked until a tagged release attaches trust-evidence text files whose contents include signtool/codesign/spctl/stapler/AppImage updater proof plus GitHub artifact attestation evidence",
+    "manualSmoke": "blocked: strict installed-artifact logs with release metadata, trust evidence, SHA256, runtime evidence, Settings > Platform updater manifest result, and matching tag/release URL are still missing"
+  },
+  "session31Readiness": {
+    "dim": 47,
+    "before": 8.6,
+    "after": 8.6,
+    "verdict": "Improved release readiness, but 9+ not honestly achieved.",
+    "evidence": [
+      "src-tauri/tauri.conf.json now has a real Tauri updater public key.",
+      "GitHub secrets set: TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD, KEYCHAIN_PASSWORD.",
+      "scripts/check-dim47-release-readiness.ps1 generates docs/cross-platform-smoke/dim47-release-readiness.json.",
+      "docs/cross-platform-smoke/manual-smoke-template.md defines the required OS smoke log format."
+    ],
+    "readinessReport": "docs/cross-platform-smoke/dim47-release-readiness.json",
+    "readinessStatus": "blocked",
+    "passedChecks": 5,
+    "failedChecks": 11,
+    "remainingBlockers": [
+      "secret-APPLE_ID",
+      "secret-APPLE_PASSWORD",
+      "secret-APPLE_TEAM_ID",
+      "secret-APPLE_CERTIFICATE",
+      "secret-APPLE_CERTIFICATE_PASSWORD",
+      "secret-WINDOWS_CERTIFICATE",
+      "secret-WINDOWS_CERTIFICATE_PASSWORD",
+      "manual-smoke-windows",
+      "manual-smoke-macos",
+      "manual-smoke-linux",
+      "release-tag-provided"
+    ],
+    "nextAction": "Add real Apple Developer/notarization secrets and Windows code signing certificate secrets, trigger a tagged release, then run signed artifacts through the readiness checker and platform smoke logs."
+  },
+  "session32ReleaseHardening": {
+    "dim": 47,
+    "before": 8.6,
+    "after": 8.6,
+    "verdict": "Release proof gate hardened, but 9+ not honestly achieved.",
+    "evidence": [
+      "Release workflow now checks out the exact RELEASE_TAG for workflow_dispatch and tag pushes.",
+      "Release builds now use the production sqlcipher feature on Windows, macOS Apple Silicon, macOS Intel, and Linux.",
+      "GitHub release stays draft until platform trust evidence, latest.json generation, artifact verification, and manifest upload complete.",
+      "Windows release job verifies installers with signtool /pa /all /tw /v.",
+      "macOS release jobs verify codesign, spctl assessment, and stapler validation.",
+      "Linux release job records AppImage and non-empty Tauri updater signature evidence.",
+      "Release artifact verifiers now compare latest.json signatures to downloaded .sig file contents and validate tag/repository URLs.",
+      "Manual smoke validator now requires strict dated filenames, release metadata, SHA256, trust evidence tokens, accepted runtime results, and non-empty evidence cells."
+    ],
+    "readinessReport": "docs/cross-platform-smoke/dim47-release-readiness.json",
+    "readinessStatus": "blocked",
+    "passedChecks": 5,
+    "failedChecks": 11,
+    "remainingBlockers": [
+      "secret-APPLE_ID",
+      "secret-APPLE_PASSWORD",
+      "secret-APPLE_TEAM_ID",
+      "secret-APPLE_CERTIFICATE",
+      "secret-APPLE_CERTIFICATE_PASSWORD",
+      "secret-WINDOWS_CERTIFICATE",
+      "secret-WINDOWS_CERTIFICATE_PASSWORD",
+      "manual-smoke-windows",
+      "manual-smoke-macos",
+      "manual-smoke-linux",
+      "release-tag-provided"
+    ],
+    "nextAction": "Add real Apple Developer/notarization secrets and Windows code signing certificate secrets, trigger a tagged release, then run the strict release readiness checker and installed-artifact manual smoke logs on Windows, macOS, and Linux."
+  },
+  "session33FinalHardening": {
+    "dim": 47,
+    "before": 8.6,
+    "after": 8.6,
+    "verdict": "Final automatable release-proof hardening complete, but 9+ not honestly achieved.",
+    "evidence": [
+      "Superseded correction: release workflow now pins tauri-action v0.6.2 to commit 84b9d35b5fc46c1e45415bdb6144030364f7ebc5 after verifying no v1 ref exists upstream.",
+      "macOS trust-evidence step avoids Bash mapfile for better macOS runner compatibility.",
+      "Readiness checker now passes ExpectedTag and ExpectedRepository into scripts/verify-release-artifacts.ps1 for strict release URL and signature verification.",
+      "Focused cross-platform architecture test passed.",
+      "Synthetic release artifact verifier fixture passed with strict tag/repository/signature matching.",
+      "Full npm run test:ci passed after hardening."
+    ],
+    "sources": [
+      "https://github.com/tauri-apps/tauri-action",
+      "https://v2.tauri.app/plugin/updater/",
+      "https://v2.tauri.app/distribute/sign/windows/",
+      "https://v2.tauri.app/distribute/sign/macos/"
+    ],
+    "readinessReport": "docs/cross-platform-smoke/dim47-release-readiness.json",
+    "readinessStatus": "blocked",
+    "passedChecks": 5,
+    "failedChecks": 11,
+    "remainingBlockers": [
+      "secret-APPLE_ID",
+      "secret-APPLE_PASSWORD",
+      "secret-APPLE_TEAM_ID",
+      "secret-APPLE_CERTIFICATE",
+      "secret-APPLE_CERTIFICATE_PASSWORD",
+      "secret-WINDOWS_CERTIFICATE",
+      "secret-WINDOWS_CERTIFICATE_PASSWORD",
+      "manual-smoke-windows",
+      "manual-smoke-macos",
+      "manual-smoke-linux",
+      "release-tag-provided"
+    ],
+    "nextAction": "Add real Apple Developer/notarization secrets and Windows code signing certificate secrets, create/push a v* tag, run the Release workflow, then complete strict installed-artifact manual smoke logs on Windows, macOS, and Linux."
+  },
+  "session34FinalProofGate": {
+    "dim": 47,
+    "before": 8.6,
+    "after": 8.6,
+    "verdict": "All locally defensible release-proof hardening is complete; 9+ still blocked by external proof.",
+    "evidence": [
+      "Release workflow records runner image, Node, npm, Rust, Cargo, Tauri CLI, and Xcode versions as trust evidence.",
+      "Windows signtool verification now requires timestamp evidence in the verification output.",
+      "Release workflow logs literal signtool/codesign/spctl/stapler commands and attaches platform trust-evidence text files to the GitHub release.",
+      "scripts/check-dim47-release-readiness.ps1 now validates release-attached trust evidence file contents, not just filenames.",
+      "scripts/generate-latest-manifest.mjs deterministically maps one Windows installer, macOS Apple Silicon bundle, macOS Intel bundle, and Linux AppImage into latest.json with non-empty signatures.",
+      "Settings > Platform now exposes a check_for_update smoke path so manual logs can prove the installed app reaches the signed updater manifest.",
+      "Release workflow records draft release state before latest.json publish and release state after publish.",
+      "Release verifiers require SemVer-like version, RFC3339 UTC pub_date, expected platform keys only, expected tag/repo release URLs, and latest.json signatures matching .sig contents.",
+      "Focused cross-platform architecture test passed: 8/8.",
+      "Synthetic latest.json generator fixture passed for windows-x86_64, darwin-aarch64, darwin-x86_64, and linux-x86_64.",
+      "npm run check:dim47-release generated docs/cross-platform-smoke/dim47-release-readiness.json and stayed blocked at 5 passed / 11 failed.",
+      "Full npm run test:ci passed after final hardening."
+    ],
+    "readinessReport": "docs/cross-platform-smoke/dim47-release-readiness.json",
+    "readinessStatus": "blocked",
+    "passedChecks": 5,
+    "failedChecks": 11,
+    "remainingBlockers": [
+      "secret-APPLE_ID",
+      "secret-APPLE_PASSWORD",
+      "secret-APPLE_TEAM_ID",
+      "secret-APPLE_CERTIFICATE",
+      "secret-APPLE_CERTIFICATE_PASSWORD",
+      "secret-WINDOWS_CERTIFICATE",
+      "secret-WINDOWS_CERTIFICATE_PASSWORD",
+      "manual-smoke-windows",
+      "manual-smoke-macos",
+      "manual-smoke-linux",
+      "release-tag-provided"
+    ],
+    "nextAction": "Provide Apple Developer/notarization secrets and Windows code signing certificate secrets, create/push a v* tag, run the Release workflow, then complete strict installed-artifact manual smoke logs on Windows, macOS, and Linux."
+  },
+  "session35VersionManifestGate": {
+    "dim": 47,
+    "before": 8.6,
+    "after": 8.6,
+    "verdict": "Harsh score remains 8.6: local proof-gate hardening improved, but 9+ is not honestly achieved without external signed release evidence.",
+    "evidence": [
+      "Release preflight now rejects version/tag drift across package.json, src-tauri/tauri.conf.json, and src-tauri/Cargo.toml.",
+      "Release artifact verifiers now fail if latest.json is missing instead of treating manifest verification as optional.",
+      "Focused cross-platform architecture test passed: 8/8.",
+      "npm run check:dim47-release generated docs/cross-platform-smoke/dim47-release-readiness.json and stayed blocked at 5 passed / 11 failed.",
+      "Synthetic verifier fixture passed with a complete latest.json/artifact/signature set.",
+      "Synthetic negative verifier fixture failed as expected when latest.json was absent.",
+      "Full npm run test:ci passed: 41 frontend test files / 472 tests, TypeScript, Vite build, Cargo check, and Rust lib tests 135 passed / 2 ignored."
+    ],
+    "readinessReport": "docs/cross-platform-smoke/dim47-release-readiness.json",
+    "readinessStatus": "blocked",
+    "passedChecks": 5,
+    "failedChecks": 11,
+    "remainingBlockers": [
+      "secret-APPLE_ID",
+      "secret-APPLE_PASSWORD",
+      "secret-APPLE_TEAM_ID",
+      "secret-APPLE_CERTIFICATE",
+      "secret-APPLE_CERTIFICATE_PASSWORD",
+      "secret-WINDOWS_CERTIFICATE",
+      "secret-WINDOWS_CERTIFICATE_PASSWORD",
+      "manual-smoke-windows",
+      "manual-smoke-macos",
+      "manual-smoke-linux",
+      "release-tag-provided"
+    ],
+    "nextAction": "Provide Apple Developer/notarization secrets and Windows code signing certificate secrets, create/push a v* tag, run the Release workflow, verify downloadable release assets/latest.json/trust-evidence logs, then complete strict installed-artifact manual smoke logs on Windows, macOS, and Linux."
+  },
+  "expectedReleaseTrustEvidence": {
+    "windows_x86_64": [
+      "danteclicky-windows-x86_64-windows-signing.txt",
+      "danteclicky-windows-x86_64-github-attestation.txt"
+    ],
+    "darwin_aarch64": [
+      "danteclicky-macos-aarch64-macos-signing-notarization.txt",
+      "danteclicky-macos-aarch64-github-attestation.txt"
+    ],
+    "darwin_x86_64": [
+      "danteclicky-macos-x86_64-macos-signing-notarization.txt",
+      "danteclicky-macos-x86_64-github-attestation.txt"
+    ],
+    "linux_x86_64": [
+      "danteclicky-linux-x86_64-linux-appimage-updater.txt",
+      "danteclicky-linux-x86_64-github-attestation.txt"
+    ],
+    "release_manifest": [
+      "danteclicky-release-manifest-attestation.txt"
+    ]
+  },
+  "session36AttestationShaPinGate": {
+    "dim": 47,
+    "before": 8.6,
+    "after": 8.6,
+    "verdict": "Harsh score remains 8.6: release provenance gates improved again, but 9+ is still blocked by external signed release evidence.",
+    "evidence": [
+      "Release workflow now generates GitHub artifact attestations for built installers/updater bundles/signatures and for latest.json plus release trust evidence.",
+      "Readiness checker now requires attestation evidence files on the release and verifies downloaded release artifacts/latest.json with gh attestation verify.",
+      "Release workflow actions used for signing/publishing are pinned to full commit SHAs instead of moving tags.",
+      "Invalid prior tauri-action major-tag assumption was corrected to the current upstream tauri-action v0.6.2 commit SHA.",
+      "macOS direct distribution now requires a Developer ID Application identity rather than accepting Apple Distribution.",
+      "Static readiness checks now pass release-workflow-actions-sha-pinned, release-workflow-attestations-configured, and release-workflow-developer-id-only.",
+      "npm run check:dim47-release is still blocked at 8 passed / 11 failed because external secrets, release tag, release assets, and manual smoke logs are absent.",
+      "Focused cross-platform test passed: 8/8.",
+      "Positive verifier fixture passed and missing-latest.json negative fixture failed as expected.",
+      "Full npm run test:ci passed: 41 frontend test files / 472 tests, TypeScript, Vite build, Cargo check, and Rust lib tests 135 passed / 2 ignored."
+    ],
+    "readinessReport": "docs/cross-platform-smoke/dim47-release-readiness.json",
+    "readinessStatus": "blocked",
+    "passedChecks": 8,
+    "failedChecks": 11,
+    "remainingBlockers": [
+      "secret-APPLE_ID",
+      "secret-APPLE_PASSWORD",
+      "secret-APPLE_TEAM_ID",
+      "secret-APPLE_CERTIFICATE",
+      "secret-APPLE_CERTIFICATE_PASSWORD",
+      "secret-WINDOWS_CERTIFICATE",
+      "secret-WINDOWS_CERTIFICATE_PASSWORD",
+      "manual-smoke-windows",
+      "manual-smoke-macos",
+      "manual-smoke-linux",
+      "release-tag-provided"
+    ],
+    "nextAction": "Provide Apple Developer/notarization secrets and Windows code signing certificate secrets, create/push a matching v* tag, run the SHA-pinned Release workflow, verify downloadable release assets/latest.json/trust-evidence/attestations, then complete strict installed-artifact manual smoke logs on Windows, macOS, and Linux.",
+    "sources": [
+      "https://v2.tauri.app/plugin/updater/",
+      "https://v2.tauri.app/distribute/sign/windows/",
+      "https://v2.tauri.app/distribute/sign/macos/",
+      "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations",
+      "https://github.com/actions/attest",
+      "https://github.com/tauri-apps/tauri-action"
+    ]
+  },
+  "currentReadiness": {
+    "readinessReport": "docs/cross-platform-smoke/dim47-release-readiness.json",
+    "readinessStatus": "blocked",
+    "passedChecks": 8,
+    "failedChecks": 11,
+    "generatedAt": "2026-05-10T07:09:44.597Z",
+    "note": "Current readiness gate is 8 passed / 11 failed with adversarial currentCap 8.2. Remaining blockers: secret-APPLE_ID, secret-APPLE_PASSWORD, secret-APPLE_TEAM_ID, secret-APPLE_CERTIFICATE, secret-APPLE_CERTIFICATE_PASSWORD, secret-WINDOWS_CERTIFICATE, secret-WINDOWS_CERTIFICATE_PASSWORD, manual-smoke-windows, manual-smoke-macos, manual-smoke-linux, release-tag-provided. Older session entries are historical snapshots only."
+  },
+  "session37EvidenceHygieneGate": {
+    "dim": 47,
+    "before": 8.6,
+    "after": 8.6,
+    "verdict": "Harsh score remains 8.6: machine-readable evidence hygiene is fixed, but 9+ is still blocked by external signed release and installed smoke proof.",
+    "evidence": [
+      "docs/cross-platform-smoke/dim47-release-readiness.json is now written UTF-8 without BOM and parses with Node JSON.parse.",
+      "docs/cross-platform-smoke/artifacts.json now has a currentReadiness summary showing 8 passed / 11 failed and notes older session entries are historical snapshots.",
+      "Stale tauri-action major-tag wording was corrected in shared JSON artifacts after verifying the release workflow pins tauri-action v0.6.2 by commit SHA.",
+      "docs/cross-platform-smoke/README.md and manual-smoke-template.md now include artifact attestation requirements.",
+      "Manual smoke validation now requires gh attestation verify evidence in addition to latest.json/signature/platform signing evidence.",
+      "Focused cross-platform architecture test passed: 8/8.",
+      "npm run check:dim47-release generated a BOM-free readiness report and stayed blocked at 8 passed / 11 failed.",
+      "Node parsed readiness, artifacts, 50_DIMENSION_COMPETITIVE_MATRIX, and latest-matrix-chat-render JSON without BOM issues.",
+      "Full npm run test:ci passed: 41 frontend test files / 472 tests, TypeScript, Vite build, Cargo check, and Rust lib tests 135 passed / 2 ignored.",
+      "Release-gate files are committed locally on feat/dim47-cross-platform-proof; a real release tag still must be pushed from this commit lineage so the workflow can produce verifiable assets."
+    ],
+    "readinessReport": "docs/cross-platform-smoke/dim47-release-readiness.json",
+    "readinessStatus": "blocked",
+    "passedChecks": 8,
+    "failedChecks": 11,
+    "remainingBlockers": [
+      "secret-APPLE_ID",
+      "secret-APPLE_PASSWORD",
+      "secret-APPLE_TEAM_ID",
+      "secret-APPLE_CERTIFICATE",
+      "secret-APPLE_CERTIFICATE_PASSWORD",
+      "secret-WINDOWS_CERTIFICATE",
+      "secret-WINDOWS_CERTIFICATE_PASSWORD",
+      "manual-smoke-windows",
+      "manual-smoke-macos",
+      "manual-smoke-linux",
+      "release-tag-provided"
+    ],
+    "nextAction": "Provide Apple Developer/notarization secrets and Windows code signing certificate secrets, create/push a matching v* tag from the pushed release-gate branch head, run the SHA-pinned Release workflow, verify downloadable release assets/latest.json/trust-evidence/attestations, then complete strict installed-artifact manual smoke logs on Windows, macOS, and Linux."
+  },
+  "session38LivePartyRecheck": {
+    "dim": 47,
+    "before": 8.6,
+    "after": 8.6,
+    "verdict": "Harsh score remains 8.6: /inferno+/party recheck confirms the 9+ ceiling is external, not another local code gap.",
+    "evidence": [
+      "npm run check:dim47-release generated docs/cross-platform-smoke/dim47-release-readiness.json at 2026-05-10T06:21:48.207Z and stayed blocked at 8 passed / 11 failed.",
+      "GitHub secrets currently visible are KEYCHAIN_PASSWORD, TAURI_SIGNING_PRIVATE_KEY, and TAURI_SIGNING_PRIVATE_KEY_PASSWORD; Apple notarization/certificate and Windows certificate secrets are absent.",
+      "No local v* tags and no GitHub releases are present, so the readiness gate cannot inspect downloadable signed/notarized release assets, latest.json, trust evidence, or artifact attestations.",
+      "Strict installed-artifact manual smoke logs for Windows, macOS, and Linux remain absent.",
+      "Existing local gates already cover exact tag checkout, version/tag parity, SHA-pinned release actions, Developer ID-only macOS signing, deterministic latest.json, mandatory manifest verification, release trust evidence, GitHub artifact attestations, and gh attestation verification."
+    ],
+    "readinessReport": "docs/cross-platform-smoke/dim47-release-readiness.json",
+    "readinessStatus": "blocked",
+    "passedChecks": 8,
+    "failedChecks": 11,
+    "remainingBlockers": [
+      "secret-APPLE_ID",
+      "secret-APPLE_PASSWORD",
+      "secret-APPLE_TEAM_ID",
+      "secret-APPLE_CERTIFICATE",
+      "secret-APPLE_CERTIFICATE_PASSWORD",
+      "secret-WINDOWS_CERTIFICATE",
+      "secret-WINDOWS_CERTIFICATE_PASSWORD",
+      "manual-smoke-windows",
+      "manual-smoke-macos",
+      "manual-smoke-linux",
+      "release-v0.1.0"
+    ],
+    "nextAction": "Add the missing Apple Developer/notarization and Windows signing certificate secrets, create/push a matching v* tag from the pushed release-gate branch head, run the SHA-pinned Release workflow, verify release assets/latest.json/trust-evidence/attestations with npm run check:dim47-release -- --release-tag vX.Y.Z, then complete strict installed-artifact manual smoke logs on Windows, macOS, and Linux."
+  },
+  "session38ReleasePublicationGate": {
+    "dim": 47,
+    "before": 8.6,
+    "after": 8.6,
+    "verdict": "Harsh score remains 8.6: final local publication-proof gates improved, but 9+ is still blocked by external signed release and installed-artifact smoke proof.",
+    "evidence": [
+      "Release workflow now has per-tag concurrency so overlapping publishes for the same release tag cannot race each other.",
+      "Release workflow now generates SHA256SUMS for downloaded release artifacts plus latest.json, uploads it to the GitHub release, and includes it in manifest/trust-evidence attestations.",
+      "Readiness checker now rejects draft or prerelease GitHub releases and validates SHA256SUMS content for latest.json, Windows installer, macOS updater bundle, and Linux AppImage checksum lines.",
+      "Installed-app updater manifest check now probes the latest.json platform entry directly, so a v0.1.0 install can prove a non-empty signature even when no newer update is available.",
+      "Focused cross-platform architecture test passed: 8/8.",
+      "npm run check:dim47-release -- -ReleaseTag v0.1.0 -FailOnBlocked regenerated the readiness report and stayed blocked at 8 passed / 11 failed.",
+      "Full npm run test:ci passed: 41 frontend test files / 472 tests, TypeScript, Vite build, Cargo check, and Rust lib tests 135 passed / 2 ignored.",
+      "No score uplift was taken because GitHub still has no v0.1.0 release, the seven Apple/Windows signing secrets are absent, and strict Windows/macOS/Linux installed-artifact smoke logs are absent."
+    ],
+    "readinessReport": "docs/cross-platform-smoke/dim47-release-readiness.json",
+    "readinessStatus": "blocked",
+    "passedChecks": 8,
+    "failedChecks": 11,
+    "remainingBlockers": [
+      "secret-APPLE_ID",
+      "secret-APPLE_PASSWORD",
+      "secret-APPLE_TEAM_ID",
+      "secret-APPLE_CERTIFICATE",
+      "secret-APPLE_CERTIFICATE_PASSWORD",
+      "secret-WINDOWS_CERTIFICATE",
+      "secret-WINDOWS_CERTIFICATE_PASSWORD",
+      "manual-smoke-windows",
+      "manual-smoke-macos",
+      "manual-smoke-linux",
+      "release-v0.1.0"
+    ],
+    "nextAction": "Provide Apple Developer/notarization secrets and Windows code signing certificate secrets, create/push v0.1.0 from the pushed release-gate branch head, run the SHA-pinned Release workflow, verify downloadable release assets/latest.json/SHA256SUMS/trust-evidence/attestations, then complete strict installed-artifact manual smoke logs on Windows, macOS, and Linux."
+  },
+  "session39AdversarialScoreCorrection": {
+    "dim": 47,
+    "before": 8.6,
+    "after": 8.2,
+    "verdict": "Downgraded 8.6->8.2 after adversarial /party scoring: release gates are strong, but current evidence is not a real signed/notarized cross-platform release.",
+    "evidence": [
+      "Adversarial party scorer returned 8.2/10, not 8.6, because current proof is release-gated readiness rather than a completed signed/notarized release.",
+      "npm run check:dim47-release reports blocked at 8 passed / 11 failed with scoreGate.currentCap 8.2.",
+      "No local v* tags and no GitHub releases were found, so release assets, latest.json, SHA256SUMS, trust-evidence logs, and artifact attestations cannot be verified from a real release.",
+      "Apple Developer/notarization secrets and Windows signing certificate secrets are absent from gh secret list.",
+      "Strict installed-artifact manual smoke logs for Windows, macOS, and Linux are absent.",
+      "The Dim 47 release-gate branch is pushed; a remote release tag still must be cut from that branch lineage after secrets exist."
+    ],
+    "readinessReport": "docs/cross-platform-smoke/dim47-release-readiness.json",
+    "readinessStatus": "blocked",
+    "passedChecks": 8,
+    "failedChecks": 11,
+    "generatedAt": "2026-05-10T07:09:44.597Z",
+    "remainingBlockers": [
+      "secret-APPLE_ID",
+      "secret-APPLE_PASSWORD",
+      "secret-APPLE_TEAM_ID",
+      "secret-APPLE_CERTIFICATE",
+      "secret-APPLE_CERTIFICATE_PASSWORD",
+      "secret-WINDOWS_CERTIFICATE",
+      "secret-WINDOWS_CERTIFICATE_PASSWORD",
+      "manual-smoke-windows",
+      "manual-smoke-macos",
+      "manual-smoke-linux",
+      "release-tag-provided"
+    ],
+    "nextAction": "Add missing Apple Developer/notarization and Windows signing certificate secrets, create and push a matching v* tag from the pushed release-gate branch head, run the SHA-pinned Release workflow, verify release assets/latest.json/SHA256SUMS/trust evidence/attestations with the readiness checker, then complete strict installed-artifact smoke logs on Windows, macOS, and Linux."
+  }
+}

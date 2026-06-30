@@ -1,0 +1,155 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [master, "feat/**"]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux Tauri dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libasound2-dev \
+            libdbus-1-dev \
+            xvfb \
+            dbus-x11 \
+            pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+      - run: npm test -- --reporter=dot
+      - run: npx tsc --noEmit --pretty false
+      - run: npm run build
+
+      - name: Cargo check
+        run: cargo check --manifest-path src-tauri/Cargo.toml --locked
+
+      - name: Cargo lib tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --lib --quiet
+
+      - name: Install cargo-audit (supply chain security — Dim 57)
+        run: cargo install cargo-audit --locked --quiet
+
+      - name: Cargo audit (vulnerability scan)
+        run: cargo audit --manifest-path src-tauri/Cargo.toml --deny warnings
+        continue-on-error: true
+
+      - name: npm audit (JS dependency vulnerability scan — Dim 57)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  package-smoke:
+    name: Tauri package smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: test
+    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/feat/') || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux Tauri dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libasound2-dev \
+            libdbus-1-dev \
+            xvfb \
+            dbus-x11 \
+            pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm run tauri -- build --no-bundle
+
+      - name: Runtime smoke (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci-runtime-smoke.ps1 -ExePath "src-tauri/target/release/dante-clicky-windows.exe"
+
+      - name: Runtime smoke (macOS)
+        if: runner.os == 'macOS'
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci-runtime-smoke.ps1 -ExePath "src-tauri/target/release/dante-clicky-windows"
+
+      - name: Runtime smoke (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: xvfb-run -a dbus-run-session -- pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci-runtime-smoke.ps1 -ExePath "src-tauri/target/release/dante-clicky-windows"
+
+      - name: Upload runtime smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: danteclicky-${{ matrix.os }}-runtime-smoke
+          path: target/runtime-smoke/**
+          if-no-files-found: warn
+
+      - name: Upload package smoke binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: danteclicky-${{ matrix.os }}-no-bundle
+          path: |
+            src-tauri/target/release/dante-clicky-windows*
+            src-tauri/target/release/bundle/**
+          if-no-files-found: warn

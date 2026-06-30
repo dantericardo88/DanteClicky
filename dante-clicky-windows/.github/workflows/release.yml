@@ -1,0 +1,504 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      releaseTag:
+        description: "Existing v* tag to build and publish"
+        required: true
+        type: string
+
+env:
+  RELEASE_TAG: ${{ inputs.releaseTag || github.ref_name }}
+
+concurrency:
+  group: release-${{ inputs.releaseTag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release-preflight:
+    name: Release preflight
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Validate release tag, updater key, and signing secrets
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          case "$RELEASE_TAG" in
+            v*) ;;
+            *)
+              echo "::error::RELEASE_TAG must start with v. Got '$RELEASE_TAG'."
+              exit 1
+              ;;
+          esac
+
+          if grep -q "__TAURI_UPDATER_PUBKEY__" src-tauri/tauri.conf.json; then
+            echo "::error::src-tauri/tauri.conf.json still contains the placeholder updater pubkey."
+            exit 1
+          fi
+
+          expected_version="${RELEASE_TAG#v}"
+          package_version="$(node -p "require('./package.json').version")"
+          tauri_version="$(node -p "require('./src-tauri/tauri.conf.json').version")"
+          cargo_version="$(python - <<'PY'
+          import re
+          from pathlib import Path
+
+          text = Path("src-tauri/Cargo.toml").read_text(encoding="utf-8")
+          match = re.search(r'(?m)^version\s*=\s*"([^"]+)"', text)
+          if not match:
+              raise SystemExit("missing Cargo package version")
+          print(match.group(1))
+          PY
+          )"
+          for pair in "package.json:$package_version" "src-tauri/tauri.conf.json:$tauri_version" "src-tauri/Cargo.toml:$cargo_version"; do
+            file="${pair%%:*}"
+            version="${pair#*:}"
+            if [ "$version" != "$expected_version" ]; then
+              echo "::error::$file version '$version' does not match release tag '$RELEASE_TAG' ('$expected_version')."
+              exit 1
+            fi
+          done
+
+          missing=0
+          for secret_name in \
+            TAURI_SIGNING_PRIVATE_KEY \
+            TAURI_SIGNING_PRIVATE_KEY_PASSWORD \
+            APPLE_ID \
+            APPLE_PASSWORD \
+            APPLE_TEAM_ID \
+            APPLE_CERTIFICATE \
+            APPLE_CERTIFICATE_PASSWORD \
+            KEYCHAIN_PASSWORD \
+            WINDOWS_CERTIFICATE \
+            WINDOWS_CERTIFICATE_PASSWORD
+          do
+            if [ -z "${!secret_name}" ]; then
+              echo "::error::Missing required release secret: $secret_name"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+  build:
+    name: Build ${{ matrix.platformName }}
+    runs-on: ${{ matrix.os }}
+    needs: release-preflight
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platformName: windows-x86_64
+            os: windows-latest
+            rustTarget: ""
+            tauriArgs: "-- --features sqlcipher"
+          - platformName: macos-aarch64
+            os: macos-latest
+            rustTarget: "aarch64-apple-darwin"
+            tauriArgs: "--target aarch64-apple-darwin -- --features sqlcipher"
+          - platformName: macos-x86_64
+            os: macos-15-intel
+            rustTarget: "x86_64-apple-darwin"
+            tauriArgs: "--target x86_64-apple-darwin -- --features sqlcipher"
+          - platformName: linux-x86_64
+            os: ubuntu-latest
+            rustTarget: ""
+            tauriArgs: "-- --features sqlcipher"
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Install Linux Tauri dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libasound2-dev \
+            libdbus-1-dev \
+            pkg-config
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      - name: Add Rust target
+        if: matrix.rustTarget != ''
+        run: rustup target add ${{ matrix.rustTarget }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Record release tool versions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $evidenceDir = "target/release-trust"
+          New-Item -ItemType Directory -Force -Path $evidenceDir | Out-Null
+          $logPath = Join-Path $evidenceDir "tool-versions.txt"
+          "runner.os=$env:RUNNER_OS" | Set-Content -LiteralPath $logPath -Encoding UTF8
+          "ImageOS=$env:ImageOS" | Add-Content -LiteralPath $logPath
+          "ImageVersion=$env:ImageVersion" | Add-Content -LiteralPath $logPath
+          "node=$(node --version)" | Add-Content -LiteralPath $logPath
+          "npm=$(npm --version)" | Add-Content -LiteralPath $logPath
+          "rustc=$(rustc --version)" | Add-Content -LiteralPath $logPath
+          "cargo=$(cargo --version)" | Add-Content -LiteralPath $logPath
+          "tauri=$(npm run --silent tauri -- --version)" | Add-Content -LiteralPath $logPath
+          if ($env:RUNNER_OS -eq "macOS") {
+            "xcode=$(xcodebuild -version | Out-String)" | Add-Content -LiteralPath $logPath
+          }
+
+      - name: Import Windows signing certificate
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          New-Item -ItemType Directory -Force -Path certificate | Out-Null
+          Set-Content -Path certificate/tempCert.txt -Value $env:WINDOWS_CERTIFICATE
+          certutil -decode certificate/tempCert.txt certificate/certificate.pfx
+          Remove-Item -LiteralPath certificate/tempCert.txt -Force
+
+          $password = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -Force -AsPlainText
+          $cert = @(Import-PfxCertificate -FilePath certificate/certificate.pfx -CertStoreLocation Cert:\CurrentUser\My -Password $password)[0]
+          if (-not $cert.Thumbprint) {
+            throw "Windows certificate import did not return a thumbprint."
+          }
+
+          $configPath = "src-tauri/tauri.conf.json"
+          $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+          $config.bundle.windows | Add-Member -NotePropertyName certificateThumbprint -NotePropertyValue $cert.Thumbprint -Force
+          $config.bundle.windows | Add-Member -NotePropertyName digestAlgorithm -NotePropertyValue "sha256" -Force
+          $config.bundle.windows | Add-Member -NotePropertyName timestampUrl -NotePropertyValue "http://timestamp.digicert.com" -Force
+          $config | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath $configPath -Encoding UTF8
+
+      - name: Import macOS signing certificate
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          security find-identity -v -p codesigning build.keychain
+
+          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep -E "Developer ID Application" | head -n 1 || true)
+          if [ -z "$CERT_INFO" ]; then
+            echo "::error::No Developer ID Application signing identity found for direct GitHub distribution."
+            exit 1
+          fi
+
+          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
+          echo "APPLE_SIGNING_IDENTITY=$CERT_ID" >> "$GITHUB_ENV"
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY }}
+        with:
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: "DanteClicky ${{ env.RELEASE_TAG }}"
+          releaseBody: |
+            AI desktop companion for Windows, macOS, and Linux. See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for what is new.
+          releaseDraft: true
+          prerelease: false
+          includeDebug: false
+          args: ${{ matrix.tauriArgs }}
+
+      - name: Verify Windows signed artifacts
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $evidenceDir = "target/release-trust"
+          New-Item -ItemType Directory -Force -Path $evidenceDir | Out-Null
+          $logPath = Join-Path $evidenceDir "danteclicky-${{ matrix.platformName }}-windows-signing.txt"
+          "Windows signing evidence for $env:RELEASE_TAG" | Set-Content -LiteralPath $logPath -Encoding UTF8
+
+          $signtool = Get-Command signtool.exe -ErrorAction SilentlyContinue
+          if (-not $signtool) {
+            $signtool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
+              Sort-Object FullName -Descending |
+              Select-Object -First 1
+          }
+          if (-not $signtool) {
+            throw "signtool.exe was not found on the Windows runner."
+          }
+
+          $artifacts = @(Get-ChildItem -Path "src-tauri/target/release/bundle" -Recurse -File -Include "*.exe","*.msi" -ErrorAction SilentlyContinue)
+          if ($artifacts.Count -eq 0) {
+            throw "No Windows installer artifacts were found under src-tauri/target/release/bundle."
+          }
+
+          foreach ($artifact in $artifacts) {
+            "===== $($artifact.FullName) =====" | Tee-Object -FilePath $logPath -Append
+            "signtool verify /pa /all /tw /v $($artifact.FullName)" | Tee-Object -FilePath $logPath -Append
+            $verificationOutput = & $signtool.FullName verify /pa /all /tw /v $artifact.FullName 2>&1
+            $verificationOutput | Tee-Object -FilePath $logPath -Append
+            if ($LASTEXITCODE -ne 0) {
+              throw "signtool verification failed for $($artifact.FullName)."
+            }
+            if (($verificationOutput -join "`n") -notmatch "(?i)timestamp") {
+              throw "signtool verification for $($artifact.FullName) did not include timestamp evidence."
+            }
+          }
+
+      - name: Verify macOS signing and notarization
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/release-trust
+          log_path="target/release-trust/danteclicky-${{ matrix.platformName }}-macos-signing-notarization.txt"
+          : > "$log_path"
+
+          apps_file="$(mktemp)"
+          find src-tauri/target/release/bundle -type d -name "*.app" -print > "$apps_file"
+          if [ ! -s "$apps_file" ]; then
+            echo "No .app bundle found under src-tauri/target/release/bundle" >&2
+            exit 1
+          fi
+
+          while IFS= read -r app; do
+            {
+              echo "===== $app codesign ====="
+              echo "codesign --verify --deep --strict --verbose=2 \"$app\""
+              codesign --verify --deep --strict --verbose=2 "$app"
+              echo "===== $app spctl ====="
+              echo "spctl --assess --type execute --verbose=4 \"$app\""
+              spctl --assess --type execute --verbose=4 "$app"
+              echo "===== $app stapler ====="
+              echo "xcrun stapler validate \"$app\""
+              xcrun stapler validate "$app"
+            } 2>&1 | tee -a "$log_path"
+          done < "$apps_file"
+
+          while IFS= read -r dmg; do
+            {
+              echo "===== $dmg stapler ====="
+              echo "xcrun stapler validate \"$dmg\""
+              xcrun stapler validate "$dmg"
+            } 2>&1 | tee -a "$log_path"
+          done < <(find src-tauri/target/release/bundle -type f -name "*.dmg" -print)
+
+      - name: Verify Linux AppImage updater artifacts
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/release-trust
+          log_path="target/release-trust/danteclicky-${{ matrix.platformName }}-linux-appimage-updater.txt"
+          : > "$log_path"
+
+          appimage="$(find src-tauri/target/release/bundle -type f -name "*.AppImage" -print -quit)"
+          sig="$(find src-tauri/target/release/bundle -type f -name "*.AppImage.sig" -print -quit)"
+          if [ -z "$appimage" ]; then
+            echo "No AppImage artifact found under src-tauri/target/release/bundle" >&2
+            exit 1
+          fi
+          if [ -z "$sig" ] || [ ! -s "$sig" ]; then
+            echo "No non-empty AppImage updater .sig artifact found under src-tauri/target/release/bundle" >&2
+            exit 1
+          fi
+          pubkey="$(node -e 'const fs=require("fs"); const conf=JSON.parse(fs.readFileSync("src-tauri/tauri.conf.json","utf8")); const key=conf.plugins?.updater?.pubkey || ""; if (!key || /PLACEHOLDER|YOUR_/i.test(key)) process.exit(1); process.stdout.write(key);')"
+          sig_compact="$(tr -d '\r\n' < "$sig")"
+          sig_bytes="$(printf "%s" "$sig_compact" | wc -c | tr -d ' ')"
+          if [ "$sig_bytes" -lt 32 ]; then
+            echo "AppImage updater signature is too small to be a valid Tauri updater signature" >&2
+            exit 1
+          fi
+          pubkey_sha="$(printf "%s" "$pubkey" | sha256sum | awk '{print $1}')"
+
+          {
+            echo "===== AppImage ====="
+            file "$appimage"
+            sha256sum "$appimage"
+            echo "===== Tauri updater signature ====="
+            wc -c "$sig"
+            echo "signature-bytes=$sig_bytes"
+            head -c 120 "$sig"
+            echo
+            echo "===== Tauri updater public key ====="
+            echo "pubkey-sha256=$pubkey_sha"
+            echo "pubkey-bytes=$(printf "%s" "$pubkey" | wc -c | tr -d ' ')"
+          } 2>&1 | tee -a "$log_path"
+
+      - name: Generate release artifact attestations
+        id: attest-release-artifacts
+        uses: actions/attest@281a49d4cbb0a72c9575a50d18f6deb515a11deb # v4
+        with:
+          subject-path: |
+            src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/release/bundle/**/*.msi
+            src-tauri/target/release/bundle/**/*.dmg
+            src-tauri/target/release/bundle/**/*.AppImage
+            src-tauri/target/release/bundle/**/*.app.tar.gz
+            src-tauri/target/release/bundle/**/*.sig
+
+      - name: Record provenance attestation evidence
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $evidenceDir = "target/release-trust"
+          New-Item -ItemType Directory -Force -Path $evidenceDir | Out-Null
+          $logPath = Join-Path $evidenceDir "danteclicky-${{ matrix.platformName }}-github-attestation.txt"
+          "GitHub artifact attestation evidence for $env:RELEASE_TAG" | Set-Content -LiteralPath $logPath -Encoding UTF8
+          "attestation-url=${{ steps.attest-release-artifacts.outputs.attestation-url }}" | Add-Content -LiteralPath $logPath
+          "bundle-path=${{ steps.attest-release-artifacts.outputs.bundle-path }}" | Add-Content -LiteralPath $logPath
+          "subject-path=src-tauri/target/release/bundle/**/*.exe,src-tauri/target/release/bundle/**/*.msi,src-tauri/target/release/bundle/**/*.dmg,src-tauri/target/release/bundle/**/*.AppImage,src-tauri/target/release/bundle/**/*.app.tar.gz,src-tauri/target/release/bundle/**/*.sig" | Add-Content -LiteralPath $logPath
+
+      - name: Upload platform trust evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: danteclicky-${{ matrix.platformName }}-trust-evidence
+          path: target/release-trust/**
+          if-no-files-found: error
+
+  publish-update-manifest:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+
+      - name: Download release artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download "$RELEASE_TAG" --repo "${{ github.repository }}" --dir dist-artifacts --clobber
+
+      - name: Record draft release state before manifest publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release view "$RELEASE_TAG" --repo "${{ github.repository }}" --json isDraft,isPrerelease,assets,url,targetCommitish > release-state-before-publish.json
+
+      - name: Generate latest.json for updater
+        run: node scripts/generate-latest-manifest.mjs --artifact-dir dist-artifacts --out latest.json --release-tag "$RELEASE_TAG" --repository "${{ github.repository }}"
+
+      - name: Verify release artifacts and manifest
+        run: bash scripts/verify-release-artifacts.sh dist-artifacts latest.json "$RELEASE_TAG" "${{ github.repository }}"
+
+      - name: Generate release checksums
+        shell: bash
+        run: |
+          find dist-artifacts -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          sha256sum latest.json >> SHA256SUMS
+          test -s SHA256SUMS
+
+      - name: Download platform trust evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: danteclicky-*-trust-evidence
+          path: release-trust-evidence
+          merge-multiple: true
+
+      - name: Generate manifest and evidence attestations
+        id: attest-manifest
+        uses: actions/attest@281a49d4cbb0a72c9575a50d18f6deb515a11deb # v4
+        with:
+          subject-path: |
+            latest.json
+            SHA256SUMS
+            release-trust-evidence/**
+
+      - name: Record manifest attestation evidence
+        run: |
+          {
+            echo "GitHub artifact attestation evidence for $RELEASE_TAG latest.json and trust evidence"
+            echo "attestation-url=${{ steps.attest-manifest.outputs.attestation-url }}"
+            echo "bundle-path=${{ steps.attest-manifest.outputs.bundle-path }}"
+            echo "subject-path=latest.json,SHA256SUMS,release-trust-evidence/**"
+          } > release-trust-evidence/danteclicky-release-manifest-attestation.txt
+
+      - name: Upload latest.json and trust evidence to release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          files: |
+            latest.json
+            SHA256SUMS
+            release-trust-evidence/*
+
+      - name: Publish verified release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "$RELEASE_TAG" --repo "${{ github.repository }}" --draft=false --prerelease=false
+          gh release view "$RELEASE_TAG" --repo "${{ github.repository }}" --json isDraft,isPrerelease,assets,url,targetCommitish > release-state-after-publish.json

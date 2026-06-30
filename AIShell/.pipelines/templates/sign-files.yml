@@ -1,0 +1,65 @@
+parameters:
+  appPath: ''
+  repoRoot: ''
+
+steps:
+- pwsh: |
+    $appPath = '${{ parameters.appPath }}'
+    $repoRoot = '${{ parameters.repoRoot }}'
+    $singing1P = "$(Pipeline.Workspace)/singing1P"
+
+    Import-Module $repoRoot/build.psm1 -Force
+    Copy-1PFilesToSign -SourceRoot $appPath -TargetRoot $singing1P
+  displayName: 'Prepare 1st-party files for signing'
+
+- task: onebranch.pipeline.signing@1
+  displayName: Sign 1st-party files
+  inputs:
+    command: 'sign'
+    signing_profile: external_distribution
+    files_to_sign: '**\*.psd1;**\*.psm1;**\*.ps1xml;**\*.ps1;**\*.dll;**\*.exe'
+    search_root: $(Pipeline.Workspace)/singing1P
+
+- pwsh: |
+    $appPath = '${{ parameters.appPath }}'
+    $repoRoot = '${{ parameters.repoRoot }}'
+    $singing1P = "$(Pipeline.Workspace)/singing1P"
+
+    Import-Module $repoRoot/build.psm1 -Force
+    Copy-SignedFileBack -SourceRoot $singing1P -TargetRoot $appPath
+  displayName: 'Copy signed 1st-party files back'
+
+- pwsh: |
+    $appPath = '${{ parameters.appPath }}'
+    $repoRoot = '${{ parameters.repoRoot }}'
+    $singing3P = "$(Pipeline.Workspace)/singing3P"
+
+    Import-Module $repoRoot/build.psm1 -Force
+    Copy-3PFilesToSign -SourceRoot $appPath -TargetRoot $singing3P
+  displayName: 'Prepare 3rd-party files for signing'
+
+- task: onebranch.pipeline.signing@1
+  displayName: Sign 3rd-party files
+  inputs:
+    command: 'sign'
+    signing_profile: $(msft_3rd_party_cert_id)
+    files_to_sign: '**\*.dll;**\*.exe'
+    search_root: $(Pipeline.Workspace)/singing3P
+
+- pwsh: |
+    $appPath = '${{ parameters.appPath }}'
+    $repoRoot = '${{ parameters.repoRoot }}'
+    $singing3P = "$(Pipeline.Workspace)/singing3P"
+
+    Import-Module $repoRoot/build.psm1 -Force
+    Copy-SignedFileBack -SourceRoot $singing3P -TargetRoot $appPath
+  displayName: 'Copy signed 3rd-party files back'
+
+- task: CopyFiles@2
+  displayName: "Upload signed files"
+  inputs:
+    SourceFolder: ${{ parameters.appPath }}
+    Contents: '**\*'
+    TargetFolder: $(ob_outputDirectory)
+
+- template: /.pipelines/templates/finalize.yml@self

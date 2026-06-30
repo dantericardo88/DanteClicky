@@ -1,0 +1,117 @@
+[package]
+name = "dante-clicky-windows"
+version = "0.1.0"
+description = "DanteClicky - AI desktop companion"
+authors = ["DanteForge Contributors"]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/dantericardo88/DanteClicky"
+homepage = "https://github.com/dantericardo88/DanteClicky"
+readme = "../README.md"
+
+[lib]
+name = "dante_clicky_windows_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-opener = "2"
+tauri-plugin-global-shortcut = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Phase 2 -- Screen capture
+screenshots = "0.8"
+image = { version = "0.24", default-features = false, features = ["jpeg", "png"] }
+base64 = "0.22"
+rayon = "1"
+num_cpus = "1"
+
+# Phase 3 -- Audio input
+cpal = "0.15"
+
+# Phase 7 -- Auto-start on Windows login + auto-update
+tauri-plugin-autostart = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-log = "2"
+log = "0.4"
+
+# Phase 8 -- Computer-use input control
+enigo = "0.2"
+
+# Phase 9 -- DanteAgents WebSocket bridge
+tokio = { version = "1", features = ["net", "rt-multi-thread"] }
+tokio-tungstenite = "0.24"
+futures-util = "0.3"
+
+# Phase P1-B -- MCP server (HTTP + SSE on port 9002)
+axum = { version = "0.7", features = ["macros"] }
+tower-http = { version = "0.5", features = ["cors"] }
+uuid = { version = "1", features = ["v4"] }
+async-stream = "0.3"
+
+# Phase 10 -- Direct API proxy (removes Cloudflare Worker dependency)
+reqwest = { version = "0.12", features = ["json", "stream", "multipart"] }
+
+# Dimension 1 -- Persistent Memory (SQLite with FTS5)
+# Use --features sqlcipher for production builds (adds SQLCipher AES-256 file-level encryption)
+# Tests run with plain bundled SQLite (no OpenSSL/Perl required)
+rusqlite = { version = "0.31", features = ["bundled"] }
+anyhow = "1"
+
+# Dimension 36 -- Memory encryption at rest (SQLCipher AES-256 file-level + ChaCha20-Poly1305 field-level)
+chacha20poly1305 = "0.10"
+rand = "0.8"
+# Dimension 59 -- Memory wipe: zero sensitive bytes from RAM on drop (prevents key recovery
+# from heap dumps). zeroize::Zeroizing<T> runs a secure erase on T::drop().
+zeroize = { version = "1", features = ["alloc"] }
+
+# Dimension 3 -- Local Whisper STT via candle (pure Rust, no cmake, always in default binary)
+candle-core = { version = "0.8", default-features = false }
+candle-nn = { version = "0.8", default-features = false }
+candle-transformers = { version = "0.8", default-features = false }
+tokenizers = "0.20"
+
+# Dimension 4 -- Local TTS via Kokoro ONNX
+# Enable with: cargo build --features local-tts
+# Dimension 29 -- Local Vision via Moondream2 (candle-transformers, see candle-* deps above).
+# The ort crate was removed in Session 20 (was unused after the switch from ONNX to safetensors).
+
+# Dimension 61/92 -- Clipboard security guard + history awareness
+arboard = { version = "3", default-features = false }
+
+# Dimension 16 -- Video / temporal context (rolling video buffer + timeline)
+# Hardware capture is target-gated below so macOS/Linux builds compile without
+# Windows Graphics Capture or Media Foundation crates.
+ringbuf = { version = "0.4", optional = true }
+mp4 = { version = "0.14", optional = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+# Phase 6 -- Win32 cursor animation, UIAutomation, WinRT OCR, overlay stealth.
+windows = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Graphics_Gdi",
+    "Win32_System_Com",
+    "Win32_System_Power",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+    "Win32_UI_Accessibility",
+    "Media_Ocr",
+    "Graphics_Imaging",
+    "Storage_Streams",
+    "Foundation_Collections",
+] }
+
+# Dimension 16 hardware backend. windows-capture and ringbuf are MIT; mp4 is MIT.
+windows-capture = { version = "1.4", optional = true }
+
+[features]
+local-tts = []
+sqlcipher = ["rusqlite/bundled-sqlcipher-vendored-openssl"]
+# Pulls in real Windows Graphics Capture + Media Foundation encoder.
+# Off by default so cargo test runs without a display + keeps CI deterministic.
+video-hw-capture = ["dep:windows-capture", "dep:ringbuf", "dep:mp4"]

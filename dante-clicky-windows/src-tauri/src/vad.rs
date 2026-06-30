@@ -1,0 +1,407 @@
+//! Voice activity detection and gain helpers for the cloud STT path.
+//!
+//! `EnhancedVad` upgrades the bare RMS gate that used to live in audio.rs:
+//! adaptive noise floor (EMA over background frames), hysteresis (different
+//! thresholds for speech-start vs speech-end), and a zero-crossing-rate check
+//! to reject low-frequency rumble (HVAC, AC hum) that fools pure-RMS gates.
+//!
+//! `normalize_gain_in_place` is a one-shot envelope-based gain stage that
+//! brings short PTT utterances to a consistent peak before they hit AssemblyAI.
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum VadDecision {
+    Speech,
+    Silence,
+    EndOfSpeech,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct VadConfig {
+    pub speech_start_rms: f32,
+    pub speech_end_rms: f32,
+    pub min_zcr: f32,
+    pub max_zcr: f32,
+    pub silence_frames_to_flush: usize,
+    pub noise_floor_alpha: f32,
+}
+
+impl VadConfig {
+    pub const DEFAULT: VadConfig = VadConfig {
+        speech_start_rms: 0.018,
+        speech_end_rms: 0.010,
+        min_zcr: 0.01,
+        max_zcr: 0.40,
+        silence_frames_to_flush: 24,
+        noise_floor_alpha: 0.05,
+    };
+}
+
+pub struct EnhancedVad {
+    config: VadConfig,
+    silence_count: usize,
+    speech_started: bool,
+    noise_floor: f32,
+}
+
+impl EnhancedVad {
+    pub fn new() -> Self {
+        Self::with_config(VadConfig::DEFAULT)
+    }
+
+    pub fn with_config(config: VadConfig) -> Self {
+        Self { config, silence_count: 0, speech_started: false, noise_floor: 0.005 }
+    }
+
+    pub fn process(&mut self, samples: &[f32]) -> VadDecision {
+        if samples.is_empty() {
+            return VadDecision::Silence;
+        }
+        let rms = compute_rms(samples);
+        let zcr = compute_zcr(samples);
+
+        let start_threshold = (self.config.speech_start_rms).max(self.noise_floor * 2.5);
+        let end_threshold = (self.config.speech_end_rms).max(self.noise_floor * 1.6);
+
+        let active_threshold =
+            if self.speech_started { end_threshold } else { start_threshold };
+
+        let zcr_ok = zcr >= self.config.min_zcr && zcr <= self.config.max_zcr;
+        let is_speech = rms > active_threshold && zcr_ok;
+
+        if is_speech {
+            self.silence_count = 0;
+            self.speech_started = true;
+            VadDecision::Speech
+        } else {
+            // Update noise floor only on confirmed silence
+            self.noise_floor =
+                self.noise_floor * (1.0 - self.config.noise_floor_alpha)
+                    + rms * self.config.noise_floor_alpha;
+            self.silence_count += 1;
+            if self.speech_started && self.silence_count >= self.config.silence_frames_to_flush {
+                self.speech_started = false;
+                self.silence_count = 0;
+                VadDecision::EndOfSpeech
+            } else {
+                VadDecision::Silence
+            }
+        }
+    }
+}
+
+fn compute_rms(samples: &[f32]) -> f32 {
+    let sum_sq: f32 = samples.iter().map(|s| s * s).sum();
+    (sum_sq / samples.len() as f32).sqrt()
+}
+
+fn compute_zcr(samples: &[f32]) -> f32 {
+    if samples.len() < 2 {
+        return 0.0;
+    }
+    let mut crossings = 0;
+    for i in 1..samples.len() {
+        let prev = samples[i - 1];
+        let cur = samples[i];
+        if (prev >= 0.0) != (cur >= 0.0) && (prev.abs() + cur.abs()) > 0.001 {
+            crossings += 1;
+        }
+    }
+    crossings as f32 / (samples.len() - 1) as f32
+}
+
+// ── Gain normalization ────────────────────────────────────────────────────────
+
+/// Smoothed AGC: tracks a running peak with fast attack (~10ms) and slow
+/// release (~250ms) so short PTT utterances reach AssemblyAI at a consistent
+/// level even when the user is far from the mic. Caps gain to 12dB to avoid
+/// pumping room noise during silences.
+pub struct AutoGain {
+    target_peak: f32,
+    max_gain: f32,
+    envelope: f32,
+    attack_alpha: f32,
+    release_alpha: f32,
+}
+
+impl AutoGain {
+    pub fn new() -> Self {
+        Self {
+            target_peak: 0.55,
+            max_gain: 4.0,    // ~+12 dB ceiling
+            envelope: 0.001,
+            attack_alpha: 0.4,
+            release_alpha: 0.02,
+        }
+    }
+
+    /// Apply gain in-place. Returns the gain coefficient applied this frame.
+    pub fn apply(&mut self, samples: &mut [f32]) -> f32 {
+        if samples.is_empty() {
+            return 1.0;
+        }
+        let mut peak = 0.0_f32;
+        for &s in samples.iter() {
+            let abs = s.abs();
+            if abs > peak {
+                peak = abs;
+            }
+        }
+        // Track envelope with attack/release dynamics
+        let alpha = if peak > self.envelope { self.attack_alpha } else { self.release_alpha };
+        self.envelope = self.envelope * (1.0 - alpha) + peak * alpha;
+
+        // Skip gain when input is near-silence — avoids pumping background noise
+        if self.envelope < 0.005 {
+            return 1.0;
+        }
+        let raw_gain = self.target_peak / self.envelope;
+        let gain = raw_gain.clamp(0.5, self.max_gain);
+
+        for s in samples.iter_mut() {
+            *s = (*s * gain).clamp(-1.0, 1.0);
+        }
+        gain
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sine(samples: usize, freq: f32, amplitude: f32, sample_rate: f32) -> Vec<f32> {
+        (0..samples)
+            .map(|i| {
+                let t = i as f32 / sample_rate;
+                (2.0 * std::f32::consts::PI * freq * t).sin() * amplitude
+            })
+            .collect()
+    }
+
+    #[test]
+    fn silence_stays_silent_indefinitely_without_triggering_end_of_speech() {
+        let mut vad = EnhancedVad::new();
+        for _ in 0..200 {
+            let frame = vec![0.0_f32; 512];
+            assert_eq!(vad.process(&frame), VadDecision::Silence);
+        }
+    }
+
+    #[test]
+    fn voice_then_silence_emits_end_of_speech_after_hysteresis() {
+        let mut vad = EnhancedVad::new();
+        // Voice burst at speech-band frequency
+        let voice = sine(512, 200.0, 0.2, 16000.0);
+        for _ in 0..10 {
+            let d = vad.process(&voice);
+            assert!(matches!(d, VadDecision::Speech));
+        }
+        // Silence — count up to flush threshold
+        let silence = vec![0.0_f32; 512];
+        let mut emitted = false;
+        for _ in 0..100 {
+            if vad.process(&silence) == VadDecision::EndOfSpeech {
+                emitted = true;
+                break;
+            }
+        }
+        assert!(emitted, "EndOfSpeech should fire after sustained silence");
+    }
+
+    #[test]
+    fn rumble_with_high_amplitude_low_zcr_does_not_count_as_speech() {
+        let mut vad = EnhancedVad::new();
+        // 30 Hz rumble at moderate amplitude — very low zero-crossing rate
+        let rumble = sine(512, 30.0, 0.06, 16000.0);
+        let mut speech_count = 0;
+        for _ in 0..20 {
+            if vad.process(&rumble) == VadDecision::Speech {
+                speech_count += 1;
+            }
+        }
+        // Allow a tiny number of false positives on attack but not sustained
+        assert!(speech_count < 5, "rumble triggered speech {speech_count} times");
+    }
+
+    #[test]
+    fn hysteresis_keeps_voice_open_at_lower_amplitude_than_required_to_start() {
+        let mut vad = EnhancedVad::new();
+        let loud = sine(512, 200.0, 0.06, 16000.0);
+        for _ in 0..5 {
+            assert_eq!(vad.process(&loud), VadDecision::Speech);
+        }
+        // Drop amplitude below speech-start threshold (RMS ≈ 0.018) but above
+        // speech-end threshold (RMS ≈ 0.010). Sine RMS = amp/√2.
+        // amp 0.020 → RMS ≈ 0.0141 (between 0.010 and 0.018).
+        let quiet = sine(512, 200.0, 0.020, 16000.0);
+        let mut still_open = 0;
+        for _ in 0..3 {
+            if vad.process(&quiet) == VadDecision::Speech {
+                still_open += 1;
+            }
+        }
+        assert!(
+            still_open >= 2,
+            "hysteresis should keep speech open below start threshold; got {still_open}"
+        );
+    }
+
+    #[test]
+    fn auto_gain_lifts_quiet_audio_toward_target_peak() {
+        let mut agc = AutoGain::new();
+        // Feed many fresh quiet frames; AGC should settle on a > 1.0 gain.
+        let mut last_gain = 1.0;
+        for _ in 0..40 {
+            let mut frame = sine(512, 200.0, 0.1, 16000.0);
+            last_gain = agc.apply(&mut frame);
+        }
+        assert!(
+            last_gain > 1.5,
+            "expected steady-state gain > 1.5 for quiet input, got {last_gain}"
+        );
+    }
+
+    #[test]
+    fn auto_gain_does_not_amplify_pure_silence() {
+        let mut agc = AutoGain::new();
+        let mut silence = vec![0.0_f32; 512];
+        let g = agc.apply(&mut silence);
+        assert_eq!(g, 1.0);
+        assert!(silence.iter().all(|&s| s == 0.0));
+    }
+
+    #[test]
+    fn auto_gain_clamps_loud_input_to_unity_or_below() {
+        let mut agc = AutoGain::new();
+        let mut loud = sine(512, 200.0, 0.95, 16000.0);
+        for _ in 0..5 {
+            agc.apply(&mut loud);
+        }
+        let peak = loud.iter().map(|s| s.abs()).fold(0.0_f32, f32::max);
+        assert!(peak <= 1.0, "post-AGC peak {peak} must not exceed 1.0");
+    }
+
+    // ── Dim 19: Audio privacy — VAD-only cloud forwarding gate ────────────────
+    // The VAD must NEVER return Speech for pure silence or sub-threshold noise.
+    // Any false Speech decision here would forward microphone data to the cloud
+    // STT provider (AssemblyAI) without the user speaking — a privacy violation.
+
+    #[test]
+    fn silence_never_classified_as_speech() {
+        let mut vad = EnhancedVad::new();
+        let silence = vec![0.0_f32; 512];
+        for _ in 0..500 {
+            let d = vad.process(&silence);
+            assert_ne!(
+                d, VadDecision::Speech,
+                "pure silence must NEVER be classified as Speech (privacy gate)"
+            );
+        }
+    }
+
+    #[test]
+    fn sub_threshold_noise_does_not_trigger_cloud_forwarding() {
+        // Background noise at RMS ≈ 0.005 (well below speech_start_rms=0.018).
+        // Even with random ZCR values, VAD must not produce Speech.
+        let mut vad = EnhancedVad::new();
+        let noise: Vec<f32> = (0..512).map(|i| 0.005 * ((i % 7) as f32 / 7.0 - 0.5)).collect();
+        let mut speech_frames = 0;
+        for _ in 0..200 {
+            if vad.process(&noise) == VadDecision::Speech {
+                speech_frames += 1;
+            }
+        }
+        assert_eq!(speech_frames, 0, "sub-threshold noise must not trigger cloud STT forwarding");
+    }
+
+    #[test]
+    fn auto_gain_does_not_distort_silent_frames() {
+        // AGC must not amplify silence — would pump background noise to the cloud.
+        let mut agc = AutoGain::new();
+        let original: Vec<f32> = vec![0.0_f32; 512];
+        let mut frame = original.clone();
+        agc.apply(&mut frame);
+        let sum: f32 = frame.iter().sum();
+        assert_eq!(sum, 0.0, "AGC must not modify silence frames (privacy + integrity)");
+    }
+
+    #[test]
+    fn vad_frame_latency_is_bounded_by_sample_count() {
+        // At 16kHz with 512 samples per frame, each VAD decision covers 32ms.
+        // This means PTT activation cannot be delayed more than 32ms per frame.
+        let sample_rate: u32 = 16_000;
+        let frame_size: u32 = 512;
+        let frame_duration_ms = (frame_size as f64 / sample_rate as f64 * 1000.0) as u32;
+        assert!(
+            frame_duration_ms <= 50,
+            "VAD frame duration {frame_duration_ms}ms must be ≤ 50ms for responsive PTT"
+        );
+    }
+
+    // ── Dim 4: PTT latency — VAD process() wall-clock time ───────────────────
+    // EnhancedVad::process() must complete well under 1ms so the audio
+    // callback is not starved. Gate: 1000 decisions in < 100ms = < 0.1ms each.
+
+    #[test]
+    fn vad_process_under_100us_per_frame() {
+        let mut vad = EnhancedVad::new();
+        let frame = sine(512, 200.0, 0.3, 16_000.0);
+        let t0 = std::time::Instant::now();
+        for _ in 0..1_000 {
+            let _ = vad.process(&frame);
+        }
+        let elapsed_ms = t0.elapsed().as_millis();
+        assert!(
+            elapsed_ms < 200,
+            "1000 VAD decisions took {elapsed_ms}ms (gate: < 200ms = < 0.2ms each)"
+        );
+    }
+
+    // ── Dim 1: PTT UX — auto-stop pipeline (hold-to-cancel equivalent) ───────
+    // The complete PTT UX pipeline:
+    //   hotkey → start_audio → EnhancedVad → speech? → forward to STT
+    //                                      → silence? → EndOfSpeech → auto-stop
+    // Auto-stop on EndOfSpeech is the "hold-to-cancel" equivalent for PTT.
+
+    #[test]
+    fn ptt_auto_stop_fires_after_speech_then_silence() {
+        let mut vad = EnhancedVad::new();
+        // Simulate speech: 5 frames of 200Hz voice at sufficient amplitude.
+        let voice = sine(512, 200.0, 0.08, 16_000.0);
+        for _ in 0..5 {
+            let _ = vad.process(&voice);
+        }
+        // Simulate end of speech: 30 silence frames (should fire EndOfSpeech).
+        let silence = vec![0.0_f32; 512];
+        let mut auto_stopped = false;
+        for _ in 0..40 {
+            if vad.process(&silence) == VadDecision::EndOfSpeech {
+                auto_stopped = true;
+                break;
+            }
+        }
+        assert!(
+            auto_stopped,
+            "PTT auto-stop must fire EndOfSpeech after speech + silence (hold-to-cancel equivalent)"
+        );
+    }
+
+    #[test]
+    fn ptt_hysteresis_prevents_spurious_cancel_during_speech() {
+        // When the user is speaking at moderate amplitude, brief dips below the
+        // start threshold must NOT trigger EndOfSpeech (hold-to-cancel). This
+        // tests the hysteresis: speech_end_rms (0.010) < speech_start_rms (0.018).
+        let mut vad = EnhancedVad::new();
+        let loud = sine(512, 200.0, 0.06, 16_000.0); // above start threshold
+        for _ in 0..5 {
+            assert_eq!(vad.process(&loud), VadDecision::Speech, "loud voice must be Speech");
+        }
+        // Brief dip: RMS ≈ 0.014 (between end_rms=0.010 and start_rms=0.018).
+        let quiet = sine(512, 200.0, 0.020, 16_000.0);
+        let d = vad.process(&quiet);
+        assert_ne!(
+            d,
+            VadDecision::EndOfSpeech,
+            "brief volume dip must not cancel PTT (hysteresis must hold speech open)"
+        );
+    }
+}

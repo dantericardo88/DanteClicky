@@ -1,0 +1,109 @@
+project: DanteClicky
+lastHandoff: initialized
+workflowStage: initialized
+currentPhase: 0
+tasks: {}
+auditLog:
+  - "2026-05-05T19:54:16.858Z | mcp: score_all"
+  - "2026-05-05T19:56:33.724Z | mcp: score_all"
+  - "2026-05-05T19:56:34.051Z | mcp: state read"
+  - "2026-05-06 | codex: root state points agents to dante-clicky-windows
+    canonical 50-dimension score matrix; current harsh score 7.0/10"
+  - "2026-05-07 | codex: root state synced to dante-clicky-windows canonical
+    matrix after Dim 33 preference learning was harshly corrected to 8.0
+    pre-sprint and hardened to 9.1; current rounded harsh score remains 7.20/10"
+  - "2026-05-08T10:53:50.063Z | llm: ollama/qwen2.5-coder:latest (162 chars
+    returned)"
+  - "2026-05-08T11:02:17.881Z | mcp: state read"
+  - "2026-05-08T11:09:24.297Z | mcp: state read"
+  - "2026-05-08T11:09:42.550Z | llm: ollama/qwen2.5-coder:latest (181 chars
+    returned)"
+  - "2026-05-08T11:09:56.861Z | llm: ollama/qwen2.5-coder:latest (163 chars
+    returned)"
+  - "2026-05-08T11:10:02.572Z | llm: ollama/qwen2.5-coder:latest (191 chars
+    returned)"
+  - "2026-05-08T11:10:08.172Z | llm: ollama/qwen2.5-coder:latest (187 chars
+    returned)"
+  - "2026-05-08T11:10:20.694Z | llm: ollama/qwen2.5-coder:latest (264 chars
+    returned)"
+  - "2026-05-08T11:10:28.058Z | llm: ollama/qwen2.5-coder:latest (168 chars
+    returned)"
+  - "2026-05-08T11:10:35.495Z | llm: ollama/qwen2.5-coder:latest (200 chars
+    returned)"
+  - "2026-05-08T11:10:40.483Z | llm: ollama/qwen2.5-coder:latest (171 chars
+    returned)"
+  - "2026-05-08T11:10:45.656Z | llm: ollama/qwen2.5-coder:latest (169 chars
+    returned)"
+  - "2026-05-08T11:10:50.692Z | llm: ollama/qwen2.5-coder:latest (190 chars
+    returned)"
+  - "2026-05-08T11:10:55.501Z | llm: ollama/qwen2.5-coder:latest (144 chars
+    returned)"
+  - "2026-05-08T11:11:02.866Z | llm: ollama/qwen2.5-coder:latest (223 chars
+    returned)"
+  - "2026-05-08T11:11:07.437Z | llm: ollama/qwen2.5-coder:latest (201 chars
+    returned)"
+  - "2026-05-08T11:11:12.249Z | llm: ollama/qwen2.5-coder:latest (204 chars
+    returned)"
+  - "2026-05-08T11:11:19.590Z | llm: ollama/qwen2.5-coder:latest (249 chars
+    returned)"
+  - "2026-05-08T11:11:26.942Z | llm: ollama/qwen2.5-coder:latest (158 chars
+    returned)"
+  - "2026-05-08T11:11:33.232Z | llm: ollama/qwen2.5-coder:latest (181 chars
+    returned)"
+  - "2026-05-08T11:11:39.015Z | llm: ollama/qwen2.5-coder:latest (287 chars
+    returned)"
+  - "2026-05-08T11:11:44.468Z | llm: ollama/qwen2.5-coder:latest (250 chars
+    returned)"
+  - "2026-05-08T11:11:52.629Z | llm: ollama/qwen2.5-coder:latest (250 chars
+    returned)"
+  - "2026-05-08T13:43:01.921Z | mcp: score_all"
+  - "2026-05-08T17:08:43.369Z | mcp: state read"
+  - "2026-05-08T17:25:26.520Z | mcp: state read"
+  - "2026-05-08T17:48:59.972Z | mcp: score_all"
+  - "2026-05-08T18:02:50.396Z | llm: ollama/qwen2.5-coder:latest (268 chars
+    returned)"
+  - "2026-05-08T18:02:53.189Z | llm: ollama/qwen2.5-coder:latest (165 chars
+    returned)"
+  - "2026-05-08T18:02:57.169Z | llm: ollama/qwen2.5-coder:latest (299 chars
+    returned)"
+  - "2026-05-08T18:02:59.643Z | llm: ollama/qwen2.5-coder:latest (125 chars
+    returned)"
+  - "2026-05-08T18:03:02.420Z | llm: ollama/qwen2.5-coder:latest (140 chars
+    returned)"
+  - "2026-05-08T18:03:05.676Z | llm: ollama/qwen2.5-coder:latest (200 chars
+    returned)"
+  - "2026-05-08T18:03:08.618Z | llm: ollama/qwen2.5-coder:latest (162 chars
+    returned)"
+  - "2026-05-08T18:03:12.818Z | llm: ollama/qwen2.5-coder:latest (298 chars
+    returned)"
+  - "2026-05-08T18:03:16.907Z | llm: ollama/qwen2.5-coder:latest (261 chars
+    returned)"
+  - "2026-05-08T18:03:20.410Z | llm: ollama/qwen2.5-coder:latest (229 chars
+    returned)"
+  - "2026-05-08T18:03:23.266Z | llm: ollama/qwen2.5-coder:latest (149 chars
+    returned)"
+  - "2026-05-08T18:03:27.973Z | llm: ollama/qwen2.5-coder:latest (339 chars
+    returned)"
+  - "2026-05-08T18:03:32.386Z | llm: ollama/qwen2.5-coder:latest (265 chars
+    returned)"
+  - "2026-05-08T18:03:36.039Z | llm: ollama/qwen2.5-coder:latest (194 chars
+    returned)"
+  - "2026-05-08T18:03:39.676Z | llm: ollama/qwen2.5-coder:latest (161 chars
+    returned)"
+  - "2026-05-08T18:03:42.696Z | llm: ollama/qwen2.5-coder:latest (145 chars
+    returned)"
+  - "2026-05-08T18:03:46.800Z | llm: ollama/qwen2.5-coder:latest (183 chars
+    returned)"
+  - "2026-05-08T18:03:51.696Z | llm: ollama/qwen2.5-coder:latest (262 chars
+    returned)"
+  - "2026-05-08T18:03:56.718Z | llm: ollama/qwen2.5-coder:latest (213 chars
+    returned)"
+  - "2026-05-08T18:04:01.573Z | llm: ollama/qwen2.5-coder:latest (247 chars
+    returned)"
+  - "2026-05-08T18:05:13.473Z | mcp: score_all"
+profile: balanced
+enforcementMode: strict
+projectType: unknown
+selfEditPolicy: deny
+maxBudgetUsd: 10
+routingAggressiveness: balanced

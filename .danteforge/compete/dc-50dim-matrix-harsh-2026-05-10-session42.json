@@ -1,0 +1,44 @@
+{
+  "snapshot_purpose": "Session 42 harsh rescore archive. Cross-agent reference. 2026-05-10.",
+  "snapshot_date": "2026-05-10T14:00:00.000Z",
+  "previous_composite": 8.49,
+  "harsh_composite": 8.36,
+  "delta": -0.13,
+  "inflation_findings_count": 5,
+  "summary": "Found 5 inflated dims. Biggest: Dim 29 Local vision 8->6 (own JSON gate says '0 measured predictions' — scaffolding, not shipping). Dim 9 Wake word 9->7 (no accuracy benchmark, just opt-in monitor). Dim 38 Ambient 9->8.5 (Screenpipe 24/7 moat still partially real). Dim 19 Privacy 9->8 (no documented change). Dim 42 Error handling 9->8 (no documented change). Lead over Screenpipe drops +2.86->+2.72 but dominance intact.",
+  "inflation_corrections": [
+    { "dim": 9,  "name": "Wake word / always-on",   "before": 9,   "after": 7,   "reason": "No accuracy benchmark. Opt-in local monitor exists, FPR/latency/sleep-wake unproven." },
+    { "dim": 19, "name": "Privacy controls",          "before": 9,   "after": 8,   "reason": "No documented change from 8. Same tier as Pluely/UI-TARS/OpenI/Goose." },
+    { "dim": 29, "name": "Local vision model",        "before": 8,   "after": 6,   "reason": "0 measured local predictions per own gate note. Cannot claim 8 for unproven grounding." },
+    { "dim": 38, "name": "Ambient / always-on UX",    "before": 9,   "after": 8.5, "reason": "Screenpipe 24/7 recording moat still real. DC fires on schedule, not always-on OS service." },
+    { "dim": 42, "name": "Error handling",            "before": 9,   "after": 8,   "reason": "No documented change from 8. Backoff retry is solid but 9 needs more error-state coverage." }
+  ],
+  "next_4_priorities": [
+    { "rank": 1, "dim": 2,  "name": "STT cloud accuracy",    "lift": "7->9", "composite_impact": "+0.04", "effort_days": "0.5 verify or 2 implement", "note": "dim2_completion.md documents 6-layer pipeline with WER bench. Verify code exists, claim credit." },
+    { "rank": 2, "dim": 8,  "name": "Multilingual support",  "lift": "7->9", "composite_impact": "+0.04", "effort_days": "0.5 verify or 2 implement", "note": "dim8_completion.md documents smart TTS model selection, voice-language filtering. Verify code exists." },
+    { "rank": 3, "dim": 29, "name": "Local vision model",    "lift": "6->8", "composite_impact": "+0.04", "effort_days": "2-3", "note": "Run 50-fixture Moondream2 benchmark. Need >=70% within 50px, p95 latency, production [POINT:x,y] telemetry." },
+    { "rank": 4, "dim": 9,  "name": "Wake word benchmark",   "lift": "7->9", "composite_impact": "+0.04", "effort_days": "2",   "note": "Measure FPR <1%, detection latency <500ms, multi-app mic-conflict, sleep/wake reliability." }
+  ],
+  "total_potential": "+0.16 -> 8.52/10",
+  "domain_summary": {
+    "Voice": { "DC": 8.1,  "delta": -0.2,  "lead_over_nearest": "+2.20 vs Clicky macOS 5.9" },
+    "Screen": { "DC": 8.25, "delta": -0.1,  "lead_over_nearest": "+0.85 vs Screenpipe 7.4" },
+    "Computer Use": { "DC": 8.35, "delta": -0.2,  "lead_over_nearest": "+0.55 vs UI-TARS 7.8 (WATCH)" },
+    "Memory": { "DC": 9.0,  "delta": 0,     "lead_over_nearest": "+1.33 vs Screenpipe 7.67 DOMINANT" },
+    "UX": { "DC": 8.5,  "delta": -0.19, "lead_over_nearest": "+1.50 vs Cluely 7.0" },
+    "Platform": { "DC": 8.2,  "delta": 0,     "lead_over_nearest": "+1.20 vs Screenpipe 7.0" }
+  },
+  "competitor_composites": {
+    "DanteClicky": 8.36,
+    "Screenpipe": 5.64,
+    "UI-TARS Desktop": 5.32,
+    "Clicky macOS": 5.24,
+    "Cluely": 5.12,
+    "Raycast AI": 4.96,
+    "Goose (Block)": 4.8,
+    "Pluely": 4.62,
+    "Open Interpreter": 4.52,
+    "Wispr Flow": 4.2
+  },
+  "see_full_matrix": ".danteforge/compete/dc-50dim-matrix.json"
+}

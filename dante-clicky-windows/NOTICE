@@ -1,0 +1,51 @@
+DanteClicky — Windows AI Companion
+Copyright (c) 2025 DanteForge Contributors
+Licensed under the MIT License (see LICENSE file)
+
+---
+
+This product includes software developed by third parties.
+The following notice is provided in compliance with the licenses of those components.
+
+APACHE 2.0 COMPONENTS
+The following components are licensed under the Apache License, Version 2.0:
+- Tauri (tauri-apps/tauri) — https://github.com/tauri-apps/tauri
+- React (facebook/react) — https://github.com/facebook/react
+- Vercel AI SDK (@ai-sdk/*) — https://github.com/vercel/ai
+- Hugging Face Transformers (@huggingface/transformers) — https://github.com/huggingface/transformers.js
+- Axum (tokio-rs/axum) — https://github.com/tokio-rs/axum
+- Tokio (tokio-rs/tokio) — https://github.com/tokio-rs/tokio
+- Candle (huggingface/candle) — https://github.com/huggingface/candle
+- ORT (ONNX Runtime) — https://github.com/microsoft/onnxruntime
+
+For the full text of the Apache License 2.0, see:
+https://opensource.org/licenses/Apache-2.0
+
+MODIFICATIONS TO APACHE 2.0 COMPONENTS
+DanteClicky does not modify any Apache 2.0 licensed components.
+All Apache 2.0 components are used in unmodified form as distributed by their respective authors.
+
+MIT COMPONENTS
+The following components are licensed under the MIT License:
+- Zustand (pmndrs/zustand) — https://github.com/pmndrs/zustand
+- React DOM (facebook/react) — https://github.com/facebook/react
+- React Markdown (remarkjs/react-markdown) — https://github.com/remarkjs/react-markdown
+- TypeScript (microsoft/TypeScript) — https://github.com/microsoft/TypeScript
+- Vite (vitejs/vite) — https://github.com/vitejs/vite
+- And numerous other MIT-licensed dependencies in package.json and Cargo.toml
+
+For the full text of the MIT License, see:
+https://opensource.org/licenses/MIT
+
+THIRD-PARTY ATTRIBUTE NOTICES
+Some components include additional attribution requirements.
+Specific notices are included in their respective LICENSE files within node_modules and the Rust target directory.
+
+DEPENDENCY AUDIT
+This project uses cargo-deny to audit and enforce allowed licenses.
+See deny.toml for the comprehensive license policy.
+
+For a complete and detailed list of all dependencies and their licenses,
+see the LICENSE section of README.md or run:
+  npm list --all (for npm dependencies)
+  cargo tree (for Rust dependencies)

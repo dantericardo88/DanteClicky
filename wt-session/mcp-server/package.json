@@ -1,0 +1,14 @@
+{
+  "name": "dante-clicky-mcp",
+  "version": "1.0.0",
+  "description": "DanteClicky MCP server — screen capture, computer use, and voice for Claude Desktop",
+  "type": "module",
+  "main": "index.js",
+  "bin": { "dante-clicky-mcp": "./index.js" },
+  "scripts": { "start": "node index.js" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "ws": "^8.18.0",
+    "zod": "^3.23.0"
+  }
+}

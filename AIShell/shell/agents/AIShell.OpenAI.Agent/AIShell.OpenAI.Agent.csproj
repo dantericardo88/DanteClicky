@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+
+    <!-- Disable deps.json generation -->
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <!-- Disable PDB generation for the Release build -->
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>None</DebugType>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'StaticAnalysis' ">
+    <Optimize>true</Optimize>
+    <!-- This is required to be full for compliance tools !-->
+    <DebugType>full</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Disable reflection for System.Text.Json  -->
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.2.0-beta.4" />
+    <PackageReference Include="Azure.Identity" Version="1.15.0" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="9.6.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="9.6.0-preview.1.25310.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\AIShell.Abstraction\AIShell.Abstraction.csproj">
+      <!-- Disable copying AIShell.Abstraction.dll to output folder -->
+      <Private>false</Private>
+      <!-- Disable copying the transitive dependencies to output folder -->
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>
